@@ -126,18 +126,24 @@ class CourseCRUD:
             return []
 
     async def create_course(self, course: CourseCreate) -> Optional[dict]:
+        """✅ FIXED: Using .dict() instead of .model_dump() for Pydantic v1"""
+        print(f"🔧 CREATE_DEBUG: Starting create_course")
+        
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
             
         try:
             db = await self._get_db()
-            # Convert CourseCreate to dict, excluding unset values
-            course_dict = course.model_dump(exclude_unset=True)
+            
+            # ✅ FIX: Use .dict() for Pydantic v1.10.13
+            course_dict = course.dict(exclude_unset=True)
+            print(f"🔧 CREATE_DEBUG: Course data converted to dict: {course_dict}")
             
             # Handle instructor_id conversion
             if course.instructor_id:
                 course_dict["instructor_id"] = ObjectId(course.instructor_id)
+                print(f"🔧 CREATE_DEBUG: Converted instructor_id to ObjectId")
             
             # Set timestamps and default values
             course_dict["created_at"] = datetime.utcnow()
@@ -145,19 +151,30 @@ class CourseCRUD:
             course_dict["is_active"] = course_dict.get("is_active", True)
             course_dict["is_public"] = course_dict.get("is_public", False)
             
+            print(f"🔧 CREATE_DEBUG: Final course data for insertion: {course_dict}")
+            
             result = await db.courses.insert_one(course_dict)
+            print(f"🔧 CREATE_DEBUG: MongoDB insert result: {result.inserted_id}")
+            
             created_course = await db.courses.find_one({"_id": result.inserted_id})
             
             if created_course:
                 # Convert all ObjectIds to strings for response
-                return self._convert_objectids_to_strings(created_course)
+                converted_course = self._convert_objectids_to_strings(created_course)
+                print(f"🔧 CREATE_DEBUG: Successfully created course: {converted_course.get('title', 'No title')}")
+                return converted_course
+            
+            print(f"❌ CREATE_DEBUG: Failed to retrieve created course")
             return None
+            
         except Exception as e:
-            print(f"Error creating course: {e}")
+            print(f"❌ CREATE_DEBUG: Error creating course: {e}")
+            import traceback
+            print(f"❌ CREATE_DEBUG: Traceback: {traceback.format_exc()}")
             return None
 
     async def update_course(self, course_id: str, course_update: CourseUpdate) -> Optional[dict]:
-        """✅ FIXED VERSION with debugging and proper model conversion"""
+        """✅ FIXED VERSION with debugging and proper model conversion for Pydantic v1"""
         print(f"🔧 UPDATE_DEBUG: Starting update_course for ID: {course_id}")
         
         if not await self._is_connected():
@@ -172,24 +189,9 @@ class CourseCRUD:
             print(f"🔧 UPDATE_DEBUG: CourseUpdate type: {type(course_update)}")
             print(f"🔧 UPDATE_DEBUG: CourseUpdate attributes: {dir(course_update)}")
             
-            # ✅ FIX: Try different model conversion methods
-            update_data = {}
-            
-            try:
-                # First try model_dump (Pydantic v2)
-                update_data = course_update.model_dump(exclude_unset=True)
-                print("✅ UPDATE_DEBUG: Used .model_dump() method successfully")
-            except AttributeError as e1:
-                print(f"❌ UPDATE_DEBUG: .model_dump() failed: {e1}")
-                try:
-                    # Try dict() method (Pydantic v1)
-                    update_data = course_update.dict(exclude_unset=True)
-                    print("✅ UPDATE_DEBUG: Used .dict() method successfully")
-                except AttributeError as e2:
-                    print(f"❌ UPDATE_DEBUG: .dict() failed: {e2}")
-                    # Fallback: manual conversion
-                    update_data = {k: v for k, v in course_update.__dict__.items() if v is not None}
-                    print("✅ UPDATE_DEBUG: Used manual __dict__ conversion")
+            # ✅ FIX: Use .dict() for Pydantic v1.10.13
+            update_data = course_update.dict(exclude_unset=True)
+            print("✅ UPDATE_DEBUG: Used .dict() method successfully for Pydantic v1")
             
             # Filter out None values
             update_data = {k: v for k, v in update_data.items() if v is not None}
@@ -288,7 +290,8 @@ class CourseCRUD:
             
         try:
             db = await self._get_db()
-            update_data = {k: v for k, v in enrollment_update.model_dump(exclude_unset=True).items() if v is not None}
+            # ✅ FIX: Use .dict() for Pydantic v1
+            update_data = {k: v for k, v in enrollment_update.dict(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = datetime.utcnow()  # Add updated_at
             
             result = await db.enrollments.find_one_and_update(
