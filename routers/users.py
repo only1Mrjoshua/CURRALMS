@@ -111,21 +111,35 @@ async def login(
     password_verified = False
     try:
         # Import bcrypt directly
-        from passlib.hash import bcrypt
+        import bcrypt as bcrypt_lib
         
-        # Truncate password if it's too long for bcrypt (72 bytes max)
-        password_to_check = form_data.password
-        if len(password_to_check.encode('utf-8')) > 72:
-            print("⚠️ Password too long, truncating to 72 bytes")
-            password_to_check = password_to_check[:72]
-            
-        # Verify using bcrypt
-        password_verified = bcrypt.verify(password_to_check, user.password_hash)
+        # Convert password to bytes and truncate properly
+        password_bytes = form_data.password.encode('utf-8')
+        if len(password_bytes) > 72:
+            print(f"⚠️ Password too long ({len(password_bytes)} bytes), truncating to 72 bytes")
+            password_bytes = password_bytes[:72]
+        
+        # Convert the stored hash from string to bytes
+        stored_hash_bytes = user.password_hash.encode('utf-8')
+        
+        # Verify using bcrypt library directly (bypass passlib issues)
+        password_verified = bcrypt_lib.checkpw(password_bytes, stored_hash_bytes)
         print(f"🔑 Password verification result: {password_verified}")
         
     except Exception as e:
-        print(f"❌ Password verification error: {e}")
-        password_verified = False
+        print(f"❌ Password verification error: {str(e)}")
+        # Fallback: try the original verify_password function
+        try:
+            from utils.security import verify_password
+            # Make sure the password is truncated for the fallback
+            truncated_password = form_data.password
+            if len(truncated_password.encode('utf-8')) > 72:
+                truncated_password = truncated_password[:72]
+            password_verified = verify_password(truncated_password, user.password_hash)
+            print(f"🔑 Fallback verification result: {password_verified}")
+        except Exception as fallback_error:
+            print(f"❌ Fallback verification also failed: {fallback_error}")
+            password_verified = False
 
     if not password_verified:
         raise HTTPException(

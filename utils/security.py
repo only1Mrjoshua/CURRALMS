@@ -1,29 +1,41 @@
 # utils/security.py
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt  # Use bcrypt directly instead of passlib
 
 # Secret key for JWT - change this in production!
 SECRET_KEY = "fhu5a0PfLz0zCKHk4Xg14Lk9jKMG2E5bTnh6aZp3NfE6d6shbw2"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
-# Password context with bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt with length handling"""
-    # Truncate password if it's too long for bcrypt (72 bytes max)
-    if len(password.encode('utf-8')) > 72:
-        password = password[:72]
-    return pwd_context.hash(password)
+    # Convert to bytes and truncate if too long
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    
+    # Hash using bcrypt directly
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash using bcrypt with length handling"""
-    # Truncate password if it's too long for bcrypt (72 bytes max)
-    if len(plain_password.encode('utf-8')) > 72:
-        plain_password = plain_password[:72]
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        # Convert to bytes and truncate if too long
+        password_bytes = plain_password.encode('utf-8')
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+        
+        # Convert stored hash to bytes
+        hash_bytes = hashed_password.encode('utf-8')
+        
+        # Verify using bcrypt directly
+        return bcrypt.checkpw(password_bytes, hash_bytes)
+    except Exception as e:
+        print(f"❌ Password verification error: {e}")
+        return False
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
