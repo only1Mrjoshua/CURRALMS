@@ -157,14 +157,53 @@ class CourseCRUD:
             return None
 
     async def update_course(self, course_id: str, course_update: CourseUpdate) -> Optional[dict]:
+        """✅ FIXED VERSION with debugging and proper model conversion"""
+        print(f"🔧 UPDATE_DEBUG: Starting update_course for ID: {course_id}")
+        
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
             
         try:
             db = await self._get_db()
-            update_data = {k: v for k, v in course_update.model_dump(exclude_unset=True).items() if v is not None}
+            
+            # ✅ DEBUG: Check the CourseUpdate object
+            print(f"🔧 UPDATE_DEBUG: CourseUpdate object: {course_update}")
+            print(f"🔧 UPDATE_DEBUG: CourseUpdate type: {type(course_update)}")
+            print(f"🔧 UPDATE_DEBUG: CourseUpdate attributes: {dir(course_update)}")
+            
+            # ✅ FIX: Try different model conversion methods
+            update_data = {}
+            
+            try:
+                # First try model_dump (Pydantic v2)
+                update_data = course_update.model_dump(exclude_unset=True)
+                print("✅ UPDATE_DEBUG: Used .model_dump() method successfully")
+            except AttributeError as e1:
+                print(f"❌ UPDATE_DEBUG: .model_dump() failed: {e1}")
+                try:
+                    # Try dict() method (Pydantic v1)
+                    update_data = course_update.dict(exclude_unset=True)
+                    print("✅ UPDATE_DEBUG: Used .dict() method successfully")
+                except AttributeError as e2:
+                    print(f"❌ UPDATE_DEBUG: .dict() failed: {e2}")
+                    # Fallback: manual conversion
+                    update_data = {k: v for k, v in course_update.__dict__.items() if v is not None}
+                    print("✅ UPDATE_DEBUG: Used manual __dict__ conversion")
+            
+            # Filter out None values
+            update_data = {k: v for k, v in update_data.items() if v is not None}
             update_data["updated_at"] = datetime.utcnow()
+            
+            print(f"🔧 UPDATE_DEBUG: Final update data: {update_data}")
+            
+            # Handle ObjectId conversions for specific fields
+            if 'instructor_id' in update_data and update_data['instructor_id']:
+                try:
+                    update_data['instructor_id'] = ObjectId(update_data['instructor_id'])
+                    print(f"🔧 UPDATE_DEBUG: Converted instructor_id to ObjectId")
+                except Exception as e:
+                    print(f"❌ UPDATE_DEBUG: Failed to convert instructor_id: {e}")
             
             result = await db.courses.find_one_and_update(
                 {"_id": ObjectId(course_id)},
@@ -172,12 +211,21 @@ class CourseCRUD:
                 return_document=ReturnDocument.AFTER
             )
             
+            print(f"🔧 UPDATE_DEBUG: MongoDB update result: {result}")
+            
             if result:
                 # Convert all ObjectIds to strings
-                return self._convert_objectids_to_strings(result)
+                converted_result = self._convert_objectids_to_strings(result)
+                print(f"🔧 UPDATE_DEBUG: Successfully updated course: {converted_result.get('title', 'No title')}")
+                return converted_result
+            
+            print(f"❌ UPDATE_DEBUG: No course found with ID: {course_id}")
             return None
+            
         except Exception as e:
-            print(f"Error updating course: {e}")
+            print(f"❌ UPDATE_DEBUG: Error updating course: {str(e)}")
+            import traceback
+            print(f"❌ UPDATE_DEBUG: Traceback: {traceback.format_exc()}")
             return None
 
     async def delete_course(self, course_id: str) -> bool:

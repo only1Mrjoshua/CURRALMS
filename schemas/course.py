@@ -1,4 +1,3 @@
-# schemas/course.py
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import datetime
@@ -78,19 +77,28 @@ class QuizCreate(BaseModel):
     max_attempts: int = 1
     order_index: int = 0
 
-# Update schemas
+# Update schemas - ✅ FIXED: Added all missing fields
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     short_description: Optional[str] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None  # ✅ ADDED
     level: Optional[str] = None
+    language: Optional[str] = None  # ✅ ADDED
     target_audience: Optional[str] = None
     duration_hours: Optional[float] = None
+    effort_weeks: Optional[int] = None  # ✅ ADDED
+    is_self_paced: Optional[bool] = None  # ✅ ADDED
+    max_enrollments: Optional[int] = None  # ✅ ADDED
     price: Optional[float] = None
+    currency: Optional[str] = None  # ✅ ADDED
+    access_days: Optional[int] = None  # ✅ ADDED
+    course_image: Optional[str] = None
+    promo_video: Optional[str] = None  # ✅ ADDED
+    instructor_id: Optional[str] = None  # ✅ ADDED
     is_active: Optional[bool] = None
     is_public: Optional[bool] = None
-    course_image: Optional[str] = None
 
 # Enrollment schemas
 class EnrollmentBase(BaseModel):
