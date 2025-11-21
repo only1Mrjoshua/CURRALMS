@@ -570,19 +570,8 @@
           }
         });
 
-      // ⚙️ API Configuration - UPDATED FOR NEW FASTAPI BACKEND
-      // Dynamic API Base URL configuration
-      const API_BASE_URL = (() => {
-        // Check if we're in development (localhost) or production (devtunnels)
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "http://localhost:8000"; // Local development
-        } else {
-          return "https://pmhfhd37-8000.uks1.devtunnels.ms"; // Production/devtunnels
-        }
-      })();
+      // ⚙️ API Configuration - FIXED: Use same domain as frontend
+      const API_BASE_URL = ""; // Empty string = same domain as frontend
 
       // Override default alert with toast
       window.alert = function (message) {
@@ -628,15 +617,15 @@
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.innerHTML = `
-          <div class="toast-icon">${icon}</div>
-          <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            <div class="toast-message">${message}</div>
-          </div>
-          <button class="toast-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon">${icon}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         container.appendChild(toast);
 
@@ -646,419 +635,6 @@
           setTimeout(() => toast.remove(), 300);
         }, duration);
       }
-
-      document.addEventListener("DOMContentLoaded", function () {
-        // Initialize theme first
-        initTheme();
-
-        // Set up theme toggle
-        themeToggle.addEventListener("click", toggleTheme);
-
-        // Form submission - CONNECTED TO NEW FASTAPI BACKEND
-        document
-          .getElementById("signin-form")
-          .addEventListener("submit", async function (e) {
-            e.preventDefault();
-
-            if (validateForm()) {
-              const submitBtn = document.getElementById("submit-btn");
-              const submitBtnText = document.getElementById("submit-btn-text");
-              const submitLoading = document.getElementById("submit-loading");
-
-              // Show loading state
-              submitBtn.disabled = true;
-              submitBtnText.textContent = "Signing In";
-              submitLoading.classList.remove("hidden");
-
-              try {
-                const identifier = document
-                  .getElementById("email-username")
-                  .value.trim();
-                const password = document.getElementById("password").value;
-
-                console.log("🔐 Login attempt with identifier:", identifier);
-
-                // Prepare form data for OAuth2PasswordRequestForm
-                const formData = new URLSearchParams();
-                formData.append("username", identifier); // Your backend expects 'username' field
-                formData.append("password", password);
-
-                console.log(
-                  "📡 Sending login request to:",
-                  `${API_BASE_URL}/users/login`
-                );
-
-                // Send login request to new FastAPI backend
-                const response = await fetch(`${API_BASE_URL}/users/login`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                  },
-                  body: formData,
-                });
-
-                console.log("📨 Response status:", response.status);
-
-                let data;
-                try {
-                  data = await response.json();
-                  console.log("📊 Response data:", data);
-                } catch (jsonError) {
-                  console.error("❌ JSON parse error:", jsonError);
-                  throw new Error("Invalid server response");
-                }
-
-                if (response.ok) {
-                  // Success! Store the token and user data
-                  localStorage.setItem("access_token", data.access_token);
-                  localStorage.setItem("token_type", data.token_type);
-                  localStorage.setItem("user", JSON.stringify(data.user));
-
-                  console.log("✅ Login successful, user data:", data.user);
-
-                  // Show success message with toast
-                  showToast(
-                    `Welcome back, ${
-                      data.user.username || data.user.email
-                    }! Redirecting...`,
-                    "success",
-                    "Login Successful!",
-                    3000
-                  );
-
-                  // Redirect to dashboard based on role after a short delay
-                  setTimeout(() => {
-                    if (data.user.role === "admin") {
-                      window.location.href =
-                        "../static/dashboards/Admin-Dashboard-Overview.html";
-                    } else {
-                      window.location.href = "../dashboards/dashboard.html";
-                    }
-                  }, 1500);
-                } else {
-                  // Error from server - handle specific error messages
-                  const errorMessage = data.detail || "Login failed";
-                  console.error("❌ Login error:", errorMessage);
-
-                  // More user-friendly error messages
-                  let userFriendlyMessage = errorMessage;
-                  if (errorMessage.includes("User not found")) {
-                    userFriendlyMessage =
-                      "No account found with this email/username. Please check your credentials or sign up.";
-                  } else if (errorMessage.includes("Invalid password")) {
-                    userFriendlyMessage =
-                      "Incorrect password. Please try again.";
-                  } else if (errorMessage.includes("deactivated")) {
-                    userFriendlyMessage =
-                      "Your account has been deactivated. Please contact support.";
-                  }
-
-                  throw new Error(userFriendlyMessage);
-                }
-              } catch (error) {
-                console.error("💥 Login error:", error);
-
-                // Handle connection errors specifically
-                let userMessage = error.message;
-                if (
-                  error.name === "TypeError" &&
-                  error.message.includes("Failed to fetch")
-                ) {
-                  userMessage =
-                    "Cannot connect to the server. Please check if the backend is running on " +
-                    API_BASE_URL;
-                }
-
-                showToast(userMessage, "error", "Login Failed");
-
-                // Hide loading state
-                submitBtn.disabled = false;
-                submitBtnText.textContent = "Sign In";
-                submitLoading.classList.add("hidden");
-              }
-            }
-          });
-
-        // Helper functions
-        function validateForm() {
-          let isValid = true;
-
-          const emailUsername = document.getElementById("email-username").value;
-          const password = document.getElementById("password").value;
-
-          if (!emailUsername.trim()) {
-            showError("email-username", "Email or username is required");
-            isValid = false;
-          } else {
-            clearError("email-username");
-          }
-
-          if (!password) {
-            showError("password", "Password is required");
-            isValid = false;
-          } else {
-            clearError("password");
-          }
-
-          return isValid;
-        }
-
-        function showError(fieldId, message) {
-          const field = document.getElementById(fieldId);
-          field.style.borderColor = "#ef4444";
-
-          // Remove any existing error message
-          let existingError = field.parentNode.querySelector(".error-message");
-          if (existingError) {
-            existingError.remove();
-          }
-
-          // Add error message
-          const errorElement = document.createElement("p");
-          errorElement.className = "error-message text-red-500 text-xs mt-1";
-          errorElement.textContent = message;
-          field.parentNode.appendChild(errorElement);
-
-          // Remove error styling on input
-          field.addEventListener(
-            "input",
-            function () {
-              field.style.borderColor = "var(--border-color)";
-              const errorMsg = field.parentNode.querySelector(".error-message");
-              if (errorMsg) {
-                errorMsg.remove();
-              }
-            },
-            { once: true }
-          );
-        }
-
-        function clearError(fieldId) {
-          const field = document.getElementById(fieldId);
-          field.style.borderColor = "var(--border-color)";
-
-          // Remove error message
-          const errorElement = field.parentNode.querySelector(".error-message");
-          if (errorElement) {
-            errorElement.remove();
-          }
-        }
-
-        // Welcome message
-        setTimeout(() => {
-          showToast(
-            "Enter your email/username and password to access your account",
-            "info",
-            "Ready to Sign In",
-            4000
-          );
-        }, 1000);
-      });
-
-      // Google Sign-In handler
-      async function handleGoogleSignIn() {
-        try {
-          console.log("🔐 Starting Google Sign-In...");
-
-          // Get Google OAuth URL for signin
-          const response = await fetch(
-            `${API_BASE_URL}/auth/google/url?flow=signin`
-          );
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error("Failed to get Google auth URL");
-          }
-
-          console.log("🔄 Redirecting to Google OAuth for sign-in...");
-          window.location.href = data.auth_url;
-        } catch (error) {
-          console.error("❌ Google Sign-In error:", error);
-          showToast(
-            "Failed to start Google Sign-In. Please try again.",
-            "error",
-            "Google Sign-In Failed"
-          );
-        }
-      }
-
-      // Enhanced Google callback handler with mobile support
-      async function handleGoogleCallback() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get("code");
-        const googleCode = urlParams.get("google_code");
-        const error = urlParams.get("error");
-        const state = urlParams.get("state");
-
-        console.log("🔄 Checking Google callback...");
-        console.log("📍 Current URL:", window.location.href);
-        console.log("📍 Hostname:", window.location.hostname);
-
-        // Handle errors first
-        if (error) {
-          console.error("❌ Google OAuth error:", error);
-          showToast(
-            decodeURIComponent(error),
-            "error",
-            "Google Sign-In Failed"
-          );
-          // Clean URL
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
-          return;
-        }
-
-        // Handle both parameter names (code or google_code)
-        const authCode = code || googleCode;
-
-        if (authCode) {
-          console.log("🔄 Handling Google OAuth callback...");
-          console.log("🔑 Auth code received:", authCode ? "Yes" : "No");
-          console.log("🏷️ State:", state);
-
-          try {
-            // Show loading state
-            const submitBtn = document.getElementById("submit-btn");
-            const submitBtnText = document.getElementById("submit-btn-text");
-            const submitLoading = document.getElementById("submit-loading");
-
-            if (submitBtn && submitBtnText && submitLoading) {
-              submitBtn.disabled = true;
-              submitBtnText.textContent = "Completing Google Sign-In";
-              submitLoading.classList.remove("hidden");
-            }
-
-            // Send code to backend - USE CORRECT API_BASE_URL
-            console.log("📡 Sending Google auth code to backend...");
-            console.log("🌐 Using API_BASE_URL:", API_BASE_URL);
-
-            const response = await fetch(`${API_BASE_URL}/auth/google`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ code: authCode, state: state }),
-            });
-
-            console.log("📨 Backend response status:", response.status);
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error("❌ Backend error response:", errorText);
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log("✅ Backend response data:", data);
-
-            if (data.access_token) {
-              // Success! Store the token and user data
-              localStorage.setItem("access_token", data.access_token);
-              localStorage.setItem("token_type", data.token_type);
-              localStorage.setItem("user", JSON.stringify(data.user));
-
-              console.log(
-                "✅ Google Sign-In successful, user data:",
-                data.user
-              );
-
-              // Show success message
-              showToast(
-                `Welcome, ${data.user.full_name || data.user.username}!`,
-                "success",
-                "Google Sign-In Successful!",
-                3000
-              );
-
-              // Clean URL parameters
-              window.history.replaceState(
-                {},
-                document.title,
-                window.location.pathname
-              );
-
-              // Redirect to dashboard
-              setTimeout(() => {
-                let dashboardUrl;
-                if (data.user.role === "admin") {
-                  dashboardUrl = "../dashboards/Admin-Dashboard-Overview.html";
-                } else {
-                  dashboardUrl =
-                    "../dashboards/Student-Dashboard-Overview.html";
-                }
-                console.log("🔄 Redirecting to:", dashboardUrl);
-                window.location.href = dashboardUrl;
-              }, 1500);
-            } else {
-              throw new Error("No access token received from backend");
-            }
-          } catch (error) {
-            console.error("❌ Google callback error:", error);
-            showToast(
-              error.message ||
-                "Google authentication failed. Please try again.",
-              "error",
-              "Google Sign-In Failed"
-            );
-
-            // Clean URL parameters
-            window.history.replaceState(
-              {},
-              document.title,
-              window.location.pathname
-            );
-
-            // Reset button state if elements exist
-            const submitBtn = document.getElementById("submit-btn");
-            const submitBtnText = document.getElementById("submit-btn-text");
-            const submitLoading = document.getElementById("submit-loading");
-
-            if (submitBtn && submitBtnText && submitLoading) {
-              submitBtn.disabled = false;
-              submitBtnText.textContent = "Sign In";
-              submitLoading.classList.add("hidden");
-            }
-          }
-        } else {
-          console.log("ℹ️ No Google callback code found in URL");
-        }
-      }
-
-      // Call this when page loads
-      document.addEventListener("DOMContentLoaded", function () {
-        console.log("🚀 Page loaded - Initializing Google Sign-In...");
-        console.log("📍 Current environment:", window.location.hostname);
-        console.log("🌐 API_BASE_URL:", API_BASE_URL);
-
-        handleGoogleCallback(); // Check for Google callback
-      });
-
-      // Check for authentication errors on page load
-      function checkAuthErrors() {
-        const authError = localStorage.getItem("auth_error");
-        if (authError) {
-          showToast(authError, "error", "Authentication Failed");
-          localStorage.removeItem("auth_error");
-        }
-
-        // Also check for success messages
-        const successMessage = localStorage.getItem("success_message");
-        if (successMessage) {
-          showToast(successMessage, "success", "Success!");
-          localStorage.removeItem("success_message");
-        }
-      }
-
-      // Call this when the page loads
-      document.addEventListener("DOMContentLoaded", function () {
-        checkAuthErrors();
-        handleGoogleCallback(); // Your existing function
-      });
-
-      // Add this to your existing JavaScript code
 
       // Authentication state management
       async function checkAuthState() {
@@ -1124,9 +700,10 @@
           ) {
             let dashboardUrl;
             if (user.role === "admin") {
-              dashboardUrl = "../dashboards/Admin-Dashboard-Overview.html";
+              dashboardUrl = "/static/dashboards/Admin-Dashboard-Overview.html";
             } else {
-              dashboardUrl = "../dashboards/Student-Dashboard-Overview.html";
+              dashboardUrl =
+                "/static/dashboards/Student-Dashboard-Overview.html";
             }
 
             // Add a small delay to show any success messages
@@ -1137,12 +714,132 @@
         }
       }
 
-      // Update your existing handleGoogleCallback function
+      function showLoadingState(show) {
+        const submitBtn = document.getElementById("submit-btn");
+        const submitBtnText = document.getElementById("submit-btn-text");
+        const submitLoading = document.getElementById("submit-loading");
+
+        if (submitBtn && submitBtnText && submitLoading) {
+          submitBtn.disabled = show;
+          submitBtnText.textContent = show ? "Signing In..." : "Sign In";
+          submitLoading.classList.toggle("hidden", !show);
+        }
+      }
+
+      function redirectToDashboard(user) {
+        let dashboardUrl;
+        if (user.role === "admin") {
+          dashboardUrl = "/static/dashboards/Admin-Dashboard-Overview.html";
+        } else {
+          dashboardUrl = "/static/dashboards/Student-Dashboard-Overview.html";
+        }
+        console.log("🔄 Redirecting to:", dashboardUrl);
+        window.location.href = dashboardUrl;
+      }
+
+      function cleanUrl() {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      }
+
+      // Form validation helpers
+      function validateForm() {
+        let isValid = true;
+
+        const emailUsername = document.getElementById("email-username").value;
+        const password = document.getElementById("password").value;
+
+        if (!emailUsername.trim()) {
+          showError("email-username", "Email or username is required");
+          isValid = false;
+        } else {
+          clearError("email-username");
+        }
+
+        if (!password) {
+          showError("password", "Password is required");
+          isValid = false;
+        } else {
+          clearError("password");
+        }
+
+        return isValid;
+      }
+
+      function showError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        field.style.borderColor = "#ef4444";
+
+        // Remove any existing error message
+        let existingError = field.parentNode.querySelector(".error-message");
+        if (existingError) {
+          existingError.remove();
+        }
+
+        // Add error message
+        const errorElement = document.createElement("p");
+        errorElement.className = "error-message text-red-500 text-xs mt-1";
+        errorElement.textContent = message;
+        field.parentNode.appendChild(errorElement);
+
+        // Remove error styling on input
+        field.addEventListener(
+          "input",
+          function () {
+            field.style.borderColor = "var(--border-color)";
+            const errorMsg = field.parentNode.querySelector(".error-message");
+            if (errorMsg) {
+              errorMsg.remove();
+            }
+          },
+          { once: true }
+        );
+      }
+
+      function clearError(fieldId) {
+        const field = document.getElementById(fieldId);
+        field.style.borderColor = "var(--border-color)";
+
+        // Remove error message
+        const errorElement = field.parentNode.querySelector(".error-message");
+        if (errorElement) {
+          errorElement.remove();
+        }
+      }
+
+      // Google Sign-In handler
+      async function handleGoogleSignIn() {
+        try {
+          console.log("🔐 Starting Google Sign-In...");
+
+          // Get Google OAuth URL for signin
+          const response = await fetch(`${API_BASE_URL}/auth/google/url`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error("Failed to get Google auth URL");
+          }
+
+          console.log("🔄 Redirecting to Google OAuth for sign-in...");
+          window.location.href = data.auth_url;
+        } catch (error) {
+          console.error("❌ Google Sign-In error:", error);
+          showToast(
+            "Failed to start Google Sign-In. Please try again.",
+            "error",
+            "Google Sign-In Failed"
+          );
+        }
+      }
+
+      // Enhanced Google callback handler
       async function handleGoogleCallback() {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get("code");
         const error = urlParams.get("error");
-        const state = urlParams.get("state");
 
         console.log("🔄 Checking Google callback...");
 
@@ -1162,7 +859,6 @@
           console.log("🔄 Handling Google OAuth callback...");
 
           try {
-            // Show loading state
             showLoadingState(true);
 
             const response = await fetch(`${API_BASE_URL}/auth/google`, {
@@ -1170,14 +866,16 @@
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ code: code, state: state }),
+              body: JSON.stringify({ code: code }),
             });
 
             console.log("📨 Backend response status:", response.status);
 
             if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`HTTP error! status: ${response.status}`);
+              const errorData = await response.json();
+              throw new Error(
+                errorData.detail || `HTTP error! status: ${response.status}`
+              );
             }
 
             const data = await response.json();
@@ -1191,11 +889,10 @@
               console.log("✅ Google authentication successful");
 
               // Show success message
-              const action = state === "signup" ? "Sign-Up" : "Sign-In";
               showToast(
                 `Welcome, ${data.user.full_name || data.user.username}!`,
                 "success",
-                `Google ${action} Successful!`,
+                "Google Sign-In Successful!",
                 3000
               );
 
@@ -1209,7 +906,8 @@
           } catch (error) {
             console.error("❌ Google callback error:", error);
             showToast(
-              "Google authentication failed. Please try again.",
+              error.message ||
+                "Google authentication failed. Please try again.",
               "error",
               "Authentication Failed"
             );
@@ -1223,26 +921,158 @@
         }
       }
 
-      function showLoadingState(show) {
-        // Implement your loading state logic here
-        console.log(show ? "🔄 Loading..." : "✅ Loading complete");
-      }
-
-      function redirectToDashboard(user) {
-        let dashboardUrl;
-        if (user.role === "admin") {
-          dashboardUrl = "../static/dashboards/Admin-Dashboard-Overview.html";
-        } else {
-          dashboardUrl = "../static/dashboards/Student-Dashboard-Overview.html";
+      // Check for authentication errors on page load
+      function checkAuthErrors() {
+        const authError = localStorage.getItem("auth_error");
+        if (authError) {
+          showToast(authError, "error", "Authentication Failed");
+          localStorage.removeItem("auth_error");
         }
-        console.log("🔄 Redirecting to:", dashboardUrl);
-        window.location.href = dashboardUrl;
+
+        // Also check for success messages
+        const successMessage = localStorage.getItem("success_message");
+        if (successMessage) {
+          showToast(successMessage, "success", "Success!");
+          localStorage.removeItem("success_message");
+        }
       }
 
-      // Update your page load handler
+      // Main initialization
       document.addEventListener("DOMContentLoaded", function () {
         console.log("🚀 Page loaded - Initializing authentication...");
-        handleGoogleCallback(); // Check for Google callback and auth state
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Check for authentication errors
+        checkAuthErrors();
+
+        // Check Google callback and auth state
+        handleGoogleCallback();
+
+        // Form submission
+        document
+          .getElementById("signin-form")
+          .addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            if (validateForm()) {
+              showLoadingState(true);
+
+              try {
+                const identifier = document
+                  .getElementById("email-username")
+                  .value.trim();
+                const password = document.getElementById("password").value;
+
+                console.log("🔐 Login attempt with identifier:", identifier);
+
+                // Prepare form data for OAuth2PasswordRequestForm
+                const formData = new URLSearchParams();
+                formData.append("username", identifier);
+                formData.append("password", password);
+
+                console.log(
+                  "📡 Sending login request to:",
+                  `${API_BASE_URL}/users/login`
+                );
+
+                // Send login request to backend
+                const response = await fetch(`${API_BASE_URL}/users/login`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: formData,
+                });
+
+                console.log("📨 Response status:", response.status);
+
+                let data;
+                try {
+                  data = await response.json();
+                  console.log("📊 Response data:", data);
+                } catch (jsonError) {
+                  console.error("❌ JSON parse error:", jsonError);
+                  throw new Error("Invalid server response");
+                }
+
+                if (response.ok) {
+                  // Success! Store the token and user data
+                  localStorage.setItem("access_token", data.access_token);
+                  localStorage.setItem("token_type", data.token_type);
+                  localStorage.setItem("user", JSON.stringify(data.user));
+
+                  console.log("✅ Login successful, user data:", data.user);
+
+                  // Show success message with toast
+                  showToast(
+                    `Welcome back, ${
+                      data.user.username || data.user.email
+                    }! Redirecting...`,
+                    "success",
+                    "Login Successful!",
+                    3000
+                  );
+
+                  // Redirect to dashboard based on role after a short delay
+                  setTimeout(() => {
+                    redirectToDashboard(data.user);
+                  }, 1500);
+                } else {
+                  // Error from server - handle specific error messages
+                  const errorMessage = data.detail || "Login failed";
+                  console.error("❌ Login error:", errorMessage);
+
+                  // More user-friendly error messages
+                  let userFriendlyMessage = errorMessage;
+                  if (errorMessage.includes("User not found")) {
+                    userFriendlyMessage =
+                      "No account found with this email/username. Please check your credentials or sign up.";
+                  } else if (errorMessage.includes("Invalid password")) {
+                    userFriendlyMessage =
+                      "Incorrect password. Please try again.";
+                  } else if (errorMessage.includes("deactivated")) {
+                    userFriendlyMessage =
+                      "Your account has been deactivated. Please contact support.";
+                  }
+
+                  throw new Error(userFriendlyMessage);
+                }
+              } catch (error) {
+                console.error("💥 Login error:", error);
+
+                // Handle connection errors specifically
+                let userMessage = error.message;
+                if (
+                  error.name === "TypeError" &&
+                  error.message.includes("Failed to fetch")
+                ) {
+                  userMessage =
+                    "Cannot connect to the server. Please check your internet connection.";
+                }
+
+                showToast(userMessage, "error", "Login Failed");
+              } finally {
+                showLoadingState(false);
+              }
+            }
+          });
+
+        // Welcome message
+        setTimeout(() => {
+          showToast(
+            "Enter your email/username and password to access your account",
+            "info",
+            "Ready to Sign In",
+            4000
+          );
+        }, 1000);
       });
     </script>
   </body>
