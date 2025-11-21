@@ -48,7 +48,7 @@ class CourseCRUD:
             converted['instructor_id'] = str(converted['instructor_id'])
         
         # Convert other potential ObjectId fields
-        for key in ['course_id', 'module_id', 'lesson_id', 'user_id', 'current_lesson_id']:
+        for key in ['course_id', 'module_id', 'lesson_id', 'user_id', 'current_lesson_id', 'next_course_id']:
             if key in converted and converted[key] and isinstance(converted[key], ObjectId):
                 converted[key] = str(converted[key])
         
@@ -58,8 +58,8 @@ class CourseCRUD:
         
         return converted
 
-    # Course operations
-    async def get_course(self, course_id: str) -> Optional[Course]:
+    # Course operations - RETURN PLAIN DICTS INSTEAD OF COURSE OBJECTS
+    async def get_course(self, course_id: str) -> Optional[dict]:
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
@@ -68,9 +68,8 @@ class CourseCRUD:
             db = await self._get_db()
             course_data = await db.courses.find_one({"_id": ObjectId(course_id)})
             if course_data:
-                # Convert all ObjectIds to strings
-                course_data = self._convert_objectids_to_strings(course_data)
-                return Course(**course_data)
+                # Convert all ObjectIds to strings and return as plain dict
+                return self._convert_objectids_to_strings(course_data)
             return None
         except Exception as e:
             print(f"Error getting course: {e}")
@@ -83,7 +82,7 @@ class CourseCRUD:
         category: Optional[str] = None,
         instructor_id: Optional[str] = None,
         is_active: Optional[bool] = None
-    ) -> List[Course]:
+    ) -> List[dict]:
         if not await self._is_connected():
             print("⚠️  No database connection")
             return []
@@ -105,18 +104,18 @@ class CourseCRUD:
             cursor = db.courses.find(query).skip(skip).limit(limit)
             courses_data = await cursor.to_list(length=limit)
             
-            courses = []
+            # Convert all ObjectIds to strings and return plain dicts
+            serializable_courses = []
             for course_data in courses_data:
-                # Convert all ObjectIds to strings
-                course_data = self._convert_objectids_to_strings(course_data)
-                courses.append(Course(**course_data))
+                clean_course = self._convert_objectids_to_strings(course_data)
+                serializable_courses.append(clean_course)
             
-            return courses
+            return serializable_courses
         except Exception as e:
             print(f"Error getting courses: {e}")
             return []
 
-    async def create_course(self, course: CourseCreate) -> Optional[Course]:
+    async def create_course(self, course: CourseCreate) -> Optional[dict]:
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
@@ -139,14 +138,13 @@ class CourseCRUD:
             
             if created_course:
                 # Convert all ObjectIds to strings for response
-                created_course = self._convert_objectids_to_strings(created_course)
-                return Course(**created_course)
+                return self._convert_objectids_to_strings(created_course)
             return None
         except Exception as e:
             print(f"Error creating course: {e}")
             return None
 
-    async def update_course(self, course_id: str, course_update: CourseUpdate) -> Optional[Course]:
+    async def update_course(self, course_id: str, course_update: CourseUpdate) -> Optional[dict]:
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
@@ -164,8 +162,7 @@ class CourseCRUD:
             
             if result:
                 # Convert all ObjectIds to strings
-                result = self._convert_objectids_to_strings(result)
-                return Course(**result)
+                return self._convert_objectids_to_strings(result)
             return None
         except Exception as e:
             print(f"Error updating course: {e}")
@@ -184,8 +181,8 @@ class CourseCRUD:
             print(f"Error deleting course: {e}")
             return False
 
-    # Enrollment operations
-    async def create_enrollment(self, enrollment: EnrollmentCreate) -> Optional[Enrollment]:
+    # Enrollment operations - RETURN PLAIN DICTS
+    async def create_enrollment(self, enrollment: EnrollmentCreate) -> Optional[dict]:
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
@@ -198,8 +195,7 @@ class CourseCRUD:
                 "course_id": ObjectId(enrollment.course_id)
             })
             if existing:
-                existing = self._convert_objectids_to_strings(existing)
-                return Enrollment(**existing)
+                return self._convert_objectids_to_strings(existing)
             
             # Create enrollment with ALL required fields
             enrollment_dict = {
@@ -219,14 +215,13 @@ class CourseCRUD:
             created_enrollment = await db.enrollments.find_one({"_id": result.inserted_id})
             
             if created_enrollment:
-                created_enrollment = self._convert_objectids_to_strings(created_enrollment)
-                return Enrollment(**created_enrollment)
+                return self._convert_objectids_to_strings(created_enrollment)
             return None
         except Exception as e:
             print(f"Error creating enrollment: {e}")
             return None
 
-    async def update_enrollment(self, enrollment_id: str, enrollment_update: EnrollmentUpdate) -> Optional[Enrollment]:
+    async def update_enrollment(self, enrollment_id: str, enrollment_update: EnrollmentUpdate) -> Optional[dict]:
         if not await self._is_connected():
             print("⚠️  No database connection")
             return None
@@ -243,14 +238,13 @@ class CourseCRUD:
             )
             
             if result:
-                result = self._convert_objectids_to_strings(result)
-                return Enrollment(**result)
+                return self._convert_objectids_to_strings(result)
             return None
         except Exception as e:
             print(f"Error updating enrollment: {e}")
             return None
 
-    async def get_user_enrollments(self, user_id: str) -> List[Enrollment]:
+    async def get_user_enrollments(self, user_id: str) -> List[dict]:
         if not await self._is_connected():
             return []
             
@@ -261,15 +255,15 @@ class CourseCRUD:
             
             enrollments = []
             for enrollment_data in enrollments_data:
-                enrollment_data = self._convert_objectids_to_strings(enrollment_data)
-                enrollments.append(Enrollment(**enrollment_data))
+                clean_enrollment = self._convert_objectids_to_strings(enrollment_data)
+                enrollments.append(clean_enrollment)
             
             return enrollments
         except Exception as e:
             print(f"Error getting user enrollments: {e}")
             return []
 
-    async def get_course_enrollments(self, course_id: str) -> List[Enrollment]:
+    async def get_course_enrollments(self, course_id: str) -> List[dict]:
         if not await self._is_connected():
             return []
             
@@ -280,16 +274,16 @@ class CourseCRUD:
             
             enrollments = []
             for enrollment_data in enrollments_data:
-                enrollment_data = self._convert_objectids_to_strings(enrollment_data)
-                enrollments.append(Enrollment(**enrollment_data))
+                clean_enrollment = self._convert_objectids_to_strings(enrollment_data)
+                enrollments.append(clean_enrollment)
             
             return enrollments
         except Exception as e:
             print(f"Error getting course enrollments: {e}")
             return []
     
-    # Additional course query methods
-    async def get_courses_by_level_and_category(self, level: str, category: str) -> List[Course]:
+    # Additional course query methods - RETURN PLAIN DICTS
+    async def get_courses_by_level_and_category(self, level: str, category: str) -> List[dict]:
         """Get courses by level and category"""
         if not await self._is_connected():
             return []
@@ -309,15 +303,15 @@ class CourseCRUD:
             
             courses = []
             for course_data in courses_data:
-                course_data = self._convert_objectids_to_strings(course_data)
-                courses.append(Course(**course_data))
+                clean_course = self._convert_objectids_to_strings(course_data)
+                courses.append(clean_course)
             
             return courses
         except Exception as e:
             print(f"Error getting courses by level and category: {e}")
             return []
 
-    async def get_active_courses(self) -> List[Course]:
+    async def get_active_courses(self) -> List[dict]:
         """Get all active courses"""
         if not await self._is_connected():
             return []
@@ -335,15 +329,15 @@ class CourseCRUD:
             
             courses = []
             for course_data in courses_data:
-                course_data = self._convert_objectids_to_strings(course_data)
-                courses.append(Course(**course_data))
+                clean_course = self._convert_objectids_to_strings(course_data)
+                courses.append(clean_course)
             
             return courses
         except Exception as e:
             print(f"Error getting active courses: {e}")
             return []
 
-    async def get_course_by_level(self, level: str) -> List[Course]:
+    async def get_course_by_level(self, level: str) -> List[dict]:
         """Get courses by level"""
         if not await self._is_connected():
             return []
@@ -362,15 +356,15 @@ class CourseCRUD:
             
             courses = []
             for course_data in courses_data:
-                course_data = self._convert_objectids_to_strings(course_data)
-                courses.append(Course(**course_data))
+                clean_course = self._convert_objectids_to_strings(course_data)
+                courses.append(clean_course)
             
             return courses
         except Exception as e:
             print(f"Error getting courses by level: {e}")
             return []
 
-    async def get_courses_by_category(self, category: str, is_active: bool = True) -> List[Course]:
+    async def get_courses_by_category(self, category: str, is_active: bool = True) -> List[dict]:
         """Get courses by category - FIXED WITH CASE-INSENSITIVE MATCHING"""
         print(f"🔍 CRUD DEBUG: Looking for category '{category}'")
         
@@ -416,14 +410,14 @@ class CourseCRUD:
                       f"Category: {course_data.get('category', 'No category')} | "
                       f"is_active: {course_data.get('is_active', 'Not set')}")
             
-            courses = []
+            # Convert all ObjectIds to strings and return plain dicts
+            serializable_courses = []
             for course_data in courses_data:
-                # Convert all ObjectIds to strings
-                course_data = self._convert_objectids_to_strings(course_data)
-                courses.append(Course(**course_data))
+                clean_course = self._convert_objectids_to_strings(course_data)
+                serializable_courses.append(clean_course)
             
-            print(f"🔍 CRUD DEBUG: Returning {len(courses)} courses")
-            return courses
+            print(f"🔍 CRUD DEBUG: Returning {len(serializable_courses)} courses as plain dicts")
+            return serializable_courses
             
         except Exception as e:
             print(f"❌ CRUD DEBUG: Error getting courses by category: {e}")
