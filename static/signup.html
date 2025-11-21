@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>School Portal - Professional Sign Up</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#6366f1",
+              secondary: "#4f46e5",
+              accent: "#8b5cf6",
+              success: "#10b981",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      /* CSS Variables for consistent theming - MATCHING DASHBOARD */
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors - MATCHING DASHBOARD */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        transition: background 0.3s ease, color 0.3s ease;
+      }
+
+      .form-step {
+        transition: all 0.5s ease-in-out;
+      }
+      .loading-spinner {
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid #ffffff;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-left: 10px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .form-step.active {
+        display: block;
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      .form-step:not(.active) {
+        display: none;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .feature-card {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+      }
+      .feature-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateX(5px);
+      }
+      .step-indicator {
+        transition: all 0.3s ease;
+      }
+      .step-indicator.active {
+        background: #6366f1;
+        color: white;
+      }
+      .step-indicator.completed {
+        background: #10b981;
+        color: white;
+      }
+      input:focus::placeholder,
+      textarea:focus::placeholder {
+        opacity: 0.5;
+      }
+      .modern-input {
+        transition: all 0.3s ease;
+        border: 2px solid var(--border-color);
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+      }
+      .modern-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        outline: none;
+      }
+      .upload-area {
+        transition: all 0.3s ease;
+        border: 2px dashed var(--border-color);
+        background-color: var(--card-bg);
+      }
+      .upload-area:hover {
+        border-color: #6366f1;
+        background: rgba(99, 102, 241, 0.05);
+      }
+      #avatar-preview {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: none;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--card-bg);
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        color: var(--text-primary);
+      }
+
+      .theme-toggle:hover {
+        transform: scale(1.1);
+      }
+
+      /* Main card styling */
+      .main-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        transition: background 0.3s ease;
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        bottom: 2rem;
+        left: 2rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-width: 400px;
+      }
+
+      .toast {
+        backdrop-filter: blur(16px);
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        display: flex;
+        align-items: start;
+        gap: 1rem;
+        animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid var(--border-color);
+        min-width: 320px;
+        background: var(--card-bg);
+        color: var(--text-primary);
+      }
+
+      .toast.success {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.95) 0%,
+          rgba(5, 150, 105, 0.95) 100%
+        );
+        color: white;
+      }
+
+      .toast.error {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.95) 0%,
+          rgba(220, 38, 38, 0.95) 100%
+        );
+        color: white;
+      }
+
+      .toast.info {
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.95) 0%,
+          rgba(79, 70, 229, 0.95) 100%
+        );
+        color: white;
+      }
+
+      .toast.warning {
+        background: linear-gradient(
+          135deg,
+          rgba(245, 158, 11, 0.95) 0%,
+          rgba(217, 119, 6, 0.95) 100%
+        );
+        color: white;
+      }
+
+      .toast-icon {
+        flex-shrink: 0;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.2);
+        font-size: 1.25rem;
+      }
+
+      .toast-content {
+        flex: 1;
+        padding-top: 0.125rem;
+      }
+
+      .toast-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .toast-message {
+        font-size: 0.875rem;
+        opacity: 0.95;
+        line-height: 1.5;
+      }
+
+      .toast-close {
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 1rem;
+      }
+
+      .toast-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .toast.hiding {
+        animation: slideOut 0.3s ease forwards;
+      }
+
+      @keyframes slideOut {
+        to {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .toast-container {
+          left: 1rem;
+          right: 1rem;
+          bottom: 1rem;
+          max-width: none;
+        }
+        .toast {
+          min-width: auto;
+        }
+
+        .theme-toggle {
+          top: 15px;
+          right: 15px;
+          width: 45px;
+          height: 45px;
+        }
+      }
+
+      /* Custom text color classes using CSS variables */
+      .text-primary-theme {
+        color: var(--text-primary);
+      }
+
+      .text-secondary-theme {
+        color: var(--text-secondary);
+      }
+
+      .text-muted-theme {
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex items-center justify-center p-4">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+      <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <div
+      class="main-card rounded-3xl shadow-2xl overflow-hidden w-full max-w-5xl"
+    >
+      <div class="flex flex-col md:flex-row">
+        <div
+          class="md:w-2/5 p-10 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white relative overflow-hidden"
+        >
+          <div
+            class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"
+          ></div>
+          <div
+            class="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"
+          ></div>
+
+          <div class="relative z-10">
+            <div class="mb-10">
+              <div class="flex items-center mb-4">
+                <div
+                  class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center"
+                >
+                  <i class="fas fa-graduation-cap text-white text-2xl"></i>
+                </div>
+              </div>
+              <h2 class="text-4xl font-bold mb-3 leading-tight">
+                Welcome to<br />Your Future
+              </h2>
+              <p class="text-indigo-100 text-sm leading-relaxed">
+                Join thousands of students accessing world-class education and
+                resources.
+              </p>
+            </div>
+
+            <div class="space-y-5">
+              <div class="feature-card p-4 rounded-xl">
+                <div class="flex items-start">
+                  <div class="bg-white/20 p-2.5 rounded-lg mr-3 flex-shrink-0">
+                    <i class="fas fa-book-open text-white text-lg"></i>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-base mb-1">
+                      Academic Excellence
+                    </h3>
+                    <p class="text-indigo-100 text-xs leading-relaxed">
+                      Access comprehensive course materials, interactive
+                      assignments, and real-time grade tracking
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="feature-card p-4 rounded-xl">
+                <div class="flex items-start">
+                  <div class="bg-white/20 p-2.5 rounded-lg mr-3 flex-shrink-0">
+                    <i class="fas fa-users text-white text-lg"></i>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-base mb-1">
+                      Collaborative Learning
+                    </h3>
+                    <p class="text-indigo-100 text-xs leading-relaxed">
+                      Connect with classmates, join study groups, and
+                      collaborate on projects seamlessly
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="feature-card p-4 rounded-xl">
+                <div class="flex items-start">
+                  <div class="bg-white/20 p-2.5 rounded-lg mr-3 flex-shrink-0">
+                    <i class="fas fa-shield-alt text-white text-lg"></i>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-base mb-1">
+                      Secure & Private
+                    </h3>
+                    <p class="text-indigo-100 text-xs leading-relaxed">
+                      Your data is encrypted and protected with enterprise-grade
+                      security protocols
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-white/20">
+              <p class="text-indigo-100 text-sm mb-3">
+                Already have an account?
+              </p>
+              <a
+                href="signin.html"
+                class="inline-flex items-center justify-center w-full bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 py-3 rounded-xl font-medium transition-all duration-300 border border-white/30"
+              >
+                <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="md:w-3/5 p-10">
+          <div class="mb-8">
+            <!-- UPDATED: Using CSS variables for text colors -->
+            <h2 class="text-3xl font-bold text-primary-theme mb-2">
+              Create Account
+            </h2>
+            <p class="text-muted-theme text-sm">
+              Get started with your educational journey
+            </p>
+
+            <div class="mt-8 mb-6">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center flex-1">
+                  <div
+                    id="step-ind-1"
+                    class="step-indicator active w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm"
+                  >
+                    1
+                  </div>
+                  <div class="flex-1 h-1 bg-gray-200 mx-2 dark:bg-gray-700">
+                    <div
+                      id="line-1"
+                      class="h-full bg-indigo-600 transition-all duration-500"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                </div>
+                <div class="flex items-center flex-1">
+                  <div
+                    id="step-ind-2"
+                    class="step-indicator w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                  >
+                    2
+                  </div>
+                  <div class="flex-1 h-1 bg-gray-200 mx-2 dark:bg-gray-700">
+                    <div
+                      id="line-2"
+                      class="h-full bg-indigo-600 transition-all duration-500"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                </div>
+                <div
+                  id="step-ind-3"
+                  class="step-indicator w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
+                >
+                  3
+                </div>
+              </div>
+              <div class="flex justify-between text-xs text-muted-theme">
+                <span>Basic Info</span>
+                <span>Personal Details</span>
+                <span>Finalize</span>
+              </div>
+            </div>
+          </div>
+
+          <form id="signup-form" onsubmit="return false;">
+            <div class="form-step active" id="step-1">
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="full-name"
+                    >Full Name <span class="text-red-500">*</span></label
+                  >
+                  <input
+                    type="text"
+                    id="full-name"
+                    required
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="username"
+                    >Username <span class="text-red-500">*</span></label
+                  >
+                  <input
+                    type="text"
+                    id="username"
+                    required
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                    placeholder="johndoe123"
+                  />
+                  <p class="text-xs text-muted-theme mt-1.5">
+                    Choose a unique username for your profile
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="email"
+                    >Email Address <span class="text-red-500">*</span></label
+                  >
+                  <input
+                    type="email"
+                    id="email"
+                    required
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                    placeholder="student@school.edu"
+                  />
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      class="block text-sm font-semibold text-secondary-theme mb-2"
+                      for="password"
+                      >Password <span class="text-red-500">*</span></label
+                    >
+                    <input
+                      type="password"
+                      id="password"
+                      required
+                      class="modern-input w-full px-4 py-3 rounded-xl"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      class="block text-sm font-semibold text-secondary-theme mb-2"
+                      for="confirm-password"
+                      >Confirm Password
+                      <span class="text-red-500">*</span></label
+                    >
+                    <input
+                      type="password"
+                      id="confirm-password"
+                      required
+                      class="modern-input w-full px-4 py-3 rounded-xl"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8 flex justify-end">
+                <button
+                  type="button"
+                  id="next-1"
+                  class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center"
+                >
+                  Continue <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+              </div>
+
+              <!-- Google Sign Up Button -->
+              <div
+                class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700"
+              >
+                <div class="flex flex-col items-center space-y-3">
+                  <button
+                    type="button"
+                    onclick="handleGoogleSignUp()"
+                    class="bg-gray-100 p-3 rounded-xl hover:bg-gray-200 transition-all duration-300 flex items-center justify-center w-12 h-12 cursor-pointer dark:bg-gray-700 dark:hover:bg-gray-600"
+                    data-action="signup"
+                  >
+                    <i class="fab fa-google text-red-500 text-lg"></i>
+                  </button>
+                  <p class="text-sm text-muted-theme">Sign up with Google</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-step" id="step-2">
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="date-of-birth"
+                    >Date of Birth <span class="text-red-500">*</span></label
+                  >
+                  <input
+                    type="date"
+                    id="date-of-birth"
+                    required
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="phone-number"
+                    >Phone Number <span class="text-red-500">*</span></label
+                  >
+                  <input
+                    type="tel"
+                    id="phone-number"
+                    required
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="gender"
+                    >Gender <span class="text-red-500">*</span></label
+                  >
+                  <select
+                    id="gender"
+                    required
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                  >
+                    <option value="" disabled selected>
+                      Select your gender
+                    </option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer-not-to-say">Prefer not to say</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    for="bio"
+                    >Bio</label
+                  >
+                  <textarea
+                    id="bio"
+                    class="modern-input w-full px-4 py-3 rounded-xl"
+                    placeholder="Tell us about yourself..."
+                    rows="3"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="mt-8 flex justify-between">
+                <button
+                  type="button"
+                  id="prev-2"
+                  class="bg-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
+                <button
+                  type="button"
+                  id="next-2"
+                  class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center"
+                >
+                  Continue <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-step" id="step-3">
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="block text-sm font-semibold text-secondary-theme mb-2"
+                    >Profile Picture</label
+                  >
+                  <div
+                    class="upload-area rounded-xl p-6 text-center cursor-pointer"
+                    id="upload-area"
+                  >
+                    <div class="flex flex-col items-center justify-center">
+                      <i
+                        class="fas fa-cloud-upload-alt text-3xl text-indigo-500 mb-3"
+                      ></i>
+                      <p
+                        class="text-gray-600 font-medium mb-1 dark:text-gray-300"
+                      >
+                        Upload your profile picture
+                      </p>
+                      <p class="text-gray-500 text-xs dark:text-gray-400">
+                        PNG, JPG, JPEG up to 5MB
+                      </p>
+                      <button
+                        type="button"
+                        id="upload-btn"
+                        class="mt-4 bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg font-medium hover:bg-indigo-200 transition-all duration-300 dark:bg-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-800"
+                      >
+                        Choose File
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    id="avatar"
+                    class="hidden"
+                    accept="image/png,image/jpeg,image/jpg"
+                  />
+                  <div class="mt-4 flex justify-center">
+                    <img id="avatar-preview" src="" alt="Profile Preview" />
+                  </div>
+                </div>
+
+                <div class="mt-6">
+                  <div class="flex items-start">
+                    <input
+                      type="checkbox"
+                      id="terms"
+                      class="mt-1 mr-3 rounded border-gray-300 text-primary focus:ring-primary dark:border-gray-600 dark:bg-gray-700"
+                      required
+                    />
+                    <label for="terms" class="text-sm text-secondary-theme">
+                      I agree to the
+                      <a
+                        href="#"
+                        class="text-indigo-600 hover:underline dark:text-indigo-400"
+                        >Terms of Service</a
+                      >
+                      and
+                      <a
+                        href="#"
+                        class="text-indigo-600 hover:underline dark:text-indigo-400"
+                        >Privacy Policy</a
+                      >
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8 flex justify-between">
+                <button
+                  type="button"
+                  id="prev-3"
+                  class="bg-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
+                <button
+                  type="submit"
+                  id="submit-btn"
+                  class="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3.5 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center"
+                >
+                  Create Account <i class="fas fa-check ml-2"></i>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Theme Management - MATCHING DASHBOARD
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // ⚙️ API Configuration - Updated for FastAPI backend
+      const API_BASE_URL = "http://localhost:8000"; // Your FastAPI server URL
+
+      // Override default alert with toast
+      window.alert = function (message) {
+        showToast(message, "warning", "Notice");
+      };
+
+      // Toast Notification System
+      function showToast(message, type = "info", title = "", duration = 5000) {
+        const container = document.getElementById("toast-container");
+
+        // Set default titles based on type
+        if (!title) {
+          switch (type) {
+            case "success":
+              title = "Success!";
+              break;
+            case "error":
+              title = "Error";
+              break;
+            case "info":
+              title = "Information";
+              break;
+            case "warning":
+              title = "Warning";
+              break;
+          }
+        }
+
+        // Get appropriate icon
+        let icon;
+        switch (type) {
+          case "success":
+            icon = '<i class="fas fa-check-circle"></i>';
+            break;
+          case "error":
+            icon = '<i class="fas fa-exclamation-circle"></i>';
+            break;
+          case "info":
+            icon = '<i class="fas fa-info-circle"></i>';
+            break;
+          case "warning":
+            icon = '<i class="fas fa-exclamation-triangle"></i>';
+            break;
+          default:
+            icon = '<i class="fas fa-bell"></i>';
+        }
+
+        // Create toast element
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+          <div class="toast-icon">${icon}</div>
+          <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+          </div>
+          <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto remove after duration
+        setTimeout(() => {
+          toast.classList.add("hiding");
+          setTimeout(() => toast.remove(), 300);
+        }, duration);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Form navigation
+        const steps = document.querySelectorAll(".form-step");
+        const stepIndicators = document.querySelectorAll(".step-indicator");
+        const progressLines = document.querySelectorAll('[id^="line-"]');
+
+        let currentStep = 1;
+
+        // Next buttons
+        document
+          .getElementById("next-1")
+          .addEventListener("click", function () {
+            if (validateStep(1)) {
+              navigateToStep(2);
+            }
+          });
+
+        document
+          .getElementById("next-2")
+          .addEventListener("click", function () {
+            if (validateStep(2)) {
+              navigateToStep(3);
+            }
+          });
+
+        // Previous buttons
+        document
+          .getElementById("prev-2")
+          .addEventListener("click", function () {
+            navigateToStep(1);
+          });
+
+        document
+          .getElementById("prev-3")
+          .addEventListener("click", function () {
+            navigateToStep(2);
+          });
+
+        // Avatar upload functionality
+        const uploadArea = document.getElementById("upload-area");
+        const uploadBtn = document.getElementById("upload-btn");
+        const avatarInput = document.getElementById("avatar");
+        const avatarPreview = document.getElementById("avatar-preview");
+
+        uploadArea.addEventListener("click", function () {
+          avatarInput.click();
+        });
+
+        uploadBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          avatarInput.click();
+        });
+
+        avatarInput.addEventListener("change", function () {
+          if (this.files && this.files[0]) {
+            const file = this.files[0];
+
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+              showToast(
+                "File size must be less than 5MB",
+                "error",
+                "File Too Large"
+              );
+              this.value = "";
+              return;
+            }
+
+            // Validate file type
+            if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
+              showToast(
+                "Only PNG, JPG, and JPEG files are allowed",
+                "error",
+                "Invalid File Type"
+              );
+              this.value = "";
+              return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+              avatarPreview.src = e.target.result;
+              avatarPreview.style.display = "block";
+              uploadArea.style.display = "none";
+              showToast(
+                "Profile picture uploaded successfully!",
+                "success",
+                "Upload Complete"
+              );
+            };
+
+            reader.readAsDataURL(file);
+          }
+        });
+
+        // Form submission - CONNECTED TO FASTAPI BACKEND
+        document
+          .getElementById("signup-form")
+          .addEventListener("submit", async function (e) {
+            // Prevent default immediately and completely
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log(
+              "Form submission started - Connecting to FastAPI backend"
+            );
+
+            if (!validateStep(3)) {
+              console.log("Step 3 validation failed");
+              return false;
+            }
+
+            const submitBtn = document.getElementById("submit-btn");
+            const originalText = submitBtn.innerHTML;
+
+            // Show loading state
+            submitBtn.innerHTML =
+              'Creating Account... <div class="loading-spinner"></div>';
+            submitBtn.disabled = true;
+
+            // Use a regular async function inside
+            const handleSubmit = async () => {
+              try {
+                // Prepare FormData for multipart/form-data
+                const formData = new FormData();
+
+                // Add all required fields
+                formData.append(
+                  "full_name",
+                  document.getElementById("full-name").value
+                );
+                formData.append(
+                  "username",
+                  document.getElementById("username").value
+                );
+                formData.append(
+                  "email",
+                  document.getElementById("email").value
+                );
+                formData.append(
+                  "password",
+                  document.getElementById("password").value
+                );
+                formData.append(
+                  "confirm_password",
+                  document.getElementById("confirm-password").value
+                );
+                formData.append(
+                  "date_of_birth",
+                  document.getElementById("date-of-birth").value
+                );
+                formData.append(
+                  "phone_number",
+                  document.getElementById("phone-number").value
+                );
+                formData.append(
+                  "gender",
+                  document.getElementById("gender").value
+                );
+
+                // Add optional bio field
+                const bio = document.getElementById("bio").value;
+                if (bio) {
+                  formData.append("bio", bio);
+                }
+
+                // Add avatar file if selected
+                const avatarFile = document.getElementById("avatar").files[0];
+                if (avatarFile) {
+                  formData.append("file", avatarFile);
+                }
+
+                console.log(
+                  "Sending signup request to:",
+                  `${API_BASE_URL}/users/signup`
+                );
+
+                // Send request to FastAPI backend
+                const response = await fetch(`${API_BASE_URL}/users/signup`, {
+                  method: "POST",
+                  body: formData,
+                });
+
+                console.log("Response status:", response.status);
+
+                let data = {};
+                try {
+                  const responseText = await response.text();
+                  console.log("Raw response:", responseText);
+
+                  if (responseText) {
+                    data = JSON.parse(responseText);
+                  }
+                } catch (jsonError) {
+                  console.error("JSON parse error:", jsonError);
+                  if (!response.ok) {
+                    throw new Error("Server returned invalid JSON response");
+                  }
+                }
+
+                console.log("Parsed response data:", data);
+
+                if (response.ok) {
+                  // Success!
+                  console.log("Account created successfully!");
+
+                  showToast(
+                    "Your account has been created successfully! Redirecting to sign in page...",
+                    "success",
+                    "Welcome Aboard! 🎉",
+                    4000
+                  );
+
+                  // Keep button in success state
+                  submitBtn.innerHTML =
+                    '<i class="fas fa-check-circle mr-2"></i> Account Created!';
+                  submitBtn.classList.remove("from-green-500", "to-green-600");
+                  submitBtn.classList.add("from-green-600", "to-green-700");
+
+                  // Clear the form
+                  document.getElementById("signup-form").reset();
+
+                  // Reset avatar preview
+                  const avatarPreview =
+                    document.getElementById("avatar-preview");
+                  avatarPreview.style.display = "none";
+                  document.getElementById("upload-area").style.display =
+                    "block";
+
+                  // Redirect after success
+                  setTimeout(() => {
+                    console.log("Redirecting to /static/signin.html...");
+                    window.location.href = "/static/signin.html";
+                  }, 2000);
+                } else {
+                  // Error from server
+                  console.error("Server error:", data);
+                  const errorMessage =
+                    data.detail ||
+                    data.message ||
+                    "Unable to create account. Please try again.";
+                  throw new Error(errorMessage);
+                }
+              } catch (error) {
+                console.error("Signup error:", error);
+
+                // More specific error messages
+                let userMessage = error.message;
+                if (
+                  error.name === "TypeError" &&
+                  error.message.includes("Failed to fetch")
+                ) {
+                  userMessage =
+                    "Cannot connect to server. Please check if the FastAPI backend is running.";
+                }
+
+                showToast(userMessage, "error", "Signup Failed");
+
+                // Reset button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+              }
+            };
+
+            // Execute the async function
+            handleSubmit();
+          });
+
+        // Helper functions
+        function navigateToStep(step) {
+          // Hide all steps
+          steps.forEach((s) => s.classList.remove("active"));
+
+          // Show current step
+          document.getElementById(`step-${step}`).classList.add("active");
+
+          // Update step indicators
+          stepIndicators.forEach((indicator, index) => {
+            indicator.classList.remove("active", "completed");
+
+            if (index + 1 < step) {
+              indicator.classList.add("completed");
+            } else if (index + 1 === step) {
+              indicator.classList.add("active");
+            }
+          });
+
+          // Update progress lines
+          if (step === 2) {
+            progressLines[0].style.width = "100%";
+            progressLines[1].style.width = "0%";
+          } else if (step === 3) {
+            progressLines[0].style.width = "100%";
+            progressLines[1].style.width = "100%";
+          } else {
+            progressLines[0].style.width = "0%";
+            progressLines[1].style.width = "0%";
+          }
+
+          currentStep = step;
+
+          // Scroll to top of form on mobile
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function validateStep(step) {
+          let isValid = true;
+
+          if (step === 1) {
+            const fullName = document.getElementById("full-name").value;
+            const username = document.getElementById("username").value;
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const confirmPassword =
+              document.getElementById("confirm-password").value;
+
+            if (!fullName.trim()) {
+              showError("full-name", "Full name is required");
+              isValid = false;
+            } else if (fullName.trim().length < 3) {
+              showError("full-name", "Full name must be at least 3 characters");
+              isValid = false;
+            }
+
+            if (!username.trim()) {
+              showError("username", "Username is required");
+              isValid = false;
+            } else if (username.trim().length < 3) {
+              showError("username", "Username must be at least 3 characters");
+              isValid = false;
+            } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+              showError(
+                "username",
+                "Username can only contain letters, numbers, and underscores"
+              );
+              isValid = false;
+            }
+
+            if (!email.trim()) {
+              showError("email", "Email is required");
+              isValid = false;
+            } else if (!isValidEmail(email)) {
+              showError("email", "Please enter a valid email address");
+              isValid = false;
+            }
+
+            if (!password) {
+              showError("password", "Password is required");
+              isValid = false;
+            } else if (password.length < 8) {
+              showError("password", "Password must be at least 8 characters");
+              isValid = false;
+            } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+              showError(
+                "password",
+                "Password must contain uppercase, lowercase, and number"
+              );
+              isValid = false;
+            }
+
+            if (!confirmPassword) {
+              showError("confirm-password", "Please confirm your password");
+              isValid = false;
+            } else if (password !== confirmPassword) {
+              showError("confirm-password", "Passwords do not match");
+              isValid = false;
+            }
+          } else if (step === 2) {
+            const dob = document.getElementById("date-of-birth").value;
+            const phone = document.getElementById("phone-number").value;
+            const gender = document.getElementById("gender").value;
+
+            if (!dob) {
+              showError("date-of-birth", "Date of birth is required");
+              isValid = false;
+            } else {
+              // Validate age (must be at least 13 years old)
+              const dobDate = new Date(dob);
+              const today = new Date();
+              let age = today.getFullYear() - dobDate.getFullYear();
+              const monthDiff = today.getMonth() - dobDate.getMonth();
+              if (
+                monthDiff < 0 ||
+                (monthDiff === 0 && today.getDate() < dobDate.getDate())
+              ) {
+                age--;
+              }
+              if (age < 13) {
+                showError("date-of-birth", "You must be at least 13 years old");
+                isValid = false;
+              }
+              if (age > 120) {
+                showError(
+                  "date-of-birth",
+                  "Please enter a valid date of birth"
+                );
+                isValid = false;
+              }
+            }
+
+            if (!phone.trim()) {
+              showError("phone-number", "Phone number is required");
+              isValid = false;
+            } else if (!/^[\d\s\-\+\(\)]+$/.test(phone)) {
+              showError("phone-number", "Please enter a valid phone number");
+              isValid = false;
+            }
+
+            if (!gender) {
+              showError("gender", "Please select your gender");
+              isValid = false;
+            }
+          } else if (step === 3) {
+            const terms = document.getElementById("terms").checked;
+
+            if (!terms) {
+              showToast(
+                "You must agree to the Terms of Service and Privacy Policy to continue with the registration.",
+                "warning",
+                "Terms & Conditions Required"
+              );
+              isValid = false;
+            }
+          }
+
+          return isValid;
+        }
+
+        function showError(fieldId, message) {
+          const field = document.getElementById(fieldId);
+          field.style.borderColor = "#ef4444";
+
+          // Show toast notification for the error
+          showToast(message, "error", "Validation Error");
+
+          // Remove any existing error message
+          let existingError = field.parentNode.querySelector(".error-message");
+          if (existingError) {
+            existingError.remove();
+          }
+
+          // Add error message
+          const errorElement = document.createElement("p");
+          errorElement.className = "error-message text-red-500 text-xs mt-1";
+          errorElement.textContent = message;
+          field.parentNode.appendChild(errorElement);
+
+          // Remove error styling on input
+          field.addEventListener(
+            "input",
+            function () {
+              field.style.borderColor = "var(--border-color)";
+              const errorMsg = field.parentNode.querySelector(".error-message");
+              if (errorMsg) {
+                errorMsg.remove();
+              }
+            },
+            { once: true }
+          );
+        }
+
+        function isValidEmail(email) {
+          const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return re.test(email);
+        }
+
+        // Add real-time validation feedback
+        document
+          .getElementById("password")
+          .addEventListener("input", function () {
+            const password = this.value;
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const hasMinLength = password.length >= 8;
+
+            if (
+              password.length > 0 &&
+              (!hasUpperCase || !hasLowerCase || !hasNumber || !hasMinLength)
+            ) {
+              this.style.borderColor = "#f59e0b"; // Orange for warning
+            } else if (
+              password.length >= 8 &&
+              hasUpperCase &&
+              hasLowerCase &&
+              hasNumber
+            ) {
+              this.style.borderColor = "#10b981"; // Green for valid
+            }
+          });
+
+        document
+          .getElementById("confirm-password")
+          .addEventListener("input", function () {
+            const password = document.getElementById("password").value;
+            const confirmPassword = this.value;
+
+            if (confirmPassword.length > 0) {
+              if (password === confirmPassword) {
+                this.style.borderColor = "#10b981"; // Green
+              } else {
+                this.style.borderColor = "#f59e0b"; // Orange
+              }
+            }
+          });
+
+        // Add email validation feedback
+        document.getElementById("email").addEventListener("blur", function () {
+          if (this.value && !isValidEmail(this.value)) {
+            this.style.borderColor = "#ef4444";
+          }
+        });
+
+        // Welcome toast on page load
+        setTimeout(() => {
+          showToast(
+            "Fill out the form to create your account and start your learning journey!",
+            "info",
+            "Let's Get Started",
+            6000
+          );
+        }, 500);
+      });
+
+      // Google Sign-Up handler
+      async function handleGoogleSignUp() {
+        try {
+          console.log("🔐 Starting Google Sign-Up...");
+
+          // Get Google OAuth URL from backend
+          const response = await fetch(`${API_BASE_URL}/auth/google/url`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error("Failed to get Google auth URL");
+          }
+
+          // Add state parameter for signup
+          const authUrlWithState = data.auth_url + "&state=signup";
+
+          // Redirect to Google OAuth
+          console.log("🔄 Redirecting to Google OAuth for sign-up...");
+          window.location.href = authUrlWithState;
+        } catch (error) {
+          console.error("❌ Google Sign-Up error:", error);
+          showToast(
+            "Failed to start Google Sign-Up. Please try again.",
+            "error",
+            "Google Sign-Up Failed"
+          );
+        }
+      }
+
+      // Handle Google OAuth callback when page loads
+      async function handleGoogleCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get("code");
+        const googleCode = urlParams.get("google_code");
+        const error = urlParams.get("error");
+        const googleSuccess = urlParams.get("google_success");
+        const token = urlParams.get("token");
+        const userData = urlParams.get("user");
+        const state = urlParams.get("state"); // Get state parameter
+
+        // Handle errors first
+        if (error) {
+          console.error("❌ Google OAuth error:", error);
+          showToast(
+            decodeURIComponent(error),
+            "error",
+            "Google Sign-Up Failed"
+          );
+          cleanUrl();
+          return;
+        }
+
+        // Handle successful backend authentication
+        if (googleSuccess === "true" && token && userData) {
+          console.log(
+            "✅ Handling successful Google authentication from backend..."
+          );
+
+          try {
+            // Store the token and user data
+            localStorage.setItem("access_token", decodeURIComponent(token));
+            localStorage.setItem("user", decodeURIComponent(userData));
+
+            const user = JSON.parse(decodeURIComponent(userData));
+            console.log("✅ Google Sign-Up successful, user data:", user);
+
+            // Show success message
+            showToast(
+              `Welcome, ${
+                user.full_name || user.username
+              }! Your account has been created.`,
+              "success",
+              "Google Sign-Up Successful!",
+              3000
+            );
+
+            cleanUrl();
+
+            // Redirect to dashboard
+            setTimeout(() => {
+              if (user.role === "admin") {
+                window.location.href =
+                  "../static/dashboards/Admin-Dashboard-Overview.html";
+              } else {
+                window.location.href =
+                  "../static/dashboards/Student-Dashboard-Overview.html";
+              }
+            }, 1500);
+            return;
+          } catch (error) {
+            console.error("❌ Error processing backend auth:", error);
+            showToast(
+              "Failed to process authentication. Please try again.",
+              "error",
+              "Authentication Error"
+            );
+            cleanUrl();
+            return;
+          }
+        }
+
+        // Handle frontend code exchange
+        const authCode = code || googleCode;
+        if (authCode) {
+          console.log("🔄 Handling Google OAuth code exchange for sign-up...");
+          await exchangeGoogleCode(authCode);
+        }
+      }
+
+      // Exchange Google code for tokens
+      async function exchangeGoogleCode(authCode) {
+        try {
+          // Show loading state
+          const submitBtn = document.getElementById("submit-btn");
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML =
+              'Creating Account with Google... <div class="loading-spinner"></div>';
+          }
+
+          // Send code to backend
+          console.log("📡 Sending Google auth code to backend...");
+          const response = await fetch(`${API_BASE_URL}/auth/google`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ code: authCode }),
+          });
+
+          console.log("📨 Backend response status:", response.status);
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.detail || `HTTP error! status: ${response.status}`
+            );
+          }
+
+          const data = await response.json();
+          console.log("✅ Backend response data:", data);
+
+          if (data.access_token) {
+            // Success! Store the token and user data
+            localStorage.setItem("access_token", data.access_token);
+            localStorage.setItem("token_type", data.token_type);
+            localStorage.setItem("user", JSON.stringify(data.user));
+
+            console.log("✅ Google Sign-Up successful, user data:", data.user);
+
+            // Show success message
+            showToast(
+              `Welcome, ${
+                data.user.full_name || data.user.username
+              }! Your account has been created.`,
+              "success",
+              "Google Sign-Up Successful!",
+              3000
+            );
+
+            cleanUrl();
+
+            // Redirect to dashboard
+            setTimeout(() => {
+              if (data.user.role === "admin") {
+                window.location.href =
+                  "../static/dashboards/Admin-Dashboard-Overview.html";
+              } else {
+                window.location.href =
+                  "../static/dashboards/Student-Dashboard-Overview.html";
+              }
+            }, 1500);
+          } else {
+            throw new Error("No access token received from backend");
+          }
+        } catch (error) {
+          console.error("❌ Google code exchange error:", error);
+          showToast(
+            error.message || "Google sign-up failed. Please try again.",
+            "error",
+            "Google Sign-Up Failed"
+          );
+
+          cleanUrl();
+
+          // Reset button state if exists
+          const submitBtn = document.getElementById("submit-btn");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML =
+              'Create Account <i class="fas fa-check ml-2"></i>';
+          }
+        }
+      }
+
+      // Clean URL parameters
+      function cleanUrl() {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      }
+
+      // Call this when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        handleGoogleCallback(); // Check for Google callback
+      });
+
+      // Debug function to check if Google Sign-Up is working
+      function debugGoogleSignUp() {
+        console.log("🔍 Debug: Google Sign-Up button clicked");
+        console.log(
+          "🔍 Debug: handleGoogleSignUp function exists:",
+          typeof handleGoogleSignUp
+        );
+        console.log("🔍 Debug: API_BASE_URL:", API_BASE_URL);
+
+        // Test if the function works
+        handleGoogleSignUp();
+      }
+
+      // Update the button temporarily for debugging
+      document.addEventListener("DOMContentLoaded", function () {
+        // Add debug onclick temporarily
+        const googleButton = document
+          .querySelector(".fa-google")
+          .closest("button");
+        if (googleButton) {
+          googleButton.setAttribute("onclick", "debugGoogleSignUp()");
+          console.log("✅ Debug: Added debug handler to Google button");
+        }
+
+        handleGoogleCallback(); // Check for Google callback
+      });
+    </script>
+  </body>
+</html>

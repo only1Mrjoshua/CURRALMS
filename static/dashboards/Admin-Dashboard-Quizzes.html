@@ -1,0 +1,3912 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | Quizzes</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+        --sidebar-width: 250px;
+        --navbar-height: 70px;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        display: flex;
+        min-height: 100vh;
+        transition: background 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Sidebar Styles - Updated to match sign-in page */
+      .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(
+          180deg,
+          var(--primary-indigo),
+          var(--secondary-purple),
+          var(--primary-indigo)
+        );
+        color: var(--white);
+        height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+        transform: translateX(0);
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .sidebar-menu {
+        padding: 20px 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .sidebar-menu ul {
+        list-style: none;
+      }
+
+      .sidebar-menu li {
+        margin-bottom: 5px;
+      }
+
+      .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-menu a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .sidebar-menu a:hover::before,
+      .sidebar-menu a.active::before {
+        left: 0;
+      }
+
+      .sidebar-menu a:hover,
+      .sidebar-menu a.active {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .sidebar-menu i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* Hamburger Menu Button */
+      .hamburger-menu {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--white);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .hamburger-menu:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* Navbar Styles */
+      .navbar {
+        background-color: var(--navbar-bg);
+        height: var(--navbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-left h1 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 15px;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .mobile-menu-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .mobile-menu-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .logout-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .logout-btn i {
+        margin-right: 5px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .add-quiz-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+        font-weight: 600;
+        box-shadow: var(--card-shadow);
+      }
+
+      .add-quiz-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
+      .add-quiz-btn i {
+        margin-right: 8px;
+      }
+
+      /* Back Button */
+      .back-btn {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+        font-weight: 600;
+        margin-right: 15px;
+      }
+
+      .back-btn:hover {
+        opacity: 0.8;
+      }
+
+      .back-btn i {
+        margin-right: 8px;
+      }
+
+      /* Filters Section */
+      .filters {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+
+      .filter-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      /* Quiz Cards */
+      .quizzes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .quiz-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 20px;
+        transition: transform 0.3s;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .quiz-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .quiz-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+      }
+
+      .quiz-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+      }
+
+      .quiz-category {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--white);
+        margin-bottom: 10px;
+      }
+
+      .quiz-description {
+        color: var(--text-muted);
+        margin-bottom: 15px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+      }
+
+      .quiz-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+      }
+
+      .meta-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .meta-value {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--primary-indigo);
+      }
+
+      .meta-label {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      .quiz-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .quiz-date {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .quiz-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+        font-size: 1rem;
+      }
+
+      .action-btn:hover {
+        color: var(--primary-indigo);
+      }
+
+      .btn-edit:hover {
+        color: var(--success-green);
+      }
+
+      .btn-delete:hover {
+        color: var(--error-red);
+      }
+
+      /* Status Badges */
+      .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .status-active {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success-green);
+      }
+
+      .status-draft {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+      }
+
+      /* Edit Quiz Page Styles */
+      .edit-quiz-container {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 25px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .edit-quiz-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .quiz-info h2 {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+      }
+
+      .quiz-meta-info {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .meta-item-edit {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .questions-container {
+        margin-top: 30px;
+      }
+
+      .questions-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+      }
+
+      /* Enhanced Question Styles for Mobile */
+      .question-item-edit {
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: var(--skeleton-bg);
+        position: relative;
+      }
+
+      .question-header-edit {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .question-number {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--primary-indigo);
+        background-color: rgba(99, 102, 241, 0.1);
+        padding: 6px 12px;
+        border-radius: 6px;
+      }
+
+      .question-text-edit {
+        width: 100%;
+        padding: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        resize: vertical;
+        min-height: 100px;
+        line-height: 1.5;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .question-text-edit:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .options-list-edit {
+        margin-top: 15px;
+      }
+
+      .option-item-edit {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 15px;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s;
+      }
+
+      .option-item-edit.selected {
+        border-left: 4px solid var(--primary-indigo);
+        background-color: rgba(99, 102, 241, 0.05);
+      }
+
+      .option-input-edit {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.95rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .option-input-edit:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .correct-option-edit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        padding: 10px 0;
+        border-top: 1px dashed var(--border-color);
+        width: 100%;
+      }
+
+      .correct-option-edit input[type="radio"] {
+        transform: scale(1.3);
+      }
+
+      .add-option-btn {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--primary-indigo);
+        border: 1px dashed var(--primary-indigo);
+        border-radius: 6px;
+        padding: 12px 15px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        transition: all 0.2s;
+      }
+
+      .add-option-btn:hover {
+        background-color: rgba(99, 102, 241, 0.2);
+      }
+
+      .question-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .question-action-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+
+      .question-action-btn:hover {
+        background-color: rgba(108, 117, 125, 0.1);
+      }
+
+      .btn-delete-question {
+        color: var(--error-red);
+      }
+
+      .btn-delete-question:hover {
+        background-color: rgba(239, 68, 68, 0.1);
+      }
+
+      .add-question-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        border-radius: 8px;
+        padding: 15px 20px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        transition: all 0.3s;
+        font-weight: 600;
+      }
+
+      .add-question-btn:hover {
+        opacity: 0.9;
+      }
+
+      .form-actions-edit {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        width: 90%;
+        max-width: 700px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        max-height: 90vh;
+        overflow-y: auto;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+      }
+
+      .close-btn:hover {
+        color: var(--error-red);
+      }
+
+      .modal-body {
+        padding: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .form-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-row {
+        display: flex;
+        gap: 20px;
+      }
+
+      .form-col {
+        flex: 1;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-secondary {
+        background-color: var(--text-muted);
+        color: var(--white);
+      }
+
+      .btn-secondary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-danger {
+        background-color: var(--error-red);
+        color: var(--white);
+      }
+
+      .btn-danger:hover {
+        opacity: 0.9;
+      }
+
+      /* Delete Confirmation Modal */
+      .confirmation-modal {
+        text-align: center;
+      }
+
+      .confirmation-modal .modal-content {
+        max-width: 450px;
+      }
+
+      .confirmation-icon {
+        font-size: 3rem;
+        color: var(--error-red);
+        margin-bottom: 15px;
+      }
+
+      .confirmation-text {
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+      }
+
+      .confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        pointer-events: none;
+      }
+
+      .toast {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-bottom: 10px;
+        border-left: 4px solid;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        pointer-events: all;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.hide {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      .toast-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+      }
+
+      .toast-message {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px;
+      }
+
+      .toast-close:hover {
+        color: var(--text-primary);
+      }
+
+      /* Loading State */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--skeleton-bg);
+        border-top: 4px solid var(--primary-indigo);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--text-muted);
+      }
+
+      /* Read-only fields */
+      .read-only-field {
+        background-color: var(--skeleton-bg);
+        color: var(--text-muted);
+        cursor: not-allowed;
+      }
+
+      /* Colors */
+      .bg-design {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+      .bg-development {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+      .bg-blockchain {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+      .bg-cyber-security {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+
+      /* Logout Confirmation Modal Styles */
+      .logout-confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .logout-confirmation-content {
+        background-color: var(--card-bg);
+        margin: 200px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .logout-confirmation-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 20px;
+      }
+
+      .logout-confirmation-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .logout-confirmation-message {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        font-size: 1rem;
+      }
+
+      .logout-confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .confirm-no {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-no:hover {
+        opacity: 0.9;
+      }
+
+      .confirm-yes {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-yes:hover {
+        opacity: 0.9;
+      }
+
+      /* NEW: Questions Section Styles for Create Quiz Modal */
+      .questions-section {
+        margin-top: 30px;
+        border-top: 1px solid var(--border-color);
+        padding-top: 20px;
+      }
+
+      .section-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .question-item {
+        background-color: var(--skeleton-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .question-text {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        resize: vertical;
+        min-height: 80px;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .question-text:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .options-section {
+        margin-top: 15px;
+      }
+
+      .option-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: var(--card-bg);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+      }
+
+      .option-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.95rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .option-input:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .correct-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .correct-option input[type="radio"] {
+        transform: scale(1.2);
+      }
+
+      .no-questions-message {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+        background-color: var(--skeleton-bg);
+        border-radius: 8px;
+        border: 2px dashed var(--border-color);
+      }
+
+      /* Edit Quiz Form Styles */
+      .edit-quiz-form {
+        margin-bottom: 30px;
+      }
+
+      .form-section {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: var(--card-shadow);
+      }
+
+      /* Mobile Responsive Styles for Delete Question Modal */
+      @media (max-width: 768px) {
+        #deleteQuestionModal .modal-content {
+          margin: 20px;
+          width: calc(100% - 40px);
+        }
+
+        #deleteQuestionModal .modal-body {
+          padding: 25px 20px;
+        }
+
+        .confirmation-icon {
+          font-size: 2.5rem;
+          margin-bottom: 15px;
+        }
+
+        .confirmation-text {
+          font-size: 1rem;
+          margin-bottom: 20px;
+        }
+
+        .confirmation-actions {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .confirmation-actions .btn {
+          padding: 14px 20px;
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 480px) {
+        #deleteQuestionModal .modal-content {
+          margin: 15px;
+          width: calc(100% - 30px);
+        }
+
+        #deleteQuestionModal .modal-body {
+          padding: 20px 15px;
+        }
+
+        .confirmation-icon {
+          font-size: 2rem;
+        }
+
+        .confirmation-text {
+          font-size: 0.95rem;
+        }
+      }
+
+      /* Mobile Responsive Styles */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 280px;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .sidebar-header h2 {
+          display: block;
+        }
+
+        .sidebar-menu span {
+          display: inline;
+        }
+
+        .sidebar-menu a {
+          justify-content: flex-start;
+          padding: 12px 20px;
+        }
+
+        .sidebar-menu i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+        }
+
+        .hamburger-menu {
+          display: block;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+
+        .overlay.active {
+          display: block;
+        }
+
+        .navbar-left h1 {
+          font-size: 1.2rem !important;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .navbar {
+          padding: 0 15px;
+        }
+
+        .user-info span {
+          display: none;
+        }
+
+        .filter-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .form-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .quizzes-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .edit-quiz-header {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .quiz-meta-info {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .form-actions-edit {
+          flex-direction: column;
+        }
+
+        .page-title {
+          font-size: 1.5rem;
+        }
+
+        .add-quiz-btn {
+          padding: 8px 15px;
+          font-size: 0.9rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 15px;
+        }
+
+        .navbar {
+          padding: 0 10px;
+          margin-bottom: 20px;
+        }
+
+        .navbar-left h1 {
+          font-size: 0.9rem !important;
+          font-weight: 600;
+        }
+
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+        }
+
+        .logout-btn {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+
+        .filters {
+          padding: 12px;
+        }
+
+        .quiz-card {
+          padding: 12px;
+        }
+
+        .quiz-title {
+          font-size: 1rem;
+        }
+
+        .quiz-description {
+          font-size: 0.8rem;
+        }
+
+        .quiz-meta {
+          font-size: 0.75rem;
+        }
+
+        .meta-value {
+          font-size: 0.9rem;
+        }
+
+        .quiz-actions {
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .action-btn {
+          font-size: 0.9rem;
+        }
+
+        .modal-content {
+          width: 95%;
+        }
+
+        .modal-header,
+        .modal-body {
+          padding: 15px;
+        }
+
+        .form-group {
+          margin-bottom: 15px;
+        }
+
+        .form-actions {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .confirmation-actions {
+          flex-direction: column;
+        }
+
+        /* Mobile-specific question styles */
+        .question-item-edit {
+          padding: 15px;
+        }
+
+        .question-text-edit {
+          min-height: 80px;
+          font-size: 0.95rem;
+        }
+
+        .option-item-edit {
+          padding: 12px;
+        }
+
+        .option-input-edit {
+          font-size: 0.9rem;
+        }
+
+        .correct-option-edit {
+          font-size: 0.8rem;
+        }
+
+        .add-option-btn {
+          padding: 10px 12px;
+          font-size: 0.85rem;
+        }
+
+        .question-action-btn {
+          font-size: 0.8rem;
+        }
+
+        .add-question-btn {
+          padding: 12px 15px;
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>EduAdmin</h2>
+        <button class="hamburger-menu" id="hamburgerMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-menu">
+        <ul>
+          <li>
+            <a href="Admin-Dashboard-Overview.html"
+              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Courses.html"
+              ><i class="fas fa-book"></i> <span>Courses</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Lessons.html"
+              ><i class="fas fa-file-alt"></i> <span>Lessons</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Assignments.html"
+              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Quizzes.html" class="active"
+              ><i class="fas fa-question-circle"></i> <span>Quizzes</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Users.html"
+              ><i class="fas fa-users"></i> <span>Users</span></a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Navbar -->
+      <div class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1 id="pageHeading">Quiz Management</h1>
+        </div>
+        <div class="navbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <span id="currentUserName">John Doe</span>
+          </div>
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2 class="page-title" id="pageTitle">All Quizzes</h2>
+        <div id="actionButtons">
+          <button class="add-quiz-btn" id="openModalBtn">
+            <i class="fas fa-plus"></i> Create New Quiz
+          </button>
+        </div>
+      </div>
+
+      <!-- Quizzes Page Content -->
+      <div id="quizzesPage">
+        <!-- Filters Section -->
+        <div class="filters">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label class="filter-label" for="categoryFilter">Category</label>
+              <select id="categoryFilter" class="filter-select">
+                <option value="">All Categories</option>
+                <option value="Design">Design</option>
+                <option value="Development">Development</option>
+                <option value="Blockchain">Blockchain</option>
+                <option value="Cyber Security">Cyber Security</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label" for="courseFilter">Course</label>
+              <select id="courseFilter" class="filter-select">
+                <option value="">All Courses</option>
+                <option value="ui-ux">UI/UX Design</option>
+                <option value="web-dev">Web Development</option>
+                <option value="blockchain-fundamentals">
+                  Blockchain Fundamentals
+                </option>
+                <option value="cyber-intro">
+                  Introduction to Cyber Security
+                </option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label" for="statusFilter">Status</label>
+              <select id="statusFilter" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quizzes Grid -->
+        <div class="quizzes-grid" id="quizzesGrid">
+          <!-- Quiz cards will be dynamically loaded here -->
+          <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading quizzes...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Quiz Page Content (Hidden by default) -->
+      <div id="editQuizPage" style="display: none">
+        <div class="edit-quiz-container">
+          <div class="edit-quiz-header">
+            <div class="quiz-info">
+              <h2 id="editQuizTitle">Edit Quiz</h2>
+              <div class="quiz-meta-info">
+                <div class="meta-item-edit">
+                  <i class="fas fa-book"></i>
+                  <span id="editQuizCourse">Loading...</span>
+                </div>
+                <div class="meta-item-edit">
+                  <i class="fas fa-tag"></i>
+                  <span id="editQuizCategory">Loading...</span>
+                </div>
+                <div class="meta-item-edit">
+                  <i class="far fa-calendar-alt"></i>
+                  <span id="editQuizDate">Loading...</span>
+                </div>
+              </div>
+            </div>
+            <div class="quiz-stats">
+              <div class="meta-item">
+                <div class="meta-value" id="editQuestionCount">0</div>
+                <div class="meta-label">Questions</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EDIT QUIZ FORM WITH ALL FIELDS -->
+          <div class="edit-quiz-form">
+            <div class="form-section">
+              <h3 class="section-title">Quiz Details</h3>
+              <div class="form-group">
+                <label class="form-label" for="editTitle">Quiz Title</label>
+                <input
+                  type="text"
+                  id="editTitle"
+                  class="form-control"
+                  placeholder="Enter quiz title"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editDescription"
+                  >Quiz Description</label
+                >
+                <textarea
+                  id="editDescription"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Enter quiz description"
+                ></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label class="form-label" for="editCategory"
+                      >Category</label
+                    >
+                    <select id="editCategory" class="form-select" required>
+                      <option value="">Select a category</option>
+                      <option value="Design">Design</option>
+                      <option value="Development">Development</option>
+                      <option value="Blockchain">Blockchain</option>
+                      <option value="Cyber Security">Cyber Security</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label class="form-label" for="editCourse">Course</label>
+                    <select id="editCourse" class="form-select" required>
+                      <option value="">Select a course</option>
+                      <option value="ui-ux">UI/UX Design</option>
+                      <option value="graphic-design">Graphic Design</option>
+                      <option value="web-dev">Web Development</option>
+                      <option value="mobile-dev">Mobile Development</option>
+                      <option value="blockchain-fundamentals">
+                        Blockchain Fundamentals
+                      </option>
+                      <option value="smart-contracts">Smart Contracts</option>
+                      <option value="cyber-intro">
+                        Introduction to Cyber Security
+                      </option>
+                      <option value="network-security">Network Security</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="editPassingScore"
+                  >Passing Score (%)</label
+                >
+                <input
+                  type="number"
+                  id="editPassingScore"
+                  class="form-control"
+                  min="0"
+                  max="100"
+                  value="70"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="questions-container">
+            <h3 class="questions-title">Quiz Questions</h3>
+            <div id="questionsList">
+              <!-- Questions will be dynamically loaded here -->
+            </div>
+
+            <!-- Add Question Button -->
+            <button class="add-question-btn" id="addQuestionBtn">
+              <i class="fas fa-plus-circle"></i> Add New Question
+            </button>
+          </div>
+
+          <div class="form-actions-edit">
+            <button class="btn btn-secondary" id="backToQuizzesBtn">
+              <i class="fas fa-arrow-left"></i> Back to Quizzes
+            </button>
+            <button class="btn btn-primary" id="saveQuizBtn">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Quiz Modal WITH QUESTIONS SECTION -->
+    <div class="modal" id="quizModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Create New Quiz</h3>
+          <button class="close-btn" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="quizForm">
+            <div class="form-group">
+              <label class="form-label" for="quizTitle">Quiz Title</label>
+              <input
+                type="text"
+                id="quizTitle"
+                class="form-control"
+                placeholder="Enter quiz title"
+                required
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="quizCategory">Category</label>
+                  <select id="quizCategory" class="form-select" required>
+                    <option value="">Select a category</option>
+                    <option value="Design">Design</option>
+                    <option value="Development">Development</option>
+                    <option value="Blockchain">Blockchain</option>
+                    <option value="Cyber Security">Cyber Security</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="quizCourse">Course</label>
+                  <select id="quizCourse" class="form-select" required>
+                    <option value="">Select a course</option>
+                    <option value="ui-ux">UI/UX Design</option>
+                    <option value="graphic-design">Graphic Design</option>
+                    <option value="web-dev">Web Development</option>
+                    <option value="mobile-dev">Mobile Development</option>
+                    <option value="blockchain-fundamentals">
+                      Blockchain Fundamentals
+                    </option>
+                    <option value="smart-contracts">Smart Contracts</option>
+                    <option value="cyber-intro">
+                      Introduction to Cyber Security
+                    </option>
+                    <option value="network-security">Network Security</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="quizDescription"
+                >Quiz Description</label
+              >
+              <textarea
+                id="quizDescription"
+                class="form-control"
+                rows="3"
+                placeholder="Enter quiz description"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="passingScore"
+                >Passing Score (%)</label
+              >
+              <input
+                type="number"
+                id="passingScore"
+                class="form-control"
+                min="0"
+                max="100"
+                value="70"
+                required
+              />
+            </div>
+
+            <!-- NEW: QUESTIONS SECTION -->
+            <div class="questions-section">
+              <div class="section-title">
+                <span>Quiz Questions</span>
+                <span id="questionCount">0 Questions</span>
+              </div>
+
+              <div id="questionsListModal">
+                <!-- Questions will be added here dynamically -->
+                <div class="no-questions-message">
+                  <i
+                    class="fas fa-question-circle"
+                    style="
+                      font-size: 3rem;
+                      margin-bottom: 15px;
+                      display: block;
+                      color: var(--text-muted);
+                    "
+                  ></i>
+                  No questions added yet. Add your first question!
+                </div>
+              </div>
+
+              <!-- Add Question Button -->
+              <button
+                type="button"
+                class="add-question-btn"
+                id="addQuestionBtnModal"
+              >
+                <i class="fas fa-plus-circle"></i> Add New Question
+              </button>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="cancelBtn">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary" id="submitQuizBtn">
+                <span id="submitQuizText">Create Quiz</span>
+                <span
+                  id="submitQuizSpinner"
+                  class="loading-spinner"
+                  style="display: none"
+                ></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal confirmation-modal" id="deleteModal">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class="confirmation-icon">
+            <i class="fas fa-trash"></i>
+          </div>
+          <h3 class="confirmation-title">Confirm Deletion</h3>
+          <p class="confirmation-text" id="deleteConfirmationText">
+            Are you sure you want to delete this quiz? This action cannot be
+            undone.
+          </p>
+          <div class="confirmation-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelDeleteBtn"
+            >
+              No, Cancel
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+              <span id="confirmDeleteText">Yes, Delete</span>
+              <span
+                id="confirmDeleteSpinner"
+                class="loading-spinner"
+                style="display: none"
+              ></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Question Confirmation Modal -->
+    <div class="modal confirmation-modal" id="deleteQuestionModal">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class="confirmation-icon">
+            <i class="fas fa-trash"></i>
+          </div>
+          <h3 class="confirmation-title">Delete Question</h3>
+          <p class="confirmation-text" id="deleteQuestionConfirmationText">
+            Are you sure you want to delete this question? This action cannot be
+            undone.
+          </p>
+          <div class="confirmation-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelDeleteQuestionBtn"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              id="confirmDeleteQuestionBtn"
+            >
+              Delete Question
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW: Logout Confirmation Modal -->
+    <div class="logout-confirmation-modal" id="logoutConfirmationModal">
+      <div class="logout-confirmation-content">
+        <div class="logout-confirmation-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3 class="logout-confirmation-title">Confirm Logout</h3>
+        <p class="logout-confirmation-message">
+          Are you sure you want to logout? You will need to sign in again to
+          access the dashboard.
+        </p>
+        <div class="logout-confirmation-actions">
+          <button class="confirm-no" id="confirmNo">No, Cancel</button>
+          <button class="confirm-yes" id="confirmYes">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mobile Sidebar Toggle Functionality
+      const sidebar = document.getElementById("sidebar");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const hamburgerMenu = document.getElementById("hamburgerMenu");
+      const overlay = document.getElementById("overlay");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+
+      mobileMenuBtn.addEventListener("click", toggleSidebar);
+      hamburgerMenu.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme Management
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.style.cssText = `
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
+
+        // Set border color based on type
+        const colors = {
+          success: "var(--success-green)",
+          info: "var(--primary-indigo)",
+          warning: "var(--accent-purple)",
+          error: "var(--error-red)",
+        };
+        toast.style.borderLeftColor = colors[type] || colors.info;
+
+        const icons = {
+          success: "fas fa-check",
+          info: "fas fa-info-circle",
+          warning: "fas fa-exclamation-triangle",
+          error: "fas fa-exclamation-circle",
+        };
+
+        toast.innerHTML = `
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateX(0)";
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Function to load and display current user info
+      function loadCurrentUserInfo() {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          try {
+            // Decode the JWT token to get user information
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Get email from token (adjust the property name based on your token structure)
+            const userEmail = payload.email || payload.sub || "User";
+
+            // Update the UI with user's email
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = userEmail;
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = getInitials(userEmail);
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+            // Fallback to default
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = "User";
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = "U";
+            }
+          }
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // API Configuration
+      const API_BASE_URL = "http://localhost:8000";
+
+      // Global variables
+      let allQuizzes = [];
+      let currentEditQuizId = null;
+      let currentDeleteQuizId = null;
+      let currentDeleteQuizTitle = null;
+      let currentDeleteQuestionId = null;
+      let questionCounter = 0;
+      let availableCategories = [];
+      let availableCourses = [];
+      let currentEditQuizData = null;
+
+      // Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to access quiz management",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // Format date for display
+      function formatDate(dateString) {
+        if (!dateString) return "—";
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      // Get auth token
+      function getAuthToken() {
+        return localStorage.getItem("access_token");
+      }
+
+      // Enhanced API Service with better error handling
+      const apiService = {
+        // Get all categories
+        async getCategories() {
+          try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/categories`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error fetching categories:", error);
+            // Fallback to hardcoded categories if API fails
+            return [
+              { id: "Design", name: "Design" },
+              { id: "Development", name: "Development" },
+              { id: "Blockchain", name: "Blockchain" },
+              { id: "Cyber Security", name: "Cyber Security" },
+            ];
+          }
+        },
+
+        // Get courses by category
+        async getCoursesByCategory(category) {
+          try {
+            const token = getAuthToken();
+            console.log(`Fetching courses for category: ${category}`);
+
+            const response = await fetch(
+              `${API_BASE_URL}/courses/by-category/${encodeURIComponent(
+                category
+              )}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const courses = await response.json();
+            console.log(
+              `Found ${courses.length} courses for category ${category}`,
+              courses
+            );
+            return courses;
+          } catch (error) {
+            console.error("Error fetching courses by category:", error);
+            // Fallback to hardcoded courses if API fails
+            const fallbackCourses = {
+              Design: [
+                { id: "ui-ux", title: "UI/UX Design" },
+                { id: "graphic-design", title: "Graphic Design" },
+              ],
+              Development: [
+                { id: "web-dev", title: "Web Development" },
+                { id: "mobile-dev", title: "Mobile Development" },
+              ],
+              Blockchain: [
+                {
+                  id: "blockchain-fundamentals",
+                  title: "Blockchain Fundamentals",
+                },
+                { id: "smart-contracts", title: "Smart Contracts" },
+              ],
+              "Cyber Security": [
+                { id: "cyber-intro", title: "Introduction to Cyber Security" },
+                { id: "network-security", title: "Network Security" },
+              ],
+            };
+            return fallbackCourses[category] || [];
+          }
+        },
+
+        // Get all quizzes
+        async getQuizzes() {
+          try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/quizzes`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error fetching quizzes:", error);
+            throw error;
+          }
+        },
+
+        // Create a new quiz
+        async createQuiz(quizData) {
+          try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/quizzes`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(quizData),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => null);
+              console.error("Create quiz error response:", errorData);
+
+              if (response.status === 422) {
+                throw new Error(
+                  `Validation error: ${JSON.stringify(
+                    errorData?.detail || "Unknown validation error"
+                  )}`
+                );
+              } else if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error creating quiz:", error);
+            throw error;
+          }
+        },
+
+        // Update a quiz - ENHANCED ERROR HANDLING
+        async updateQuiz(quizId, quizData) {
+          try {
+            const token = getAuthToken();
+            console.log("Updating quiz with data:", quizData); // Debug log
+
+            const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(quizData),
+            });
+
+            if (!response.ok) {
+              // Try to get detailed error information
+              let errorMessage = `HTTP error! status: ${response.status}`;
+              try {
+                const errorData = await response.json();
+                console.error("Update quiz error details:", errorData);
+
+                if (response.status === 422) {
+                  errorMessage = `Validation error: ${JSON.stringify(
+                    errorData.detail || "Check your data format"
+                  )}`;
+                } else if (errorData.detail) {
+                  errorMessage = errorData.detail;
+                }
+              } catch (parseError) {
+                console.error("Could not parse error response:", parseError);
+              }
+
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(errorMessage);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error updating quiz:", error);
+            throw error;
+          }
+        },
+
+        // Delete a quiz
+        async deleteQuiz(quizId) {
+          try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error deleting quiz:", error);
+            throw error;
+          }
+        },
+
+        // Get quiz details with questions
+        async getQuizDetails(quizId) {
+          try {
+            const token = getAuthToken();
+            const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error fetching quiz details:", error);
+            throw error;
+          }
+        },
+
+        // Get quiz questions
+        async getQuizQuestions(quizId) {
+          try {
+            const token = getAuthToken();
+            const response = await fetch(
+              `${API_BASE_URL}/quizzes/${quizId}/questions`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error("Authentication required");
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+          } catch (error) {
+            console.error("Error fetching quiz questions:", error);
+            throw error;
+          }
+        },
+      };
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeApp();
+      });
+
+      async function initializeApp() {
+        if (!checkAuthentication()) {
+          return;
+        }
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Load current user info first
+        loadCurrentUserInfo();
+
+        // Initialize modals
+        initializeModals();
+
+        // Initialize event listeners
+        initializeEventListeners();
+
+        // Load initial data
+        await loadInitialData();
+      }
+
+      async function loadInitialData() {
+        try {
+          // Load categories and courses
+          await loadCategories();
+
+          // Load quizzes data
+          await loadQuizzesData();
+        } catch (error) {
+          console.error("Error loading initial data:", error);
+          showToast("error", "Error", "Failed to load initial data", 5000);
+        }
+      }
+
+      async function loadCategories() {
+        try {
+          availableCategories = await apiService.getCategories();
+          populateCategoryDropdowns();
+        } catch (error) {
+          console.error("Error loading categories:", error);
+          // Fallback to hardcoded categories
+          availableCategories = [
+            { id: "Design", name: "Design" },
+            { id: "Development", name: "Development" },
+            { id: "Blockchain", name: "Blockchain" },
+            { id: "Cyber Security", name: "Cyber Security" },
+          ];
+          populateCategoryDropdowns();
+        }
+      }
+
+      function populateCategoryDropdowns() {
+        // Populate create quiz modal category dropdown
+        const categorySelect = document.getElementById("quizCategory");
+        categorySelect.innerHTML =
+          '<option value="">Select a category</option>';
+
+        availableCategories.forEach((category) => {
+          const option = document.createElement("option");
+          option.value = category.id;
+          option.textContent = category.name;
+          categorySelect.appendChild(option);
+        });
+
+        // Populate filter category dropdown
+        const filterCategorySelect = document.getElementById("categoryFilter");
+        filterCategorySelect.innerHTML =
+          '<option value="">All Categories</option>';
+
+        availableCategories.forEach((category) => {
+          const option = document.createElement("option");
+          option.value = category.id;
+          option.textContent = category.name;
+          filterCategorySelect.appendChild(option);
+        });
+
+        // Populate edit quiz category dropdown
+        const editCategorySelect = document.getElementById("editCategory");
+        editCategorySelect.innerHTML =
+          '<option value="">Select a category</option>';
+
+        availableCategories.forEach((category) => {
+          const option = document.createElement("option");
+          option.value = category.id;
+          option.textContent = category.name;
+          editCategorySelect.appendChild(option);
+        });
+      }
+
+      async function loadCoursesByCategory(category) {
+        try {
+          const courses = await apiService.getCoursesByCategory(category);
+          availableCourses = courses;
+          populateCourseDropdown();
+        } catch (error) {
+          console.error("Error loading courses:", error);
+          // Fallback to hardcoded courses if API fails
+          const fallbackCourses = {
+            Design: [
+              { id: "ui-ux", title: "UI/UX Design" },
+              { id: "graphic-design", title: "Graphic Design" },
+            ],
+            Development: [
+              { id: "web-dev", title: "Web Development" },
+              { id: "mobile-dev", title: "Mobile Development" },
+            ],
+            Blockchain: [
+              {
+                id: "blockchain-fundamentals",
+                title: "Blockchain Fundamentals",
+              },
+              { id: "smart-contracts", title: "Smart Contracts" },
+            ],
+            "Cyber Security": [
+              { id: "cyber-intro", title: "Introduction to Cyber Security" },
+              { id: "network-security", title: "Network Security" },
+            ],
+          };
+          availableCourses = fallbackCourses[category] || [];
+          populateCourseDropdown();
+        }
+      }
+
+      function populateCourseDropdown() {
+        const courseSelect = document.getElementById("quizCourse");
+        courseSelect.innerHTML = '<option value="">Select a course</option>';
+
+        if (availableCourses.length === 0) {
+          courseSelect.innerHTML =
+            '<option value="">No courses available for this category</option>';
+          courseSelect.disabled = true;
+        } else {
+          availableCourses.forEach((course) => {
+            const option = document.createElement("option");
+            option.value = course.id;
+            option.textContent = course.title;
+            courseSelect.appendChild(option);
+          });
+          courseSelect.disabled = false;
+        }
+
+        // Also populate edit course dropdown
+        const editCourseSelect = document.getElementById("editCourse");
+        editCourseSelect.innerHTML =
+          '<option value="">Select a course</option>';
+
+        if (availableCourses.length === 0) {
+          editCourseSelect.innerHTML =
+            '<option value="">No courses available for this category</option>';
+          editCourseSelect.disabled = true;
+        } else {
+          availableCourses.forEach((course) => {
+            const option = document.createElement("option");
+            option.value = course.id;
+            option.textContent = course.title;
+            editCourseSelect.appendChild(option);
+          });
+          editCourseSelect.disabled = false;
+        }
+      }
+
+      function initializeModals() {
+        // Add Quiz Modal
+        const modal = document.getElementById("quizModal");
+        const openModalBtn = document.getElementById("openModalBtn");
+        const closeModalBtn = document.getElementById("closeModalBtn");
+        const cancelBtn = document.getElementById("cancelBtn");
+
+        openModalBtn.addEventListener("click", () => {
+          if (!checkAuthentication()) return;
+          modal.style.display = "flex";
+          // Reset form when opening modal
+          document.getElementById("quizForm").reset();
+          document.getElementById("quizCourse").innerHTML =
+            '<option value="">Select a category first</option>';
+          document.getElementById("quizCourse").disabled = true;
+          resetQuestions();
+        });
+
+        closeModalBtn.addEventListener("click", () => {
+          modal.style.display = "none";
+        });
+
+        cancelBtn.addEventListener("click", () => {
+          modal.style.display = "none";
+        });
+
+        // Category change listener for dynamic course loading - CREATE MODAL
+        document
+          .getElementById("quizCategory")
+          .addEventListener("change", async function () {
+            const selectedCategory = this.value;
+            const courseSelect = document.getElementById("quizCourse");
+
+            if (selectedCategory) {
+              courseSelect.innerHTML =
+                '<option value="">Loading courses...</option>';
+              courseSelect.disabled = true;
+
+              await loadCoursesByCategory(selectedCategory);
+            } else {
+              courseSelect.innerHTML =
+                '<option value="">Select a category first</option>';
+              courseSelect.disabled = true;
+            }
+          });
+
+        // Category change listener for dynamic course loading - EDIT MODAL
+        document
+          .getElementById("editCategory")
+          .addEventListener("change", async function () {
+            const selectedCategory = this.value;
+            const editCourseSelect = document.getElementById("editCourse");
+
+            if (selectedCategory) {
+              editCourseSelect.innerHTML =
+                '<option value="">Loading courses...</option>';
+              editCourseSelect.disabled = true;
+
+              await loadCoursesByCategory(selectedCategory);
+            } else {
+              editCourseSelect.innerHTML =
+                '<option value="">Select a category first</option>';
+              editCourseSelect.disabled = true;
+            }
+          });
+
+        // Delete Confirmation Modal
+        const deleteModal = document.getElementById("deleteModal");
+        const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
+
+        cancelDeleteBtn.addEventListener("click", () => {
+          deleteModal.style.display = "none";
+        });
+
+        // Delete Question Confirmation Modal
+        const deleteQuestionModal = document.getElementById(
+          "deleteQuestionModal"
+        );
+        const cancelDeleteQuestionBtn = document.getElementById(
+          "cancelDeleteQuestionBtn"
+        );
+
+        cancelDeleteQuestionBtn.addEventListener("click", () => {
+          deleteQuestionModal.style.display = "none";
+        });
+
+        // Logout Confirmation Modal
+        const logoutConfirmationModal = document.getElementById(
+          "logoutConfirmationModal"
+        );
+        const confirmYes = document.getElementById("confirmYes");
+        const confirmNo = document.getElementById("confirmNo");
+
+        // Logout button functionality
+        document
+          .getElementById("logoutBtn")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            logoutConfirmationModal.style.display = "block";
+          });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 500);
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener("click", (e) => {
+          if (e.target === modal) modal.style.display = "none";
+          if (e.target === deleteModal) deleteModal.style.display = "none";
+          if (e.target === deleteQuestionModal)
+            deleteQuestionModal.style.display = "none";
+          if (e.target === logoutConfirmationModal)
+            logoutConfirmationModal.style.display = "none";
+        });
+      }
+
+      function initializeEventListeners() {
+        // Form submissions
+        document
+          .getElementById("quizForm")
+          .addEventListener("submit", handleCreateQuiz);
+        document
+          .getElementById("confirmDeleteBtn")
+          .addEventListener("click", handleDeleteQuiz);
+        document
+          .getElementById("confirmDeleteQuestionBtn")
+          .addEventListener("click", handleDeleteQuestion);
+        document
+          .getElementById("saveQuizBtn")
+          .addEventListener("click", handleUpdateQuiz);
+
+        // Back to quizzes button
+        document
+          .getElementById("backToQuizzesBtn")
+          .addEventListener("click", showQuizzesPage);
+
+        // Filter functionality
+        const categoryFilter = document.getElementById("categoryFilter");
+        const courseFilter = document.getElementById("courseFilter");
+        const statusFilter = document.getElementById("statusFilter");
+        [categoryFilter, courseFilter, statusFilter].forEach((filter) => {
+          filter.addEventListener("change", applyFilters);
+        });
+
+        // Add question buttons
+        document
+          .getElementById("addQuestionBtnModal")
+          .addEventListener("click", addNewQuestion);
+        document
+          .getElementById("addQuestionBtn")
+          .addEventListener("click", addNewQuestionEdit);
+
+        // Edit and delete button event delegation
+        document.addEventListener("click", function (e) {
+          // Edit button click handler
+          const editButton = e.target.closest(".btn-edit");
+          if (editButton) {
+            if (!checkAuthentication()) return;
+            const quizId = editButton.getAttribute("data-id");
+            handleEditQuiz(quizId);
+          }
+
+          // Delete button click handler
+          const deleteButton = e.target.closest(".btn-delete");
+          if (deleteButton) {
+            if (!checkAuthentication()) return;
+            const quizId = deleteButton.getAttribute("data-id");
+            const quizTitle = deleteButton.getAttribute("data-title");
+            showDeleteConfirmation(quizId, quizTitle);
+          }
+
+          // Delete question button click handler
+          const deleteQuestionButton = e.target.closest(".btn-delete-question");
+          if (deleteQuestionButton) {
+            if (!checkAuthentication()) return;
+            const questionElement = deleteQuestionButton.closest(
+              ".question-item-edit, .question-item"
+            );
+            const questionNumber =
+              questionElement.querySelector(".question-number").textContent;
+            currentDeleteQuestionId =
+              questionElement.getAttribute("data-question-id");
+            document.getElementById(
+              "deleteQuestionConfirmationText"
+            ).textContent = `Are you sure you want to delete ${questionNumber}? This action cannot be undone.`;
+            document.getElementById("deleteQuestionModal").style.display =
+              "flex";
+          }
+
+          // Add option button click handler for modal
+          const addOptionButton = e.target.closest(".add-option-btn");
+          if (addOptionButton) {
+            if (!checkAuthentication()) return;
+            const questionElement = addOptionButton.closest(".question-item");
+            addOption(questionElement);
+          }
+
+          // Radio button change handler for correct answers
+          const radioButton = e.target.closest('input[type="radio"]');
+          if (radioButton && radioButton.name.startsWith("correct")) {
+            const questionElement = radioButton.closest(".question-item");
+            if (questionElement) {
+              updateCorrectAnswer(questionElement, radioButton);
+            }
+          }
+        });
+      }
+
+      // Questions functionality for create quiz modal
+      function addNewQuestion() {
+        questionCounter++;
+        const questionsList = document.getElementById("questionsListModal");
+
+        // Remove no questions message if it exists
+        const noQuestionsMessage = questionsList.querySelector(
+          ".no-questions-message"
+        );
+        if (noQuestionsMessage) {
+          noQuestionsMessage.remove();
+        }
+
+        const questionItem = createQuestionElement(questionCounter);
+        questionsList.appendChild(questionItem);
+        updateQuestionCount();
+      }
+
+      function createQuestionElement(questionNumber) {
+        const questionItem = document.createElement("div");
+        questionItem.className = "question-item";
+        questionItem.setAttribute("data-question-id", questionNumber);
+
+        questionItem.innerHTML = `
+        <div class="question-header">
+            <div class="question-number">Question ${questionNumber}</div>
+        </div>
+        <textarea class="question-text" placeholder="Enter your question here" required></textarea>
+        <div class="options-section">
+            <div class="option-item">
+                <input type="text" class="option-input" placeholder="Option 1" required>
+                <div class="correct-option">
+                    <input type="radio" name="correct${questionNumber}" value="0" checked>
+                    <span>Correct Answer</span>
+                </div>
+            </div>
+            <div class="option-item">
+                <input type="text" class="option-input" placeholder="Option 2" required>
+                <div class="correct-option">
+                    <input type="radio" name="correct${questionNumber}" value="1">
+                    <span>Correct Answer</span>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="add-option-btn">
+            <i class="fas fa-plus"></i> Add Option
+        </button>
+        <div class="question-actions">
+            <button type="button" class="question-action-btn btn-delete-question">
+                <i class="fas fa-trash"></i> Delete Question
+            </button>
+        </div>
+    `;
+
+        return questionItem;
+      }
+
+      function addOption(questionElement) {
+        const optionsSection =
+          questionElement.querySelector(".options-section");
+        const optionCount = optionsSection.children.length;
+        const questionNumber = questionElement.getAttribute("data-question-id");
+
+        const optionItem = document.createElement("div");
+        optionItem.className = "option-item";
+        optionItem.innerHTML = `
+        <input type="text" class="option-input" placeholder="Option ${
+          optionCount + 1
+        }" required>
+        <div class="correct-option">
+            <input type="radio" name="correct${questionNumber}" value="${optionCount}">
+            <span>Correct Answer</span>
+        </div>
+    `;
+        optionsSection.appendChild(optionItem);
+      }
+
+      function updateCorrectAnswer(questionElement, radioButton) {
+        // Remove selected class from all options
+        questionElement.querySelectorAll(".option-item").forEach((item) => {
+          item.classList.remove("selected");
+        });
+
+        // Add selected class to the correct option
+        radioButton.closest(".option-item").classList.add("selected");
+      }
+
+      function updateQuestionCount() {
+        const questionCount =
+          document.querySelectorAll(".question-item").length;
+        document.getElementById(
+          "questionCount"
+        ).textContent = `${questionCount} Question${
+          questionCount !== 1 ? "s" : ""
+        }`;
+      }
+
+      function resetQuestions() {
+        const questionsList = document.getElementById("questionsListModal");
+        questionsList.innerHTML = `
+        <div class="no-questions-message">
+            <i class="fas fa-question-circle" style="font-size: 3rem; margin-bottom: 15px; display: block; color: var(--text-muted);"></i>
+            No questions added yet. Add your first question!
+        </div>
+    `;
+        questionCounter = 0;
+        updateQuestionCount();
+      }
+
+      function collectQuestionsData() {
+        const questions = [];
+        document
+          .querySelectorAll(".question-item")
+          .forEach((questionElement) => {
+            const questionText =
+              questionElement.querySelector(".question-text").value;
+            const options = [];
+            let correctAnswer = "";
+
+            // Collect options and find correct answer
+            questionElement
+              .querySelectorAll(".option-item")
+              .forEach((optionElement, index) => {
+                const optionText =
+                  optionElement.querySelector(".option-input").value;
+                options.push(optionText);
+
+                // Check if this option is the correct one
+                const radioButton = optionElement.querySelector(
+                  'input[type="radio"]'
+                );
+                if (radioButton.checked) {
+                  correctAnswer = optionText; // Store the actual answer text as string
+                }
+              });
+
+            questions.push({
+              question_text: questionText,
+              question_type: "multiple_choice",
+              options: options,
+              correct_answer: correctAnswer, // This should be a string
+              code_template: "",
+              test_cases: [],
+            });
+          });
+
+        return questions;
+      }
+
+      async function handleCreateQuiz(e) {
+        e.preventDefault();
+        if (!checkAuthentication()) return;
+
+        const submitBtn = document.getElementById("submitQuizBtn");
+        const originalText = submitBtn.innerHTML;
+
+        try {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML =
+            '<div class="loading-spinner"></div> Creating...';
+
+          // Collect questions data
+          const questions = collectQuestionsData();
+
+          if (questions.length === 0) {
+            throw new Error("Please add at least one question to the quiz");
+          }
+
+          const quizData = {
+            course_id: document.getElementById("quizCourse").value,
+            title: document.getElementById("quizTitle").value,
+            description: document.getElementById("quizDescription").value,
+            total_questions: questions.length,
+            passing_score: parseInt(
+              document.getElementById("passingScore").value
+            ),
+            questions: questions,
+          };
+
+          console.log("Creating quiz with data:", quizData); // Debug log
+
+          const response = await apiService.createQuiz(quizData);
+
+          showToast("success", "Success", "Quiz created successfully!", 3000);
+          document.getElementById("quizForm").reset();
+          document.getElementById("quizModal").style.display = "none";
+          resetQuestions();
+          await loadQuizzesData();
+        } catch (error) {
+          console.error("Error creating quiz:", error);
+          if (error.message === "Authentication required") {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+          } else {
+            showToast("error", "Error", error.message, 5000);
+          }
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      }
+
+      // FIXED UPDATE QUIZ FUNCTION - Addresses all validation errors
+      async function handleUpdateQuiz() {
+        if (!checkAuthentication() || !currentEditQuizId) return;
+
+        const submitBtn = document.getElementById("saveQuizBtn");
+        const originalText = submitBtn.innerHTML;
+
+        try {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<div class="loading-spinner"></div> Saving...';
+
+          // Collect questions data
+          const questions = collectQuestionsDataEdit();
+
+          if (questions.length === 0) {
+            throw new Error("Quiz must have at least one question");
+          }
+
+          // Prepare quiz data - FIXED: Include all required fields
+          const quizData = {
+            title: document.getElementById("editTitle").value.trim(),
+            description: document.getElementById("editDescription").value,
+            course_id: document.getElementById("editCourse").value,
+            category: document.getElementById("editCategory").value,
+            passing_score: parseInt(
+              document.getElementById("editPassingScore").value
+            ),
+            questions: questions,
+            total_questions: questions.length,
+          };
+
+          console.log("Updating quiz with ID:", currentEditQuizId);
+          console.log("Sending quiz data:", quizData);
+
+          const response = await apiService.updateQuiz(
+            currentEditQuizId,
+            quizData
+          );
+
+          showToast("success", "Success", "Quiz updated successfully!", 3000);
+          showQuizzesPage();
+          await loadQuizzesData();
+        } catch (error) {
+          console.error("Error updating quiz:", error);
+
+          // Enhanced error display
+          let errorMessage = error.message;
+          if (errorMessage.includes("Validation error")) {
+            errorMessage =
+              "Data validation failed. Please check all fields are filled correctly.";
+          }
+
+          showToast("error", "Update Failed", errorMessage, 5000);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      }
+
+      async function handleDeleteQuiz() {
+        if (!checkAuthentication()) return;
+
+        const submitBtn = document.getElementById("confirmDeleteBtn");
+        const originalText = submitBtn.innerHTML;
+
+        try {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML =
+            '<div class="loading-spinner"></div> Deleting...';
+
+          const response = await apiService.deleteQuiz(currentDeleteQuizId);
+
+          showToast(
+            "success",
+            "Success",
+            `Quiz "${currentDeleteQuizTitle}" deleted successfully!`,
+            3000
+          );
+          document.getElementById("deleteModal").style.display = "none";
+
+          // Remove the quiz from the UI
+          const quizElement = document.querySelector(
+            `.quiz-card[data-id="${currentDeleteQuizId}"]`
+          );
+          if (quizElement) {
+            quizElement.remove();
+          }
+
+          // Reset delete tracking variables
+          currentDeleteQuizId = null;
+          currentDeleteQuizTitle = null;
+
+          // Reload data to ensure consistency
+          await loadQuizzesData();
+        } catch (error) {
+          console.error("Error deleting quiz:", error);
+          if (error.message === "Authentication required") {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+          } else {
+            showToast("error", "Error", error.message, 5000);
+          }
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      }
+
+      function handleDeleteQuestion() {
+        if (currentDeleteQuestionId) {
+          const questionElement = document.querySelector(
+            `.question-item-edit[data-question-id="${currentDeleteQuestionId}"]`
+          );
+          if (questionElement) {
+            questionElement.remove();
+            renumberQuestionsEdit();
+            showToast(
+              "success",
+              "Success",
+              "Question deleted successfully!",
+              3000
+            );
+          }
+        }
+        document.getElementById("deleteQuestionModal").style.display = "none";
+        currentDeleteQuestionId = null;
+      }
+
+      async function handleEditQuiz(quizId) {
+        try {
+          const quiz = await apiService.getQuizDetails(quizId);
+          const questionsResponse = await apiService.getQuizQuestions(quizId);
+
+          // Store original quiz data for required fields
+          currentEditQuizData = quiz;
+
+          // Combine quiz data with questions data
+          quiz.questions = questionsResponse.questions || [];
+          quiz.total_questions =
+            questionsResponse.total_questions || quiz.questions.length;
+          populateEditForm(quiz);
+        } catch (error) {
+          console.error("Error loading quiz details:", error);
+          if (error.message === "Authentication required") {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+          } else {
+            showToast("error", "Error", "Failed to load quiz details", 5000);
+          }
+        }
+      }
+
+      function showDeleteConfirmation(quizId, quizTitle) {
+        document.getElementById(
+          "deleteConfirmationText"
+        ).textContent = `Are you sure you want to delete the quiz "${quizTitle}"? This action cannot be undone.`;
+
+        currentDeleteQuizId = quizId;
+        currentDeleteQuizTitle = quizTitle;
+        document.getElementById("deleteModal").style.display = "flex";
+      }
+
+      function populateEditForm(quiz) {
+        // Populate form fields
+        document.getElementById("editTitle").value = quiz.title || "";
+        document.getElementById("editDescription").value =
+          quiz.description || "";
+        document.getElementById("editCategory").value = quiz.category || "";
+        document.getElementById("editCourse").value =
+          quiz.course_id || quiz.course || "";
+        document.getElementById("editPassingScore").value =
+          quiz.passing_score || 70;
+
+        // Update header info
+        document.getElementById("editQuizTitle").textContent =
+          quiz.title || "Untitled Quiz";
+        document.getElementById("editQuizCategory").textContent =
+          quiz.category || "General";
+        document.getElementById(
+          "editQuizDate"
+        ).textContent = `Created: ${formatDate(quiz.created_at)}`;
+        document.getElementById("editQuestionCount").textContent =
+          quiz.total_questions || quiz.questions?.length || 0;
+
+        // Load questions
+        const questionsList = document.getElementById("questionsList");
+        questionsList.innerHTML = "";
+
+        if (quiz.questions && quiz.questions.length > 0) {
+          quiz.questions.forEach((question, index) => {
+            const questionElement = createQuestionElementEdit(
+              question,
+              index + 1
+            );
+            questionsList.appendChild(questionElement);
+          });
+        } else {
+          questionsList.innerHTML =
+            '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No questions yet. Add your first question!</p>';
+        }
+
+        currentEditQuizId = quiz.id;
+        showEditQuizPage();
+      }
+
+      function createQuestionElementEdit(question, questionNumber) {
+        const questionItem = document.createElement("div");
+        questionItem.className = "question-item-edit";
+        questionItem.setAttribute("data-question-id", questionNumber);
+
+        let optionsHtml = "";
+        if (question.options && question.options.length > 0) {
+          optionsHtml = question.options
+            .map(
+              (option, index) => `
+            <div class="option-item-edit ${
+              option === question.correct_answer ? "selected" : ""
+            }">
+                <input type="text" class="option-input-edit" value="${option}" placeholder="Option ${
+                index + 1
+              }">
+                <div class="correct-option-edit">
+                    <input type="radio" name="correct${questionNumber}" ${
+                option === question.correct_answer ? "checked" : ""
+              }>
+                    <span>Correct Answer</span>
+                </div>
+            </div>
+        `
+            )
+            .join("");
+        } else {
+          optionsHtml = `
+            <div class="option-item-edit selected">
+                <input type="text" class="option-input-edit" placeholder="Option 1">
+                <div class="correct-option-edit">
+                    <input type="radio" name="correct${questionNumber}" checked>
+                    <span>Correct Answer</span>
+                </div>
+            </div>
+            <div class="option-item-edit">
+                <input type="text" class="option-input-edit" placeholder="Option 2">
+                <div class="correct-option-edit">
+                    <input type="radio" name="correct${questionNumber}">
+                    <span>Correct Answer</span>
+                </div>
+            </div>
+        `;
+        }
+
+        questionItem.innerHTML = `
+        <div class="question-header-edit">
+            <div class="question-number">Question ${questionNumber}</div>
+        </div>
+        <textarea class="question-text-edit" placeholder="Enter your question here">${
+          question.question_text || question.text || ""
+        }</textarea>
+        <div class="options-list-edit">
+            ${optionsHtml}
+        </div>
+        <button class="add-option-btn">
+            <i class="fas fa-plus"></i> Add Option
+        </button>
+        <div class="question-actions">
+            <button class="question-action-btn btn-move-question">
+                <i class="fas fa-arrows-alt"></i> Move
+            </button>
+            <button class="question-action-btn btn-delete-question">
+                <i class="fas fa-trash"></i> Delete Question
+            </button>
+        </div>
+    `;
+
+        // Initialize question functionality
+        initializeQuestionFeaturesEdit(questionItem);
+        return questionItem;
+      }
+
+      function addNewQuestionEdit() {
+        const questionsList = document.getElementById("questionsList");
+        const questionCount = questionsList.querySelectorAll(
+          ".question-item-edit"
+        ).length;
+        const newQuestionId = questionCount + 1;
+
+        const questionItem = createQuestionElementEdit({}, newQuestionId);
+        questionsList.appendChild(questionItem);
+
+        // Update question count
+        document.getElementById("editQuestionCount").textContent =
+          newQuestionId;
+      }
+
+      function initializeQuestionFeaturesEdit(questionItem) {
+        // Add option functionality
+        const addOptionBtn = questionItem.querySelector(".add-option-btn");
+        addOptionBtn.addEventListener("click", function () {
+          const optionsList = questionItem.querySelector(".options-list-edit");
+          const optionCount = optionsList.children.length;
+          const questionNumber = questionItem.getAttribute("data-question-id");
+
+          const optionItem = document.createElement("div");
+          optionItem.className = "option-item-edit";
+          optionItem.innerHTML = `
+            <input type="text" class="option-input-edit" placeholder="Option ${
+              optionCount + 1
+            }">
+            <div class="correct-option-edit">
+                <input type="radio" name="correct${questionNumber}">
+                <span>Correct Answer</span>
+            </div>
+        `;
+          optionsList.appendChild(optionItem);
+
+          // Add event listener to the new radio button
+          const radioBtn = optionItem.querySelector('input[type="radio"]');
+          radioBtn.addEventListener("change", function () {
+            if (this.checked) {
+              const questionItem = this.closest(".question-item-edit");
+              questionItem
+                .querySelectorAll(".option-item-edit")
+                .forEach((item) => {
+                  item.classList.remove("selected");
+                });
+              optionItem.classList.add("selected");
+            }
+          });
+        });
+
+        // Radio button change listeners
+        questionItem
+          .querySelectorAll('input[type="radio"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", function () {
+              if (this.checked) {
+                const optionItem = this.closest(".option-item-edit");
+                const questionItem = optionItem.closest(".question-item-edit");
+                questionItem
+                  .querySelectorAll(".option-item-edit")
+                  .forEach((item) => {
+                    item.classList.remove("selected");
+                  });
+                optionItem.classList.add("selected");
+              }
+            });
+          });
+      }
+
+      // FIXED: Correct answer should be a string, not a number
+      function collectQuestionsDataEdit() {
+        const questions = [];
+        document
+          .querySelectorAll(".question-item-edit")
+          .forEach((questionElement, index) => {
+            const questionText = questionElement.querySelector(
+              ".question-text-edit"
+            ).value;
+            const options = [];
+            let correctAnswer = ""; // Changed to string
+
+            questionElement
+              .querySelectorAll(".option-item-edit")
+              .forEach((optionElement, optIndex) => {
+                const optionText =
+                  optionElement.querySelector(".option-input-edit").value;
+                const isCorrect = optionElement.classList.contains("selected");
+
+                options.push(optionText);
+                if (isCorrect) {
+                  correctAnswer = optionText; // Store the actual answer text as string
+                }
+              });
+
+            // Ensure we have valid data
+            if (questionText.trim() && options.length > 0 && correctAnswer) {
+              questions.push({
+                question_text: questionText.trim(),
+                question_type: "multiple_choice",
+                options: options,
+                correct_answer: correctAnswer, // This is now a string
+                code_template: "",
+                test_cases: [],
+              });
+            }
+          });
+
+        return questions;
+      }
+
+      function renumberQuestionsEdit() {
+        const questions = document.querySelectorAll(".question-item-edit");
+        questions.forEach((question, index) => {
+          const questionNumber = question.querySelector(".question-number");
+          const questionId = index + 1;
+          questionNumber.textContent = `Question ${questionId}`;
+          question.setAttribute("data-question-id", questionId);
+
+          // Update radio button names
+          const radioButtons = question.querySelectorAll('input[type="radio"]');
+          radioButtons.forEach((radio) => {
+            radio.name = `correct${questionId}`;
+          });
+        });
+
+        // Update question count
+        document.getElementById("editQuestionCount").textContent =
+          questions.length;
+      }
+
+      async function loadQuizzesData() {
+        try {
+          const quizzes = await apiService.getQuizzes();
+          allQuizzes = quizzes;
+
+          // Fetch question counts for each quiz
+          const quizzesWithQuestionCounts = await Promise.all(
+            quizzes.map(async (quiz) => {
+              try {
+                const questionsResponse = await apiService.getQuizQuestions(
+                  quiz.id
+                );
+                return {
+                  ...quiz,
+                  total_questions: questionsResponse.total_questions || 0,
+                };
+              } catch (error) {
+                console.error(
+                  `Error fetching questions for quiz ${quiz.id}:`,
+                  error
+                );
+                return {
+                  ...quiz,
+                  total_questions: 0,
+                };
+              }
+            })
+          );
+
+          renderQuizzesGrid(quizzesWithQuestionCounts);
+        } catch (error) {
+          console.error("Error loading quizzes:", error);
+          if (error.message === "Authentication required") {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+          } else {
+            showToast("error", "Error", "Failed to load quizzes data", 5000);
+            document.getElementById("quizzesGrid").innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <h3>Error Loading Quizzes</h3>
+                  <p>Failed to load quizzes data. Please try again later.</p>
+                </div>
+            `;
+          }
+        }
+      }
+
+      function renderQuizzesGrid(quizzes) {
+        const quizzesGrid = document.getElementById("quizzesGrid");
+        const loadingState = document.getElementById("loadingState");
+
+        // Hide loading state
+        if (loadingState) {
+          loadingState.style.display = "none";
+        }
+
+        if (!quizzes || quizzes.length === 0) {
+          quizzesGrid.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-question-circle"></i>
+              <h3>No Quizzes Found</h3>
+              <p>No quizzes found. Create your first quiz!</p>
+            </div>
+        `;
+          return;
+        }
+
+        quizzesGrid.innerHTML = quizzes
+          .map(
+            (quiz) => `
+            <div class="quiz-card" data-id="${quiz.id}">
+                <div class="quiz-header">
+                    <div>
+                        <div class="quiz-title">${
+                          quiz.title || "Untitled Quiz"
+                        }</div>
+                        ${
+                          quiz.category && quiz.category !== "general"
+                            ? `<span class="quiz-category bg-${quiz.category
+                                .toLowerCase()
+                                .replace(" ", "-")}">${quiz.category}</span>`
+                            : ""
+                        }
+                    </div>
+                    <!-- Removed status badge -->
+                </div>
+                <div class="quiz-description">
+                    ${quiz.description || "No description available."}
+                </div>
+                <div class="quiz-meta">
+                    <div class="meta-item">
+                        <div class="meta-value">${
+                          quiz.total_questions || 0
+                        }</div>
+                        <div class="meta-label">Questions</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-value">${
+                          quiz.passing_score || 70
+                        }%</div>
+                        <div class="meta-label">Passing Score</div>
+                    </div>
+                    <!-- Removed minutes section -->
+                </div>
+                <div class="quiz-footer">
+                    <div class="quiz-date">Created: ${formatDate(
+                      quiz.created_at
+                    )}</div>
+                    <div class="quiz-actions">
+                        <button class="action-btn btn-edit" data-id="${
+                          quiz.id
+                        }">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn btn-delete" data-id="${
+                          quiz.id
+                        }" data-title="${quiz.title || "Untitled Quiz"}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `
+          )
+          .join("");
+      }
+
+      function applyFilters() {
+        const categoryFilter = document.getElementById("categoryFilter").value;
+        const courseFilter = document.getElementById("courseFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+
+        const filteredQuizzes = allQuizzes.filter((quiz) => {
+          // Category filter - only show if category exists and is not "general"
+          if (categoryFilter) {
+            if (categoryFilter === "general") {
+              // Show quizzes with no category or "general" category
+              if (quiz.category && quiz.category !== "general") {
+                return false;
+              }
+            } else if (quiz.category !== categoryFilter) {
+              return false;
+            }
+          }
+
+          // Course filter (you might need to adjust this based on your data structure)
+          if (courseFilter && quiz.course !== courseFilter) {
+            return false;
+          }
+
+          return true;
+        });
+
+        renderQuizzesGrid(filteredQuizzes);
+      }
+
+      function showEditQuizPage() {
+        document.getElementById("quizzesPage").style.display = "none";
+        document.getElementById("editQuizPage").style.display = "block";
+        document.getElementById("pageHeading").textContent = "Edit Quiz";
+        document.getElementById("pageTitle").textContent = "Edit Quiz";
+      }
+
+      function showQuizzesPage() {
+        document.getElementById("editQuizPage").style.display = "none";
+        document.getElementById("quizzesPage").style.display = "block";
+        document.getElementById("pageHeading").textContent = "Quiz Management";
+        document.getElementById("pageTitle").textContent = "All Quizzes";
+        loadQuizzesData();
+      }
+    </script>
+  </body>
+</html>

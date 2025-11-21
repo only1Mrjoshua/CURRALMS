@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h1>Hello World</h1>
+    <script>
+      // Add this to your dashboard page script
+      function checkForAuthSuccess() {
+        const successTitle = localStorage.getItem("auth_success_title");
+        const successMessage = localStorage.getItem("auth_success_message");
+        const successType = localStorage.getItem("auth_success_type");
+        const actionType = localStorage.getItem("auth_action_type");
+
+        if (successTitle && successMessage) {
+          // Show the custom success message
+          showToast(successMessage, successType, successTitle, 5000);
+
+          // Clear the stored messages
+          localStorage.removeItem("auth_success_title");
+          localStorage.removeItem("auth_success_message");
+          localStorage.removeItem("auth_success_type");
+          localStorage.removeItem("auth_action_type");
+        }
+
+        // Also check for errors
+        const authError = localStorage.getItem("auth_error");
+        const authErrorTitle = localStorage.getItem("auth_error_title");
+        if (authError) {
+          showToast(
+            authError,
+            "error",
+            authErrorTitle || "Authentication Error"
+          );
+          localStorage.removeItem("auth_error");
+          localStorage.removeItem("auth_error_title");
+        }
+      }
+
+      // Call this when dashboard loads
+      document.addEventListener("DOMContentLoaded", function () {
+        checkForAuthSuccess();
+      });
+    </script>
+  </body>
+</html>

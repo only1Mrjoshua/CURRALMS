@@ -1,0 +1,4238 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | Lessons</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+        --sidebar-width: 250px;
+        --navbar-height: 70px;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        display: flex;
+        min-height: 100vh;
+        transition: background 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Sidebar Styles - Updated to match sign-in page */
+      .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(
+          180deg,
+          var(--primary-indigo),
+          var(--secondary-purple),
+          var(--primary-indigo)
+        );
+        color: var(--white);
+        height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+        transform: translateX(0);
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .sidebar-menu {
+        padding: 20px 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .sidebar-menu ul {
+        list-style: none;
+      }
+
+      .sidebar-menu li {
+        margin-bottom: 5px;
+      }
+
+      .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-menu a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .sidebar-menu a:hover::before,
+      .sidebar-menu a.active::before {
+        left: 0;
+      }
+
+      .sidebar-menu a:hover,
+      .sidebar-menu a.active {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .sidebar-menu i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* Hamburger Menu Button */
+      .hamburger-menu {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--white);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .hamburger-menu:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* Navbar Styles */
+      .navbar {
+        background-color: var(--navbar-bg);
+        height: var(--navbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-left h1 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 15px;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .mobile-menu-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .mobile-menu-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .logout-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .logout-btn i {
+        margin-right: 5px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .add-lesson-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+        font-weight: 600;
+        box-shadow: var(--card-shadow);
+      }
+
+      .add-lesson-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
+      .add-lesson-btn i {
+        margin-right: 8px;
+      }
+
+      /* Filters Section */
+      .filters {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+
+      .filter-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      /* Lessons Table - FIXED SCROLLING */
+      .lessons-container {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .lessons-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .lessons-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .lessons-count {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      /* FIXED: Mobile scrolling for table */
+      .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+      }
+
+      .lessons-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px; /* Ensure table has minimum width for all columns */
+      }
+
+      .lessons-table th {
+        background-color: var(--skeleton-bg);
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+
+      .lessons-table td {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+
+      .lessons-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .lessons-table tr:hover {
+        background-color: var(--skeleton-bg);
+      }
+
+      .lesson-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+      }
+
+      .lesson-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .lesson-category {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--white);
+      }
+
+      .lesson-location {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .location-zoom {
+        color: var(--primary-indigo);
+      }
+
+      .location-google-meet {
+        color: var(--success-green);
+      }
+
+      .location-physical {
+        color: var(--accent-purple);
+      }
+
+      .lesson-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+        font-size: 1rem;
+      }
+
+      .action-btn:hover {
+        color: var(--primary-indigo);
+      }
+
+      .btn-edit:hover {
+        color: var(--success-green);
+      }
+
+      .btn-delete:hover {
+        color: var(--error-red);
+      }
+
+      /* Status Badges */
+      .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .status-upcoming {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--primary-indigo);
+      }
+
+      .status-completed {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success-green);
+      }
+
+      .status-ongoing {
+        background-color: rgba(139, 92, 246, 0.1);
+        color: var(--accent-purple);
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        width: 90%;
+        max-width: 700px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        max-height: 90vh;
+        overflow-y: auto;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+      }
+
+      .close-btn:hover {
+        color: var(--error-red);
+      }
+
+      .modal-body {
+        padding: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .form-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-row {
+        display: flex;
+        gap: 20px;
+      }
+
+      .form-col {
+        flex: 1;
+      }
+
+      .location-options {
+        display: flex;
+        gap: 15px;
+        margin-top: 10px;
+      }
+
+      .location-option {
+        flex: 1;
+        text-align: center;
+        padding: 15px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: var(--card-bg);
+      }
+
+      .location-option:hover {
+        border-color: var(--primary-indigo);
+      }
+
+      .location-option.selected {
+        border-color: var(--primary-indigo);
+        background-color: rgba(99, 102, 241, 0.1);
+      }
+
+      .location-icon {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: var(--primary-indigo);
+      }
+
+      .location-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+      }
+
+      .location-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-secondary {
+        background-color: var(--text-muted);
+        color: var(--white);
+      }
+
+      .btn-secondary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-danger {
+        background-color: var(--error-red);
+        color: var(--white);
+      }
+
+      .btn-danger:hover {
+        opacity: 0.9;
+      }
+
+      /* Delete Confirmation Modal */
+      .confirmation-modal {
+        text-align: center;
+      }
+
+      .confirmation-modal .modal-content {
+        max-width: 450px;
+      }
+
+      .confirmation-icon {
+        font-size: 3rem;
+        color: var(--error-red);
+        margin-bottom: 15px;
+      }
+
+      .confirmation-text {
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+      }
+
+      .confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        pointer-events: none;
+      }
+
+      .toast {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-bottom: 10px;
+        border-left: 4px solid;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        pointer-events: all;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.hide {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      .toast-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+      }
+
+      .toast-message {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px;
+      }
+
+      .toast-close:hover {
+        color: var(--text-primary);
+      }
+
+      /* Loading State */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--skeleton-bg);
+        border-top: 4px solid var(--primary-indigo);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--text-muted);
+      }
+
+      /* Read-only fields */
+      .read-only-field {
+        background-color: var(--skeleton-bg);
+        color: var(--text-muted);
+        cursor: not-allowed;
+      }
+
+      /* Colors */
+      .bg-design {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+      .bg-development {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+      .bg-blockchain {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+      .bg-cybersecurity {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+
+      /* Logout Confirmation Modal Styles */
+      .logout-confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .logout-confirmation-content {
+        background-color: var(--card-bg);
+        margin: 200px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .logout-confirmation-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 20px;
+      }
+
+      .logout-confirmation-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .logout-confirmation-message {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        font-size: 1rem;
+      }
+
+      .logout-confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .confirm-no {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-no:hover {
+        opacity: 0.9;
+      }
+
+      .confirm-yes {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-yes:hover {
+        opacity: 0.9;
+      }
+
+      /* Status Update Modal */
+      .status-options {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .status-option {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: var(--card-bg);
+      }
+
+      .status-option:hover {
+        border-color: var(--primary-indigo);
+      }
+
+      .status-option.selected {
+        border-color: var(--primary-indigo);
+        background-color: rgba(99, 102, 241, 0.1);
+      }
+
+      .status-icon {
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+        color: var(--primary-indigo);
+      }
+
+      .status-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+
+      /* Mobile Responsive Styles */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 280px;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .sidebar-header h2 {
+          display: block;
+        }
+
+        .sidebar-menu span {
+          display: inline;
+        }
+
+        .sidebar-menu a {
+          justify-content: flex-start;
+          padding: 12px 20px;
+        }
+
+        .sidebar-menu i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+        }
+
+        .hamburger-menu {
+          display: block;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+
+        .overlay.active {
+          display: block;
+        }
+
+        .navbar-left h1 {
+          font-size: 1.2rem !important;
+        }
+
+        /* FIXED: Ensure table scrolling works on mobile */
+        .table-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .lessons-table {
+          min-width: 800px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .navbar {
+          padding: 0 15px;
+        }
+
+        .user-info span {
+          display: none;
+        }
+
+        .filter-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .form-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        /* FIXED: Mobile table scrolling improvements */
+        .table-container {
+          border-radius: 0 0 10px 10px;
+        }
+
+        .lessons-table th,
+        .lessons-table td {
+          padding: 12px 10px;
+        }
+
+        .lesson-title {
+          font-size: 0.9rem;
+        }
+
+        .lesson-meta {
+          font-size: 0.8rem;
+        }
+
+        .location-options {
+          flex-direction: column;
+        }
+
+        .page-title {
+          font-size: 1.5rem;
+        }
+
+        .add-lesson-btn {
+          padding: 8px 15px;
+          font-size: 0.9rem;
+        }
+
+        .status-options {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 15px;
+        }
+
+        .navbar {
+          padding: 0 10px;
+          margin-bottom: 20px;
+        }
+
+        .navbar-left h1 {
+          font-size: 0.9rem !important;
+          font-weight: 600;
+        }
+
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+        }
+
+        .logout-btn {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+
+        .filters {
+          padding: 12px;
+        }
+
+        .lessons-header {
+          padding: 12px;
+        }
+
+        .lessons-table th,
+        .lessons-table td {
+          padding: 10px 8px;
+        }
+
+        .lesson-title {
+          font-size: 0.85rem;
+        }
+
+        .lesson-meta {
+          font-size: 0.75rem;
+        }
+
+        .lesson-actions {
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .action-btn {
+          font-size: 0.9rem;
+        }
+
+        .modal-content {
+          width: 95%;
+        }
+
+        .modal-header,
+        .modal-body {
+          padding: 15px;
+        }
+
+        .form-group {
+          margin-bottom: 15px;
+        }
+
+        .form-actions {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .confirmation-actions {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>EduAdmin</h2>
+        <button class="hamburger-menu" id="hamburgerMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-menu">
+        <ul>
+          <li>
+            <a href="Admin-Dashboard-Overview.html"
+              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Courses.html"
+              ><i class="fas fa-book"></i> <span>Courses</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Lessons.html" class="active"
+              ><i class="fas fa-file-alt"></i> <span>Lessons</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Assignments.html"
+              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Quizzes.html"
+              ><i class="fas fa-question-circle"></i> <span>Quizzes</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Users.html"
+              ><i class="fas fa-users"></i> <span>Users</span></a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Navbar -->
+      <div class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Lesson Management</h1>
+        </div>
+        <div class="navbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <span id="currentUserName">John Doe</span>
+          </div>
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2 class="page-title">All Lessons</h2>
+        <button class="add-lesson-btn" id="openModalBtn">
+          <i class="fas fa-plus"></i> Schedule New Lesson
+        </button>
+      </div>
+
+      <!-- Filters Section -->
+      <div class="filters">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label" for="categoryFilter">Category</label>
+            <select id="categoryFilter" class="filter-select">
+              <option value="">All Categories</option>
+              <option value="design">Design</option>
+              <option value="development">Development</option>
+              <option value="blockchain">Blockchain</option>
+              <option value="cybersecurity">Cyber Security</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="courseFilter">Course</label>
+            <select id="courseFilter" class="filter-select">
+              <option value="">All Courses</option>
+              <option value="ui-ux">UI/UX Design</option>
+              <option value="web-dev">Web Development</option>
+              <option value="blockchain-fundamentals">
+                Blockchain Fundamentals
+              </option>
+              <option value="cyber-intro">
+                Introduction to Cyber Security
+              </option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="statusFilter">Status</label>
+            <select id="statusFilter" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="locationFilter">Location</label>
+            <select id="locationFilter" class="filter-select">
+              <option value="">All Locations</option>
+              <option value="zoom">Zoom Meeting</option>
+              <option value="google_meet">Google Meet</option>
+              <option value="physical">Physical Classroom</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lessons Table - FIXED SCROLLING CONTAINER -->
+      <div class="lessons-container">
+        <div class="lessons-header">
+          <div class="lessons-title">Scheduled Lessons</div>
+          <div class="lessons-count" id="lessonsCount">Loading lessons...</div>
+        </div>
+        <div id="lessonsTableContainer">
+          <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading lessons...</p>
+          </div>
+          <!-- FIXED: Added table-container for horizontal scrolling -->
+          <div class="table-container">
+            <table
+              class="lessons-table"
+              id="lessonsTable"
+              style="display: none"
+            >
+              <thead>
+                <tr>
+                  <th>Lesson Details</th>
+                  <th>Category</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="lessonsTableBody">
+                <!-- Lessons will be populated here by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="emptyState" style="display: none">
+            <i class="fas fa-file-alt"></i>
+            <h3>No Lessons Found</h3>
+            <p>There are no lessons scheduled at the moment.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Lesson Modal -->
+    <div class="modal" id="lessonModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Schedule New Lesson</h3>
+          <button type="button" class="close-btn" id="closeModalBtn">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="lessonForm">
+            <div class="form-group">
+              <label class="form-label" for="lessonTitle">Lesson Title *</label>
+              <input
+                type="text"
+                id="lessonTitle"
+                class="form-control"
+                placeholder="Enter lesson title"
+                required
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="lessonCategory"
+                    >Category *</label
+                  >
+                  <select id="lessonCategory" class="form-select" required>
+                    <option value="">Select a category</option>
+                    <option value="design">Design</option>
+                    <option value="development">Development</option>
+                    <option value="blockchain">Blockchain</option>
+                    <option value="cybersecurity">Cyber Security</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="lessonCourse">Course *</label>
+                  <select id="lessonCourse" class="form-select" required>
+                    <option value="">Select a course</option>
+                    <!-- Courses will be populated by JavaScript -->
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="lessonDate">Date *</label>
+                  <input
+                    type="date"
+                    id="lessonDate"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="lessonTime">Time *</label>
+                  <input
+                    type="time"
+                    id="lessonTime"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="lessonDuration"
+                    >Duration (minutes) *</label
+                  >
+                  <input
+                    type="number"
+                    id="lessonDuration"
+                    class="form-control"
+                    placeholder="e.g., 120"
+                    min="1"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Location Type *</label>
+              <div class="location-options">
+                <div class="location-option" id="zoomOption" data-type="zoom">
+                  <div class="location-icon">
+                    <i class="fas fa-video"></i>
+                  </div>
+                  <div class="location-title">Zoom Meeting</div>
+                  <div class="location-desc">Virtual classroom via Zoom</div>
+                </div>
+                <div
+                  class="location-option"
+                  id="googleMeetOption"
+                  data-type="google_meet"
+                >
+                  <div class="location-icon">
+                    <i class="fab fa-google"></i>
+                  </div>
+                  <div class="location-title">Google Meet</div>
+                  <div class="location-desc">
+                    Virtual classroom via Google Meet
+                  </div>
+                </div>
+                <div
+                  class="location-option"
+                  id="physicalOption"
+                  data-type="physical_classroom"
+                >
+                  <div class="location-icon">
+                    <i class="fas fa-building"></i>
+                  </div>
+                  <div class="location-title">Physical Classroom</div>
+                  <div class="location-desc">In-person teaching</div>
+                </div>
+              </div>
+              <input type="hidden" id="locationType" value="" required />
+              <div
+                id="locationError"
+                style="
+                  color: var(--error-red);
+                  font-size: 0.85rem;
+                  margin-top: 5px;
+                  display: none;
+                "
+              >
+                Please select a location type
+              </div>
+            </div>
+
+            <!-- Zoom Meeting Details -->
+            <div class="form-group" id="zoomDetails" style="display: none">
+              <label class="form-label" for="zoomJoinUrl"
+                >Zoom Join URL *</label
+              >
+              <input
+                type="url"
+                id="zoomJoinUrl"
+                class="form-control"
+                placeholder="https://zoom.us/j/xxxxxxxxx"
+              />
+            </div>
+
+            <!-- Google Meet Details -->
+            <div
+              class="form-group"
+              id="googleMeetDetails"
+              style="display: none"
+            >
+              <label class="form-label" for="googleMeetLink"
+                >Google Meet Link *</label
+              >
+              <input
+                type="url"
+                id="googleMeetLink"
+                class="form-control"
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+              />
+            </div>
+
+            <!-- Physical Classroom Details -->
+            <div class="form-group" id="classroomDetails" style="display: none">
+              <label class="form-label" for="classroomLocation"
+                >Classroom Location *</label
+              >
+              <input
+                type="text"
+                id="classroomLocation"
+                class="form-control"
+                placeholder="e.g., Room 305, Building A"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="lessonDescription"
+                >Description</label
+              >
+              <textarea
+                id="lessonDescription"
+                class="form-control"
+                rows="4"
+                placeholder="Enter lesson description (optional)"
+              ></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="cancelBtn">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                id="scheduleLessonBtn"
+              >
+                <i class="fas fa-plus"></i> Schedule Lesson
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Lesson Modal -->
+    <div class="modal" id="editLessonModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Lesson</h3>
+          <button class="close-btn" id="closeEditModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="editLessonForm">
+            <input type="hidden" id="editLessonId" />
+
+            <!-- Editable fields -->
+            <div class="form-group">
+              <label class="form-label" for="editLessonTitle"
+                >Lesson Title *</label
+              >
+              <input
+                type="text"
+                id="editLessonTitle"
+                class="form-control"
+                placeholder="Enter lesson title"
+                required
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editLessonCategory"
+                    >Category *</label
+                  >
+                  <select id="editLessonCategory" class="form-select" required>
+                    <option value="">Select a category</option>
+                    <option value="Design">Design</option>
+                    <option value="Development">Development</option>
+                    <option value="Blockchain">Blockchain</option>
+                    <option value="Cyber Security">Cyber Security</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editLessonCourse"
+                    >Course *</label
+                  >
+                  <select id="editLessonCourse" class="form-select" required>
+                    <option value="">Select a course</option>
+                    <!-- Courses will be populated by JavaScript -->
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editLessonDate">Date *</label>
+                  <input
+                    type="date"
+                    id="editLessonDate"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editLessonTime">Time *</label>
+                  <input
+                    type="time"
+                    id="editLessonTime"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editLessonDuration"
+                    >Duration (minutes) *</label
+                  >
+                  <input
+                    type="number"
+                    id="editLessonDuration"
+                    class="form-control"
+                    placeholder="e.g., 120"
+                    min="1"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Location Type *</label>
+              <div class="location-options">
+                <div
+                  class="location-option"
+                  id="editZoomOption"
+                  data-type="zoom"
+                >
+                  <div class="location-icon">
+                    <i class="fas fa-video"></i>
+                  </div>
+                  <div class="location-title">Zoom Meeting</div>
+                  <div class="location-desc">Virtual classroom via Zoom</div>
+                </div>
+                <div
+                  class="location-option"
+                  id="editGoogleMeetOption"
+                  data-type="google_meet"
+                >
+                  <div class="location-icon">
+                    <i class="fab fa-google"></i>
+                  </div>
+                  <div class="location-title">Google Meet</div>
+                  <div class="location-desc">
+                    Virtual classroom via Google Meet
+                  </div>
+                </div>
+                <div
+                  class="location-option"
+                  id="editPhysicalOption"
+                  data-type="physical_classroom"
+                >
+                  <div class="location-icon">
+                    <i class="fas fa-building"></i>
+                  </div>
+                  <div class="location-title">Physical Classroom</div>
+                  <div class="location-desc">In-person teaching</div>
+                </div>
+              </div>
+              <input type="hidden" id="editLocationType" value="" required />
+              <div
+                id="editLocationError"
+                style="
+                  color: var(--error-red);
+                  font-size: 0.85rem;
+                  margin-top: 5px;
+                  display: none;
+                "
+              >
+                Please select a location type
+              </div>
+            </div>
+
+            <!-- Zoom Meeting Details -->
+            <div class="form-group" id="editZoomDetails" style="display: none">
+              <label class="form-label" for="editZoomJoinUrl"
+                >Zoom Join URL *</label
+              >
+              <input
+                type="url"
+                id="editZoomJoinUrl"
+                class="form-control"
+                placeholder="https://zoom.us/j/xxxxxxxxx"
+              />
+            </div>
+
+            <!-- Google Meet Details -->
+            <div
+              class="form-group"
+              id="editGoogleMeetDetails"
+              style="display: none"
+            >
+              <label class="form-label" for="editGoogleMeetLink"
+                >Google Meet Link *</label
+              >
+              <input
+                type="url"
+                id="editGoogleMeetLink"
+                class="form-control"
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+              />
+            </div>
+
+            <!-- Physical Classroom Details -->
+            <div
+              class="form-group"
+              id="editClassroomDetails"
+              style="display: none"
+            >
+              <label class="form-label" for="editClassroomLocation"
+                >Classroom Location *</label
+              >
+              <input
+                type="text"
+                id="editClassroomLocation"
+                class="form-control"
+                placeholder="e.g., Room 305, Building A"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editLessonDescription"
+                >Description</label
+              >
+              <textarea
+                id="editLessonDescription"
+                class="form-control"
+                rows="4"
+                placeholder="Enter lesson description (optional)"
+              ></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="cancelEditBtn"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                id="updateLessonBtn"
+              >
+                <i class="fas fa-save"></i> Update Lesson
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Status Modal -->
+    <div class="modal" id="statusModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Update Lesson Status</h3>
+          <button class="close-btn" id="closeStatusModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Select Status</label>
+            <div class="status-options">
+              <div class="status-option" data-status="upcoming">
+                <div class="status-icon">
+                  <i class="fas fa-clock"></i>
+                </div>
+                <div class="status-title">Upcoming</div>
+              </div>
+              <div class="status-option" data-status="ongoing">
+                <div class="status-icon">
+                  <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="status-title">Ongoing</div>
+              </div>
+              <div class="status-option" data-status="completed">
+                <div class="status-icon">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="status-title">Completed</div>
+              </div>
+            </div>
+            <input type="hidden" id="selectedStatus" value="" required />
+            <input type="hidden" id="statusLessonId" value="" />
+            <div
+              id="statusError"
+              style="
+                color: var(--error-red);
+                font-size: 0.85rem;
+                margin-top: 5px;
+                display: none;
+              "
+            >
+              Please select a status
+            </div>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelStatusBtn"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn btn-primary" id="updateStatusBtn">
+              <i class="fas fa-sync-alt"></i> Update Status
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal confirmation-modal" id="deleteConfirmationModal">
+      <div class="modal-content">
+        <div class="confirmation-icon">
+          <i class="fas fa-trash"></i>
+        </div>
+        <h3 class="confirmation-title">Confirm Deletion</h3>
+        <p class="confirmation-text" id="deleteConfirmationMessage">
+          Are you sure you want to delete this lesson? This action cannot be
+          undone.
+        </p>
+        <div class="confirmation-actions">
+          <button class="btn btn-secondary" id="confirmDeleteNo">
+            No, Cancel
+          </button>
+          <button class="btn btn-danger" id="confirmDeleteYes">
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-confirmation-modal" id="logoutConfirmationModal">
+      <div class="logout-confirmation-content">
+        <div class="logout-confirmation-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3 class="logout-confirmation-title">Confirm Logout</h3>
+        <p class="logout-confirmation-message">
+          Are you sure you want to logout? You will need to sign in again to
+          access the dashboard.
+        </p>
+        <div class="logout-confirmation-actions">
+          <button class="confirm-no" id="confirmNo">No, Cancel</button>
+          <button class="confirm-yes" id="confirmYes">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mobile Sidebar Toggle Functionality
+      const sidebar = document.getElementById("sidebar");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const hamburgerMenu = document.getElementById("hamburgerMenu");
+      const overlay = document.getElementById("overlay");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+
+      mobileMenuBtn.addEventListener("click", toggleSidebar);
+      hamburgerMenu.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme Management
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.style.cssText = `
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
+
+        // Set border color based on type
+        const colors = {
+          success: "var(--success-green)",
+          info: "var(--primary-indigo)",
+          warning: "var(--accent-purple)",
+          error: "var(--error-red)",
+        };
+        toast.style.borderLeftColor = colors[type] || colors.info;
+
+        const icons = {
+          success: "fas fa-check",
+          info: "fas fa-info-circle",
+          warning: "fas fa-exclamation-triangle",
+          error: "fas fa-exclamation-circle",
+        };
+
+        toast.innerHTML = `
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateX(0)";
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Function to load and display current user info
+      function loadCurrentUserInfo() {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          try {
+            // Decode the JWT token to get user information
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Get email from token (adjust the property name based on your token structure)
+            const userEmail = payload.email || payload.sub || "User";
+
+            // Update the UI with user's email
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = userEmail;
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = getInitials(userEmail);
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+            // Fallback to default
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = "User";
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = "U";
+            }
+          }
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // API Configuration
+      const API_BASE_URL = "http://localhost:8000";
+      const LESSONS_ENDPOINT = `${API_BASE_URL}/lessons/admin/all-lesson`;
+      const CREATE_LESSON_ENDPOINT = `${API_BASE_URL}/lessons/`;
+      const COURSES_ENDPOINT = `${API_BASE_URL}/courses`;
+
+      // Global variables
+      let lessons = [];
+      let allCourses = [];
+      let courseIdToTitleMap = {};
+
+      // Category mapping for consistent backend communication
+      const CATEGORY_MAPPING = {
+        cybersecurity: "Cyber Security",
+        design: "Design",
+        development: "Development",
+        blockchain: "Blockchain",
+      };
+
+      // Modal Elements - FIXED: Properly define modal variables
+      const modal = document.getElementById("lessonModal");
+      const editModal = document.getElementById("editLessonModal");
+      const statusModal = document.getElementById("statusModal");
+      const openModalBtn = document.getElementById("openModalBtn");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const closeEditModalBtn = document.getElementById("closeEditModalBtn");
+      const closeStatusModalBtn = document.getElementById(
+        "closeStatusModalBtn"
+      );
+      const cancelBtn = document.getElementById("cancelBtn");
+      const cancelEditBtn = document.getElementById("cancelEditBtn");
+      const cancelStatusBtn = document.getElementById("cancelStatusBtn");
+
+      // Location Elements
+      const zoomOption = document.getElementById("zoomOption");
+      const googleMeetOption = document.getElementById("googleMeetOption");
+      const physicalOption = document.getElementById("physicalOption");
+      const locationType = document.getElementById("locationType");
+      const zoomDetails = document.getElementById("zoomDetails");
+      const googleMeetDetails = document.getElementById("googleMeetDetails");
+      const classroomDetails = document.getElementById("classroomDetails");
+
+      // Edit Location Elements
+      const editZoomOption = document.getElementById("editZoomOption");
+      const editGoogleMeetOption = document.getElementById(
+        "editGoogleMeetOption"
+      );
+      const editPhysicalOption = document.getElementById("editPhysicalOption");
+      const editLocationType = document.getElementById("editLocationType");
+      const editZoomDetails = document.getElementById("editZoomDetails");
+      const editGoogleMeetDetails = document.getElementById(
+        "editGoogleMeetDetails"
+      );
+      const editClassroomDetails = document.getElementById(
+        "editClassroomDetails"
+      );
+
+      // Form Elements
+      const lessonForm = document.getElementById("lessonForm");
+      const editLessonForm = document.getElementById("editLessonForm");
+      const lessonCategory = document.getElementById("lessonCategory");
+      const lessonCourse = document.getElementById("lessonCourse");
+      const editLessonCategory = document.getElementById("editLessonCategory");
+      const editLessonCourse = document.getElementById("editLessonCourse");
+      const selectedStatus = document.getElementById("selectedStatus");
+      const statusLessonId = document.getElementById("statusLessonId");
+      const updateStatusBtn = document.getElementById("updateStatusBtn");
+
+      // Table Elements
+      const lessonsTable = document.getElementById("lessonsTable");
+      const lessonsTableBody = document.getElementById("lessonsTableBody");
+      const lessonsCount = document.getElementById("lessonsCount");
+      const loadingState = document.getElementById("loadingState");
+      const emptyState = document.getElementById("emptyState");
+
+      // Current lesson tracking
+      let currentEditLessonId = null;
+      let currentStatusLessonId = null;
+      let currentStatusLessonTitle = null;
+
+      // Logout Confirmation Elements
+      const logoutBtn = document.getElementById("logoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Delete Confirmation Elements
+      const deleteConfirmationModal = document.getElementById(
+        "deleteConfirmationModal"
+      );
+      const confirmDeleteYes = document.getElementById("confirmDeleteYes");
+      const confirmDeleteNo = document.getElementById("confirmDeleteNo");
+      const deleteConfirmationMessage = document.getElementById(
+        "deleteConfirmationMessage"
+      );
+
+      // Current lesson to be deleted
+      let currentLessonToDelete = null;
+
+      // Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view lessons",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        // Logout Confirmation Functionality
+        logoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 500);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
+      }
+
+      // Setup delete confirmation functionality
+      function setupDeleteConfirmation() {
+        // Delete Confirmation Functionality
+        confirmDeleteNo.addEventListener("click", function () {
+          deleteConfirmationModal.style.display = "none";
+          currentLessonToDelete = null;
+        });
+
+        confirmDeleteYes.addEventListener("click", function () {
+          if (currentLessonToDelete) {
+            handleDeleteLesson(currentLessonToDelete);
+          }
+        });
+
+        // Close delete confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === deleteConfirmationModal) {
+            deleteConfirmationModal.style.display = "none";
+            currentLessonToDelete = null;
+          }
+        });
+      }
+
+      // Delete Confirmation Functionality
+      function openDeleteConfirmation(lessonId, lessonTitle) {
+        if (!lessonId || lessonId === "undefined") {
+          showToast(
+            "error",
+            "Error",
+            "Invalid lesson ID. Cannot delete this lesson.",
+            5000
+          );
+          return;
+        }
+
+        currentLessonToDelete = lessonId;
+        deleteConfirmationMessage.textContent = `Are you sure you want to delete the lesson "${lessonTitle}"? This action cannot be undone.`;
+        deleteConfirmationModal.style.display = "block";
+      }
+
+      // Load all courses for filtering
+      async function loadAllCourses() {
+        try {
+          console.log("📚 Loading all courses...");
+          const coursesData = await fetchData("/courses");
+          if (coursesData) {
+            allCourses = coursesData;
+            console.log(`✅ Loaded ${allCourses.length} courses:`, allCourses);
+
+            // Create a mapping of course IDs to course titles for easy lookup
+            courseIdToTitleMap = {};
+            allCourses.forEach((course) => {
+              const courseId = course._id || course.id;
+              const courseTitle =
+                course.title || course.name || "Untitled Course";
+              courseIdToTitleMap[courseId] = courseTitle;
+            });
+
+            console.log("📋 Course ID to Title Map:", courseIdToTitleMap);
+
+            // Return success
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("❌ Error loading courses:", error);
+          showToast(
+            "warning",
+            "Courses Load Failed",
+            "Could not load courses data",
+            3000
+          );
+          return false;
+        }
+      }
+
+      // Filter courses by category for ADD modal
+      async function filterCoursesByCategory(category) {
+        try {
+          const courseSelect = document.getElementById("lessonCourse");
+
+          // Show loading state
+          courseSelect.innerHTML =
+            '<option value="">Loading courses...</option>';
+          courseSelect.disabled = true;
+
+          if (!category) {
+            // If no category selected, show all courses
+            populateCourseDropdown(allCourses);
+            courseSelect.disabled = false;
+            return;
+          }
+
+          console.log(`🔍 Frontend: Filtering for category: ${category}`);
+
+          // Map the frontend category to backend category
+          const backendCategory = CATEGORY_MAPPING[category] || category;
+          console.log(
+            `🔍 Frontend: Using backend category: "${backendCategory}"`
+          );
+
+          // Use the mapped category in the API call
+          const coursesByCategory = await fetchData(
+            `/courses/by-category/${encodeURIComponent(backendCategory)}`
+          );
+
+          if (coursesByCategory && coursesByCategory.length > 0) {
+            console.log(
+              `✅ Found ${coursesByCategory.length} courses for category: ${backendCategory}`
+            );
+            populateCourseDropdown(coursesByCategory);
+          } else {
+            console.log(
+              `❌ No courses found via API for category: ${backendCategory}, falling back to client-side filtering`
+            );
+
+            // Enhanced fallback: filter from allCourses with multiple matching strategies
+            const filteredCourses = allCourses.filter((course) => {
+              const courseCategory = course.category
+                ? course.category.toLowerCase()
+                : "";
+              const targetCategory = category.toLowerCase();
+              const backendTargetCategory = backendCategory.toLowerCase();
+
+              // Multiple matching strategies
+              return (
+                courseCategory === targetCategory ||
+                courseCategory === backendTargetCategory ||
+                courseCategory.replace(/\s+/g, "") ===
+                  targetCategory.replace(/\s+/g, "") ||
+                courseCategory.includes(targetCategory) ||
+                targetCategory.includes(courseCategory)
+              );
+            });
+
+            if (filteredCourses.length > 0) {
+              console.log(
+                `✅ Found ${filteredCourses.length} courses via enhanced client-side filtering`
+              );
+              populateCourseDropdown(filteredCourses);
+            } else {
+              console.log(`❌ No courses found for category: ${category}`);
+              courseSelect.innerHTML =
+                '<option value="">No courses available for this category</option>';
+            }
+          }
+
+          courseSelect.disabled = false;
+        } catch (error) {
+          console.error("❌ Error filtering courses:", error);
+
+          const courseSelect = document.getElementById("lessonCourse");
+
+          // Enhanced fallback to client-side filtering on error
+          const backendCategory = CATEGORY_MAPPING[category] || category;
+          const filteredCourses = allCourses.filter((course) => {
+            const courseCategory = course.category
+              ? course.category.toLowerCase()
+              : "";
+            const targetCategory = category.toLowerCase();
+            const backendTargetCategory = backendCategory.toLowerCase();
+
+            return (
+              courseCategory === targetCategory ||
+              courseCategory === backendTargetCategory ||
+              courseCategory.replace(/\s+/g, "") ===
+                targetCategory.replace(/\s+/g, "") ||
+              courseCategory.includes(targetCategory) ||
+              targetCategory.includes(courseCategory)
+            );
+          });
+
+          if (filteredCourses.length > 0) {
+            console.log(
+              `✅ Fallback: Found ${filteredCourses.length} courses via enhanced client-side filtering`
+            );
+            populateCourseDropdown(filteredCourses);
+          } else {
+            courseSelect.innerHTML =
+              '<option value="">No courses available for this category</option>';
+          }
+
+          courseSelect.disabled = false;
+
+          showToast(
+            "warning",
+            "Courses Filter",
+            "Using cached courses data",
+            3000
+          );
+        }
+      }
+
+      // Filter courses by category for EDIT modal
+      async function filterEditCoursesByCategory(category) {
+        try {
+          const courseSelect = document.getElementById("editLessonCourse");
+
+          // Show loading state
+          courseSelect.innerHTML =
+            '<option value="">Loading courses...</option>';
+          courseSelect.disabled = true;
+
+          if (!category) {
+            populateEditCourseDropdown(allCourses);
+            courseSelect.disabled = false;
+            return;
+          }
+
+          console.log(
+            `🔍 Frontend: Filtering EDIT courses for category: ${category}`
+          );
+
+          // Map the frontend category to backend category
+          const backendCategory = CATEGORY_MAPPING[category] || category;
+          console.log(
+            `🔍 Frontend: Using backend category for EDIT: "${backendCategory}"`
+          );
+
+          const coursesByCategory = await fetchData(
+            `/courses/by-category/${encodeURIComponent(backendCategory)}`
+          );
+
+          if (coursesByCategory && coursesByCategory.length > 0) {
+            console.log(
+              `✅ Found ${coursesByCategory.length} courses for edit category: ${backendCategory}`
+            );
+            populateEditCourseDropdown(coursesByCategory);
+          } else {
+            // Enhanced fallback to client-side filtering
+            const filteredCourses = allCourses.filter((course) => {
+              const courseCategory = course.category
+                ? course.category.toLowerCase()
+                : "";
+              const targetCategory = category.toLowerCase();
+              const backendTargetCategory = backendCategory.toLowerCase();
+
+              return (
+                courseCategory === targetCategory ||
+                courseCategory === backendTargetCategory ||
+                courseCategory.replace(/\s+/g, "") ===
+                  targetCategory.replace(/\s+/g, "") ||
+                courseCategory.includes(targetCategory) ||
+                targetCategory.includes(courseCategory)
+              );
+            });
+            populateEditCourseDropdown(filteredCourses);
+          }
+
+          courseSelect.disabled = false;
+        } catch (error) {
+          console.error("❌ Error filtering edit courses:", error);
+
+          // Enhanced fallback to client-side filtering
+          const backendCategory = CATEGORY_MAPPING[category] || category;
+          const filteredCourses = allCourses.filter((course) => {
+            const courseCategory = course.category
+              ? course.category.toLowerCase()
+              : "";
+            const targetCategory = category.toLowerCase();
+            const backendTargetCategory = backendCategory.toLowerCase();
+
+            return (
+              courseCategory === targetCategory ||
+              courseCategory === backendTargetCategory ||
+              courseCategory.replace(/\s+/g, "") ===
+                targetCategory.replace(/\s+/g, "") ||
+              courseCategory.includes(targetCategory) ||
+              targetCategory.includes(courseCategory)
+            );
+          });
+          populateEditCourseDropdown(filteredCourses);
+        }
+      }
+
+      // Populate course dropdown for ADD modal
+      function populateCourseDropdown(courses) {
+        const courseSelect = document.getElementById("lessonCourse");
+
+        if (!courses || courses.length === 0) {
+          courseSelect.innerHTML =
+            '<option value="">No courses available for this category</option>';
+          return;
+        }
+
+        let options = '<option value="">Select a course</option>';
+
+        courses.forEach((course) => {
+          const courseId = course._id || course.id;
+          const courseTitle = course.title || course.name || "Untitled Course";
+          options += `<option value="${courseId}">${courseTitle}</option>`;
+        });
+
+        courseSelect.innerHTML = options;
+
+        // Log for debugging
+        console.log(`📚 Populated ADD dropdown with ${courses.length} courses`);
+      }
+
+      // Populate course dropdown for EDIT modal
+      function populateEditCourseDropdown(courses) {
+        const courseSelect = document.getElementById("editLessonCourse");
+
+        if (!courses || courses.length === 0) {
+          courseSelect.innerHTML =
+            '<option value="">No courses available for this category</option>';
+          return;
+        }
+
+        let options = '<option value="">Select a course</option>';
+
+        courses.forEach((course) => {
+          const courseId = course._id || course.id;
+          const courseTitle = course.title || course.name || "Untitled Course";
+          options += `<option value="${courseId}">${courseTitle}</option>`;
+        });
+
+        courseSelect.innerHTML = options;
+
+        console.log(
+          `📚 Populated EDIT dropdown with ${courses.length} courses`
+        );
+      }
+
+      // Load lessons from API
+      async function loadLessons() {
+        try {
+          showLoadingState();
+
+          console.log("📚 Fetching lessons from:", LESSONS_ENDPOINT);
+
+          // Wait for courses to load first
+          if (Object.keys(courseIdToTitleMap).length === 0) {
+            console.log("📚 Courses not loaded yet, loading courses first...");
+            await loadAllCourses();
+          }
+
+          const lessonsData = await fetchData("/lessons");
+
+          if (!lessonsData) {
+            console.log("❌ API fetch failed, showing empty state");
+            showEmptyState();
+            showToast(
+              "error",
+              "Load Failed",
+              "Could not load lessons data",
+              5000
+            );
+            return;
+          }
+
+          lessons = lessonsData;
+          console.log(`✅ Loaded ${lessons.length} lessons`);
+          renderLessons();
+        } catch (error) {
+          console.error("❌ Error loading lessons:", error);
+          showEmptyState();
+          showToast(
+            "error",
+            "Load Error",
+            "Failed to load lessons. Please try again.",
+            5000
+          );
+        }
+      }
+
+      // Render lessons to the table
+      function renderLessons() {
+        if (!lessons || lessons.length === 0) {
+          showEmptyState();
+          return;
+        }
+
+        lessonsTableBody.innerHTML = "";
+
+        lessons.forEach((lesson) => {
+          const row = document.createElement("tr");
+
+          // Format date and time
+          let formattedDate = "Invalid Date";
+          let startTime = "N/A";
+          let endTime = "N/A";
+
+          try {
+            if (lesson.start_date && lesson.start_time) {
+              const lessonDateTime = new Date(
+                `${lesson.start_date}T${lesson.start_time}`
+              );
+
+              if (!isNaN(lessonDateTime.getTime())) {
+                formattedDate = lessonDateTime.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+
+                startTime = formatTime(lesson.start_time);
+
+                if (lesson.duration) {
+                  const endDateTime = new Date(
+                    lessonDateTime.getTime() + lesson.duration * 60000
+                  );
+                  endTime = formatTime(
+                    endDateTime.toTimeString().split(" ")[0]
+                  );
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error parsing date/time:", error);
+          }
+
+          // Status determination - use the status from API directly
+          let status = lesson.status || "upcoming";
+          let statusClass = "status-upcoming";
+
+          if (status === "completed") {
+            statusClass = "status-completed";
+          } else if (status === "ongoing") {
+            statusClass = "status-ongoing";
+          }
+
+          // Get category color class
+          const categoryClass = getCategoryClass(lesson.category);
+
+          // Get course title with improved lookup
+          let courseTitle = "Course not found";
+
+          // Try multiple ways to get the course title with retry logic
+          if (lesson.course_title) {
+            courseTitle = lesson.course_title;
+          } else if (lesson.course_name) {
+            courseTitle = lesson.course_name;
+          } else if (
+            lesson.course &&
+            typeof lesson.course === "object" &&
+            lesson.course.title
+          ) {
+            courseTitle = lesson.course.title;
+          } else if (
+            lesson.course &&
+            typeof lesson.course === "object" &&
+            lesson.course.name
+          ) {
+            courseTitle = lesson.course.name;
+          } else if (lesson.course_id && courseIdToTitleMap[lesson.course_id]) {
+            courseTitle = courseIdToTitleMap[lesson.course_id];
+          } else if (lesson.courseId && courseIdToTitleMap[lesson.courseId]) {
+            courseTitle = courseIdToTitleMap[lesson.courseId];
+          } else if (
+            lesson.course &&
+            typeof lesson.course === "string" &&
+            courseIdToTitleMap[lesson.course]
+          ) {
+            courseTitle = courseIdToTitleMap[lesson.course];
+          } else {
+            // If course title still not found, show a generic message
+            console.log(
+              `Course title not found for lesson: ${lesson.title}, course ID: ${
+                lesson.course_id || lesson.courseId || lesson.course
+              }`
+            );
+            courseTitle = "Loading course...";
+          }
+
+          // Location display with simplified fields
+          let locationDisplay = "";
+          let locationClass = "";
+          let locationIcon = "";
+          let locationLink = "";
+          let isClickable = false;
+
+          if (
+            lesson.location_type === "zoom" ||
+            lesson.location_type === "zoom_meeting"
+          ) {
+            locationDisplay = "Zoom Meeting";
+            locationClass = "location-zoom";
+            locationIcon = "fas fa-video";
+
+            // Get Zoom link - simplified to just the join URL
+            locationLink = lesson.zoom_link || lesson.zoom_join_url || "";
+
+            // Validate and make clickable
+            isClickable =
+              locationLink &&
+              (locationLink.startsWith("http://") ||
+                locationLink.startsWith("https://") ||
+                locationLink.startsWith("zoom.us/") ||
+                locationLink.includes("zoom.us/j/"));
+          } else if (lesson.location_type === "google_meet") {
+            locationDisplay = "Google Meet";
+            locationClass = "location-google-meet";
+            locationIcon = "fab fa-google";
+
+            // Get Google Meet link - simplified to just the meet link
+            locationLink = lesson.google_meet_link || "";
+
+            // Validate and make clickable
+            isClickable =
+              locationLink &&
+              (locationLink.startsWith("http://") ||
+                locationLink.startsWith("https://") ||
+                locationLink.startsWith("meet.google.com/") ||
+                locationLink.includes("meet.google.com/"));
+          } else {
+            locationDisplay = "Physical Classroom";
+            locationClass = "location-physical";
+            locationIcon = "fas fa-building";
+            locationLink = "#";
+            isClickable = false;
+          }
+
+          row.innerHTML = `
+    <td>
+      <div class="lesson-title">${lesson.title}</div>
+      <div class="lesson-meta">${courseTitle}</div>
+    </td>
+    <td>
+      <span class="lesson-category ${categoryClass}">${formatCategory(
+            lesson.category
+          )}</span>
+    </td>
+    <td>
+      <div>${formattedDate}</div>
+      <div class="lesson-meta">${startTime} - ${endTime}</div>
+    </td>
+    <td>
+      <div class="lesson-location ${locationClass}">
+        <i class="${locationIcon}"></i>
+        ${
+          isClickable
+            ? `<a href="${locationLink}" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer; margin-left: 5px;" class="clickable-location">${locationDisplay}</a>`
+            : `<span style="margin-left: 5px;">${locationDisplay}</span>`
+        }
+      </div>
+    </td>
+    <td>
+      <span class="status-badge ${statusClass}" data-id="${
+            lesson._id || lesson.id
+          }" data-title="${lesson.title}" data-status="${status}">
+        ${formatStatus(status)}
+      </span>
+    </td>
+    <td>
+      <div class="lesson-actions">
+        <button
+          class="action-btn btn-edit"
+          data-id="${lesson._id || lesson.id}"
+          data-title="${lesson.title}"
+          data-course="${courseTitle}"
+          data-category="${lesson.category}"
+          data-date="${lesson.start_date}"
+          data-time="${lesson.start_time}"
+          data-duration="${lesson.duration || 0}"
+          data-location="${lesson.location_type}"
+          data-status="${status}"
+          data-zoom-link="${lesson.zoom_link || ""}"
+          data-google-meet-link="${lesson.google_meet_link || ""}"
+          data-classroom-location="${lesson.classroom_location || ""}"
+          data-description="${lesson.description || ""}"
+        >
+          <i class="fas fa-edit"></i>
+        </button>
+        <button
+          class="action-btn btn-delete"
+          data-id="${lesson._id || lesson.id}"
+          data-title="${lesson.title}"
+          type="button"
+        >
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </td>
+  `;
+
+          lessonsTableBody.appendChild(row);
+        });
+
+        // Update lessons count
+        lessonsCount.textContent = `Showing ${lessons.length} of ${lessons.length} lessons`;
+
+        // Show the table
+        hideLoadingState();
+        lessonsTable.style.display = "table";
+        emptyState.style.display = "none";
+
+        // Re-attach event listeners to the new buttons
+        attachEditButtonListeners();
+        attachDeleteButtonListeners();
+        attachStatusBadgeListeners();
+
+        // Check for missing course titles and refresh if needed
+        setTimeout(() => {
+          refreshCourseTitles();
+        }, 1000);
+      }
+
+      // Function to refresh course titles for lessons that show "Course not found"
+      async function refreshCourseTitles() {
+        const courseNotFoundLessons = lessons.filter((lesson) => {
+          const courseId = lesson.course_id || lesson.courseId || lesson.course;
+          return !courseIdToTitleMap[courseId];
+        });
+
+        if (courseNotFoundLessons.length > 0) {
+          console.log(
+            `🔄 Refreshing course titles for ${courseNotFoundLessons.length} lessons`
+          );
+          await loadAllCourses();
+          renderLessons();
+        }
+      }
+
+      // Helper functions
+      function formatTime(timeString) {
+        if (!timeString) return "N/A";
+
+        const [hours, minutes] = timeString.split(":");
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? "PM" : "AM";
+        const formattedHour = hour % 12 || 12;
+
+        return `${formattedHour}:${minutes} ${ampm}`;
+      }
+
+      function formatCategory(category) {
+        const categoryMap = {
+          design: "Design",
+          development: "Development",
+          blockchain: "Blockchain",
+          cybersecurity: "Cyber Security",
+          "Cyber Security": "Cyber Security",
+        };
+
+        return categoryMap[category] || category;
+      }
+
+      function formatStatus(status) {
+        const statusMap = {
+          upcoming: "Upcoming",
+          ongoing: "Ongoing",
+          completed: "Completed",
+        };
+
+        return statusMap[status] || status;
+      }
+
+      function getCategoryClass(category) {
+        const classMap = {
+          design: "bg-design",
+          development: "bg-development",
+          blockchain: "bg-blockchain",
+          cybersecurity: "bg-cybersecurity",
+          "Cyber Security": "bg-cybersecurity",
+        };
+
+        return classMap[category] || "bg-design";
+      }
+
+      // UI State Management
+      function showLoadingState() {
+        loadingState.style.display = "flex";
+        lessonsTable.style.display = "none";
+        emptyState.style.display = "none";
+        lessonsCount.textContent = "Loading lessons...";
+      }
+
+      function hideLoadingState() {
+        loadingState.style.display = "none";
+      }
+
+      function showEmptyState() {
+        loadingState.style.display = "none";
+        lessonsTable.style.display = "none";
+        emptyState.style.display = "flex";
+        lessonsCount.textContent = "No lessons found";
+      }
+
+      // Event Listeners Setup
+      function setupEventListeners() {
+        console.log("🔧 Setting up event listeners...");
+
+        // Category change listener for add modal
+        if (lessonCategory) {
+          lessonCategory.addEventListener("change", function () {
+            const selectedCategory = this.value;
+            console.log(
+              `🎯 Add modal category changed to: ${selectedCategory}`
+            );
+            filterCoursesByCategory(selectedCategory);
+            lessonCourse.value = ""; // Reset course selection
+          });
+        }
+
+        // Category change listener for edit modal
+        if (editLessonCategory) {
+          editLessonCategory.addEventListener("change", function () {
+            const selectedCategory = this.value;
+            console.log(
+              `🎯 Edit modal category changed to: ${selectedCategory}`
+            );
+            filterEditCoursesByCategory(selectedCategory);
+            editLessonCourse.value = ""; // Reset course selection
+          });
+        }
+
+        // Modal functionality - FIXED: Proper modal references
+        if (openModalBtn) {
+          openModalBtn.addEventListener("click", function () {
+            console.log("📝 Open modal button clicked");
+            modal.style.display = "flex";
+            populateCourseDropdown(allCourses);
+            resetLocationSelection();
+          });
+        }
+
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener("click", function () {
+            modal.style.display = "none";
+          });
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", function () {
+            modal.style.display = "none";
+          });
+        }
+
+        if (closeEditModalBtn) {
+          closeEditModalBtn.addEventListener("click", function () {
+            editModal.style.display = "none";
+          });
+        }
+
+        if (cancelEditBtn) {
+          cancelEditBtn.addEventListener("click", function () {
+            editModal.style.display = "none";
+          });
+        }
+
+        if (closeStatusModalBtn) {
+          closeStatusModalBtn.addEventListener("click", function () {
+            statusModal.style.display = "none";
+          });
+        }
+
+        if (cancelStatusBtn) {
+          cancelStatusBtn.addEventListener("click", function () {
+            statusModal.style.display = "none";
+          });
+        }
+
+        // Location selection for add modal
+        if (zoomOption) {
+          zoomOption.addEventListener("click", function () {
+            console.log("📍 Zoom option clicked");
+            selectLocationOption("zoom");
+          });
+        }
+
+        if (googleMeetOption) {
+          googleMeetOption.addEventListener("click", function () {
+            console.log("📍 Google Meet option clicked");
+            selectLocationOption("google_meet");
+          });
+        }
+
+        if (physicalOption) {
+          physicalOption.addEventListener("click", function () {
+            console.log("📍 Physical option clicked");
+            selectLocationOption("physical_classroom");
+          });
+        }
+
+        // Location selection for edit modal
+        if (editZoomOption) {
+          editZoomOption.addEventListener("click", function () {
+            selectEditLocationOption("zoom");
+          });
+        }
+
+        if (editGoogleMeetOption) {
+          editGoogleMeetOption.addEventListener("click", function () {
+            selectEditLocationOption("google_meet");
+          });
+        }
+
+        if (editPhysicalOption) {
+          editPhysicalOption.addEventListener("click", function () {
+            selectEditLocationOption("physical_classroom");
+          });
+        }
+
+        // Status selection
+        const statusOptions = document.querySelectorAll(".status-option");
+        statusOptions.forEach((option) => {
+          option.addEventListener("click", function () {
+            // Remove selected class from all options
+            statusOptions.forEach((opt) => opt.classList.remove("selected"));
+            // Add selected class to clicked option
+            this.classList.add("selected");
+            // Set the selected status
+            selectedStatus.value = this.getAttribute("data-status");
+          });
+        });
+
+        // Form submissions
+        if (lessonForm) {
+          console.log("✅ Lesson form found, attaching submit handler");
+          lessonForm.addEventListener("submit", handleAddLesson);
+        }
+
+        if (editLessonForm) {
+          editLessonForm.addEventListener("submit", handleEditLesson);
+        }
+
+        if (updateStatusBtn) {
+          updateStatusBtn.addEventListener("click", handleUpdateStatus);
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener("click", function (e) {
+          if (e.target === modal) modal.style.display = "none";
+          if (e.target === editModal) editModal.style.display = "none";
+          if (e.target === statusModal) statusModal.style.display = "none";
+          if (e.target === deleteConfirmationModal) {
+            deleteConfirmationModal.style.display = "none";
+            currentLessonToDelete = null;
+          }
+        });
+
+        // Add active class to clicked sidebar items
+        const sidebarItems = document.querySelectorAll(".sidebar-menu a");
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            // Close sidebar on mobile after clicking a link
+            if (window.innerWidth <= 992) {
+              toggleSidebar();
+            }
+          });
+        });
+
+        console.log("✅ Event listeners setup completed");
+      }
+
+      // Helper function to reset location selection
+      function resetLocationSelection() {
+        if (zoomOption) zoomOption.classList.remove("selected");
+        if (googleMeetOption) googleMeetOption.classList.remove("selected");
+        if (physicalOption) physicalOption.classList.remove("selected");
+        if (zoomDetails) zoomDetails.style.display = "none";
+        if (googleMeetDetails) googleMeetDetails.style.display = "none";
+        if (classroomDetails) classroomDetails.style.display = "none";
+        if (locationType) locationType.value = "";
+      }
+
+      // Helper function for location selection
+      function selectLocationOption(type) {
+        console.log("📍 Selecting location option:", type);
+
+        // Reset all selections
+        if (zoomOption) zoomOption.classList.remove("selected");
+        if (googleMeetOption) googleMeetOption.classList.remove("selected");
+        if (physicalOption) physicalOption.classList.remove("selected");
+        if (zoomDetails) zoomDetails.style.display = "none";
+        if (googleMeetDetails) googleMeetDetails.style.display = "none";
+        if (classroomDetails) classroomDetails.style.display = "none";
+
+        // Set selected option
+        if (type === "zoom") {
+          if (zoomOption) zoomOption.classList.add("selected");
+          if (locationType) locationType.value = "zoom";
+          if (zoomDetails) zoomDetails.style.display = "block";
+        } else if (type === "google_meet") {
+          if (googleMeetOption) googleMeetOption.classList.add("selected");
+          if (locationType) locationType.value = "google_meet";
+          if (googleMeetDetails) googleMeetDetails.style.display = "block";
+        } else if (type === "physical_classroom") {
+          if (physicalOption) physicalOption.classList.add("selected");
+          if (locationType) locationType.value = "physical_classroom";
+          if (classroomDetails) classroomDetails.style.display = "block";
+        }
+
+        console.log("📍 Location type set to:", locationType.value);
+      }
+
+      // Helper function for edit location selection
+      function selectEditLocationOption(type) {
+        // Reset all selections
+        if (editZoomOption) editZoomOption.classList.remove("selected");
+        if (editGoogleMeetOption)
+          editGoogleMeetOption.classList.remove("selected");
+        if (editPhysicalOption) editPhysicalOption.classList.remove("selected");
+        if (editZoomDetails) editZoomDetails.style.display = "none";
+        if (editGoogleMeetDetails) editGoogleMeetDetails.style.display = "none";
+        if (editClassroomDetails) editClassroomDetails.style.display = "none";
+
+        // Set selected option
+        if (type === "zoom") {
+          if (editZoomOption) editZoomOption.classList.add("selected");
+          if (editLocationType) editLocationType.value = "zoom";
+          if (editZoomDetails) editZoomDetails.style.display = "block";
+        } else if (type === "google_meet") {
+          if (editGoogleMeetOption)
+            editGoogleMeetOption.classList.add("selected");
+          if (editLocationType) editLocationType.value = "google_meet";
+          if (editGoogleMeetDetails)
+            editGoogleMeetDetails.style.display = "block";
+        } else if (type === "physical_classroom") {
+          if (editPhysicalOption) editPhysicalOption.classList.add("selected");
+          if (editLocationType) editLocationType.value = "physical_classroom";
+          if (editClassroomDetails)
+            editClassroomDetails.style.display = "block";
+        }
+      }
+
+      function attachEditButtonListeners() {
+        document.querySelectorAll(".btn-edit").forEach((button) => {
+          button.addEventListener("click", function () {
+            const lessonId = this.getAttribute("data-id");
+            const lessonTitle = this.getAttribute("data-title");
+            const lessonCourseTitle = this.getAttribute("data-course");
+            const lessonCategory = this.getAttribute("data-category");
+            const lessonDate = this.getAttribute("data-date");
+            const lessonTime = this.getAttribute("data-time");
+            const lessonDuration = this.getAttribute("data-duration");
+            const lessonLocation = this.getAttribute("data-location");
+            const lessonStatus = this.getAttribute("data-status");
+            const zoomLink = this.getAttribute("data-zoom-link");
+            const googleMeetLink = this.getAttribute("data-google-meet-link");
+            const classroomLocation = this.getAttribute(
+              "data-classroom-location"
+            );
+            const lessonDescription = this.getAttribute("data-description");
+
+            // Set the form values
+            document.getElementById("editLessonId").value = lessonId;
+            document.getElementById("editLessonTitle").value = lessonTitle;
+            document.getElementById("editLessonCategory").value =
+              lessonCategory;
+            document.getElementById("editLessonDate").value = lessonDate;
+            document.getElementById("editLessonTime").value = lessonTime;
+            document.getElementById("editLessonDuration").value =
+              lessonDuration;
+            document.getElementById("editLessonDescription").value =
+              lessonDescription;
+
+            // Set location type and details
+            if (lessonLocation === "zoom") {
+              selectEditLocationOption("zoom");
+              document.getElementById("editZoomJoinUrl").value = zoomLink || "";
+            } else if (lessonLocation === "google_meet") {
+              selectEditLocationOption("google_meet");
+              document.getElementById("editGoogleMeetLink").value =
+                googleMeetLink || "";
+            } else {
+              selectEditLocationOption("physical_classroom");
+              document.getElementById("editClassroomLocation").value =
+                classroomLocation || "";
+            }
+
+            // Populate course dropdown for edit form with the current category
+            filterEditCoursesByCategory(lessonCategory);
+
+            // Store the current lesson ID
+            currentEditLessonId = lessonId;
+
+            // Show the modal
+            editModal.style.display = "flex";
+          });
+        });
+      }
+
+      // Fix the attachDeleteButtonListeners function
+      function attachDeleteButtonListeners() {
+        const deleteButtons = document.querySelectorAll(".btn-delete");
+        console.log(
+          `🔧 Attaching delete listeners to ${deleteButtons.length} buttons`
+        );
+
+        deleteButtons.forEach((button) => {
+          // Remove any existing listeners to prevent duplicates
+          button.replaceWith(button.cloneNode(true));
+        });
+
+        // Re-select the buttons after cloning
+        document.querySelectorAll(".btn-delete").forEach((button) => {
+          button.addEventListener("click", function (e) {
+            e.stopPropagation(); // Prevent event bubbling
+
+            const lessonId = this.getAttribute("data-id");
+            const lessonTitle = this.getAttribute("data-title");
+
+            console.log(
+              `🗑️ Delete button clicked for lesson: ${lessonTitle} (ID: ${lessonId})`
+            );
+
+            if (!lessonId || !lessonTitle) {
+              console.error("❌ Missing lesson ID or title for deletion");
+              showToast(
+                "error",
+                "Error",
+                "Cannot delete lesson: missing information",
+                3000
+              );
+              return;
+            }
+
+            // Use the working delete confirmation function
+            openDeleteConfirmation(lessonId, lessonTitle);
+          });
+        });
+      }
+
+      function attachStatusBadgeListeners() {
+        document.querySelectorAll(".status-badge").forEach((badge) => {
+          badge.addEventListener("click", function () {
+            const lessonId = this.getAttribute("data-id");
+            const lessonTitle = this.getAttribute("data-title");
+            const currentStatus = this.getAttribute("data-status");
+
+            // Set the current lesson ID and title
+            currentStatusLessonId = lessonId;
+            currentStatusLessonTitle = lessonTitle;
+            statusLessonId.value = lessonId;
+
+            // Reset and set the current status in the modal
+            const statusOptions = document.querySelectorAll(".status-option");
+            statusOptions.forEach((option) => {
+              option.classList.remove("selected");
+              if (option.getAttribute("data-status") === currentStatus) {
+                option.classList.add("selected");
+                selectedStatus.value = currentStatus;
+              }
+            });
+
+            // Show the status modal
+            statusModal.style.display = "flex";
+          });
+        });
+      }
+
+      // Handle Add Lesson function
+      async function handleAddLesson(e) {
+        e.preventDefault();
+        console.log("📝 Add lesson form submitted - handleAddLesson called");
+
+        try {
+          // Get form values
+          const lessonTitle = document
+            .getElementById("lessonTitle")
+            .value.trim();
+          const lessonCategory =
+            document.getElementById("lessonCategory").value;
+          const lessonCourse = document.getElementById("lessonCourse").value;
+          const lessonDate = document.getElementById("lessonDate").value;
+          const lessonTime = document.getElementById("lessonTime").value;
+          const lessonDuration = parseInt(
+            document.getElementById("lessonDuration").value
+          );
+          const locationType = document.getElementById("locationType").value;
+          const zoomJoinUrl = document
+            .getElementById("zoomJoinUrl")
+            .value.trim();
+          const googleMeetLink = document
+            .getElementById("googleMeetLink")
+            .value.trim();
+          const classroomLocation = document
+            .getElementById("classroomLocation")
+            .value.trim();
+          const lessonDescription = document
+            .getElementById("lessonDescription")
+            .value.trim();
+
+          console.log("📋 All form values:", {
+            lessonTitle,
+            lessonCategory,
+            lessonCourse,
+            lessonDate,
+            lessonTime,
+            lessonDuration,
+            locationType,
+            zoomJoinUrl,
+            googleMeetLink,
+            classroomLocation,
+            lessonDescription,
+          });
+
+          // Validate required fields
+          if (
+            !lessonTitle ||
+            !lessonCategory ||
+            !lessonCourse ||
+            !lessonDate ||
+            !lessonTime ||
+            !lessonDuration ||
+            !locationType
+          ) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please fill in all required fields",
+              3000
+            );
+            return;
+          }
+
+          // Validate duration
+          if (isNaN(lessonDuration) || lessonDuration <= 0) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please enter a valid duration (positive number)",
+              3000
+            );
+            return;
+          }
+
+          // Validate location-specific fields
+          let locationData = {};
+          if (locationType === "zoom") {
+            if (!zoomJoinUrl) {
+              showToast(
+                "warning",
+                "Validation Error",
+                "Please provide Zoom Join URL",
+                3000
+              );
+              return;
+            }
+            locationData.zoom_link = zoomJoinUrl;
+          } else if (locationType === "google_meet") {
+            if (!googleMeetLink) {
+              showToast(
+                "warning",
+                "Validation Error",
+                "Please provide Google Meet link",
+                3000
+              );
+              return;
+            }
+            locationData.google_meet_link = googleMeetLink;
+          } else if (locationType === "physical_classroom") {
+            if (!classroomLocation) {
+              showToast(
+                "warning",
+                "Validation Error",
+                "Please provide classroom location",
+                3000
+              );
+              return;
+            }
+            locationData.classroom_location = classroomLocation;
+          }
+
+          // Show loading state
+          const submitButton = document.getElementById("scheduleLessonBtn");
+          const originalText = submitButton.innerHTML;
+          submitButton.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Creating...';
+          submitButton.disabled = true;
+
+          // Map category for backend consistency
+          const backendCategory =
+            CATEGORY_MAPPING[lessonCategory] || lessonCategory;
+
+          // Prepare the data for API
+          const lessonData = {
+            title: lessonTitle,
+            category: backendCategory,
+            course_id: lessonCourse,
+            start_date: lessonDate,
+            start_time: lessonTime + ":00",
+            duration: lessonDuration,
+            location_type: locationType,
+            description: lessonDescription || "",
+            status: "upcoming",
+            is_active: true,
+            ...locationData,
+          };
+
+          console.log("📤 Sending lesson data:", lessonData);
+
+          // Send the request
+          const response = await postData("/lessons/", lessonData);
+
+          if (!response) {
+            throw new Error("No response from server");
+          }
+
+          // Success
+          showToast("success", "Success", "Lesson created successfully!", 3000);
+
+          // Close modal and reset
+          modal.style.display = "none";
+          lessonForm.reset();
+          resetLocationSelection();
+
+          // Reload lessons
+          await loadLessons();
+        } catch (error) {
+          console.error("❌ Error creating lesson:", error);
+          showToast(
+            "error",
+            "Creation Failed",
+            error.message ||
+              "Failed to create lesson. Please check the console for details.",
+            5000
+          );
+        } finally {
+          // Reset submit button
+          const submitButton = document.getElementById("scheduleLessonBtn");
+          if (submitButton) {
+            submitButton.innerHTML =
+              '<i class="fas fa-plus"></i> Schedule Lesson';
+            submitButton.disabled = false;
+          }
+        }
+      }
+
+      // Handle Edit Lesson function
+      async function handleEditLesson(e) {
+        e.preventDefault();
+
+        if (!currentEditLessonId) {
+          showToast("error", "Error", "No lesson selected for editing", 3000);
+          return;
+        }
+
+        try {
+          // Show loading state
+          const submitButton = document.getElementById("updateLessonBtn");
+          const originalText = submitButton.innerHTML;
+          submitButton.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Updating...';
+          submitButton.disabled = true;
+
+          // Get form data
+          const lessonTitle = document
+            .getElementById("editLessonTitle")
+            .value.trim();
+          const lessonCategory =
+            document.getElementById("editLessonCategory").value;
+          const lessonCourse =
+            document.getElementById("editLessonCourse").value;
+          const lessonDate = document.getElementById("editLessonDate").value;
+          const lessonTime = document.getElementById("editLessonTime").value;
+          const lessonDuration = parseInt(
+            document.getElementById("editLessonDuration").value
+          );
+          const locationType =
+            document.getElementById("editLocationType").value;
+          const lessonDescription = document
+            .getElementById("editLessonDescription")
+            .value.trim();
+          const zoomJoinUrl = document
+            .getElementById("editZoomJoinUrl")
+            .value.trim();
+          const googleMeetLink = document
+            .getElementById("editGoogleMeetLink")
+            .value.trim();
+          const classroomLocation = document
+            .getElementById("editClassroomLocation")
+            .value.trim();
+
+          console.log("📋 Edit form values:", {
+            lessonTitle,
+            lessonCategory,
+            lessonCourse,
+            lessonDate,
+            lessonTime,
+            lessonDuration,
+            locationType,
+            lessonDescription,
+            zoomJoinUrl,
+            googleMeetLink,
+            classroomLocation,
+          });
+
+          // Validate required fields
+          if (
+            !lessonTitle ||
+            !lessonCategory ||
+            !lessonCourse ||
+            !lessonDate ||
+            !lessonTime ||
+            !lessonDuration ||
+            !locationType
+          ) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please fill in all required fields",
+              3000
+            );
+            return;
+          }
+
+          // Validate duration
+          if (isNaN(lessonDuration) || lessonDuration <= 0) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please enter a valid duration (positive number)",
+              3000
+            );
+            return;
+          }
+
+          // Validate location-specific fields
+          let locationData = {};
+          if (locationType === "zoom") {
+            if (!zoomJoinUrl) {
+              showToast(
+                "warning",
+                "Validation Error",
+                "Please provide Zoom Join URL",
+                3000
+              );
+              return;
+            }
+            locationData.zoom_link = zoomJoinUrl;
+          } else if (locationType === "google_meet") {
+            if (!googleMeetLink) {
+              showToast(
+                "warning",
+                "Validation Error",
+                "Please provide Google Meet link",
+                3000
+              );
+              return;
+            }
+            locationData.google_meet_link = googleMeetLink;
+          } else if (locationType === "physical_classroom") {
+            if (!classroomLocation) {
+              showToast(
+                "warning",
+                "Validation Error",
+                "Please provide classroom location",
+                3000
+              );
+              return;
+            }
+            locationData.classroom_location = classroomLocation;
+          }
+
+          // Map category for backend consistency
+          const backendCategory =
+            CATEGORY_MAPPING[lessonCategory] || lessonCategory;
+
+          // Prepare update data
+          const updateDataPayload = {
+            title: lessonTitle,
+            category: backendCategory,
+            course_id: lessonCourse,
+            start_date: lessonDate,
+            start_time: lessonTime + ":00",
+            duration: lessonDuration,
+            location_type: locationType,
+            description: lessonDescription || "",
+            is_active: true,
+            ...locationData,
+          };
+
+          console.log("📤 Updating lesson with data:", updateDataPayload);
+
+          // Send update request
+          const response = await updateData(
+            `/lessons/${currentEditLessonId}`,
+            updateDataPayload
+          );
+
+          if (!response) {
+            throw new Error("Failed to update lesson");
+          }
+
+          showToast("success", "Success", "Lesson updated successfully!", 3000);
+          editModal.style.display = "none";
+
+          // Reload lessons
+          await loadLessons();
+        } catch (error) {
+          console.error("❌ Error updating lesson:", error);
+          showToast(
+            "error",
+            "Update Failed",
+            error.message || "Failed to update lesson. Please try again.",
+            5000
+          );
+        } finally {
+          // Reset submit button
+          const submitButton = document.getElementById("updateLessonBtn");
+          submitButton.innerHTML = '<i class="fas fa-save"></i> Update Lesson';
+          submitButton.disabled = false;
+        }
+      }
+
+      // Handle Update Status function
+      async function handleUpdateStatus() {
+        if (!currentStatusLessonId) {
+          showToast(
+            "error",
+            "Error",
+            "No lesson selected for status update",
+            3000
+          );
+          return;
+        }
+
+        const newStatus = selectedStatus.value;
+        if (!newStatus) {
+          showToast(
+            "warning",
+            "Validation Error",
+            "Please select a status",
+            3000
+          );
+          return;
+        }
+
+        try {
+          // Show loading state
+          const submitButton = document.getElementById("updateStatusBtn");
+          const originalText = submitButton.innerHTML;
+          submitButton.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Updating...';
+          submitButton.disabled = true;
+
+          // Prepare status update data
+          const statusUpdateData = {
+            status: newStatus,
+          };
+
+          console.log("📤 Updating lesson status with data:", statusUpdateData);
+
+          // Send update request
+          const response = await updateData(
+            `/lessons/${currentStatusLessonId}`,
+            statusUpdateData
+          );
+
+          if (!response) {
+            throw new Error("Failed to update lesson status");
+          }
+
+          showToast(
+            "success",
+            "Success",
+            `Lesson status updated to ${formatStatus(newStatus)}!`,
+            3000
+          );
+          statusModal.style.display = "none";
+
+          // Reload lessons
+          await loadLessons();
+        } catch (error) {
+          console.error("❌ Error updating lesson status:", error);
+          showToast(
+            "error",
+            "Status Update Failed",
+            error.message ||
+              "Failed to update lesson status. Please try again.",
+            5000
+          );
+        } finally {
+          // Reset submit button
+          const submitButton = document.getElementById("updateStatusBtn");
+          submitButton.innerHTML =
+            '<i class="fas fa-sync-alt"></i> Update Status';
+          submitButton.disabled = false;
+        }
+      }
+
+      // Fix the handleDeleteLesson function
+      async function handleDeleteLesson(lessonId) {
+        console.log("🗑️ handleDeleteLesson called for lesson:", lessonId);
+
+        if (!lessonId) {
+          console.error("❌ No lesson selected for deletion");
+          showToast("error", "Error", "No lesson selected for deletion", 3000);
+          return;
+        }
+
+        try {
+          // Show loading state
+          const deleteButton = document.getElementById("confirmDeleteYes");
+          if (deleteButton) {
+            const originalText = deleteButton.innerHTML;
+            deleteButton.innerHTML =
+              '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            deleteButton.disabled = true;
+          }
+
+          // Send delete request
+          console.log(`🌐 Sending DELETE request for lesson: ${lessonId}`);
+          const response = await deleteData(`/lessons/${lessonId}`);
+
+          if (!response) {
+            throw new Error(
+              "Failed to delete lesson - no response from server"
+            );
+          }
+
+          console.log("✅ Lesson deleted successfully");
+          showToast("success", "Success", "Lesson deleted successfully!", 3000);
+
+          // Close modal
+          deleteConfirmationModal.style.display = "none";
+          currentLessonToDelete = null;
+
+          // Reload lessons
+          await loadLessons();
+
+          console.log(`✅ Deletion completed for lesson: ${lessonId}`);
+        } catch (error) {
+          console.error("❌ Error deleting lesson:", error);
+          showToast(
+            "error",
+            "Deletion Failed",
+            error.message || "Failed to delete lesson. Please try again.",
+            5000
+          );
+        } finally {
+          // Reset delete button
+          const deleteButton = document.getElementById("confirmDeleteYes");
+          if (deleteButton) {
+            deleteButton.innerHTML = "Yes, Delete";
+            deleteButton.disabled = false;
+          }
+        }
+      }
+
+      // Helper function to get auth headers
+      function getAuthHeaders() {
+        const token = localStorage.getItem("access_token");
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        return headers;
+      }
+
+      // Function to fetch data from API with enhanced logging
+      async function fetchData(endpoint) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log(`🌐 API CALL: GET ${API_BASE_URL}${endpoint}`);
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "GET",
+            headers: headers,
+          });
+
+          console.log(
+            `📡 API RESPONSE: ${response.status} ${response.statusText}`
+          );
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ API ERROR: ${response.status} - ${errorText}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log(`📦 API DATA RECEIVED:`, data);
+          return data;
+        } catch (error) {
+          console.error("❌ Network Error:", error);
+          showToast(
+            "error",
+            "Network Error",
+            "Failed to fetch data from server",
+            5000
+          );
+          return null;
+        }
+      }
+
+      // Function to post data to API
+      async function postData(endpoint, data) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log("🌐 POST API CALL:", `${API_BASE_URL}${endpoint}`);
+          console.log("📤 POST Data:", JSON.stringify(data, null, 2));
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(data),
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          const responseData = await response.json().catch(() => null);
+
+          if (!response.ok) {
+            console.error("❌ Server response error:", {
+              status: response.status,
+              statusText: response.statusText,
+              responseData: responseData,
+            });
+
+            const errorMessage =
+              responseData?.detail ||
+              responseData?.message ||
+              (responseData && JSON.stringify(responseData)) ||
+              `HTTP error! status: ${response.status}`;
+            throw new Error(errorMessage);
+          }
+
+          console.log("✅ POST response:", responseData);
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error posting data:", error);
+          throw error;
+        }
+      }
+
+      // Function to update data via API
+      async function updateData(endpoint, data) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log(
+            "🔄 UPDATE API CALL:",
+            `${API_BASE_URL}${endpoint}`,
+            data
+          );
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "PUT",
+            headers: headers,
+            body: JSON.stringify(data),
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+              const errorData = await response.json();
+              console.error("❌ Server validation error:", errorData);
+
+              if (errorData.detail) {
+                if (typeof errorData.detail === "string") {
+                  errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                  errorMessage = errorData.detail
+                    .map(
+                      (err) =>
+                        `${err.loc ? err.loc.join(".") + ": " : ""}${err.msg}`
+                    )
+                    .join(", ");
+                } else if (typeof errorData.detail === "object") {
+                  errorMessage = JSON.stringify(errorData.detail);
+                }
+              } else if (errorData.message) {
+                errorMessage = errorData.message;
+              }
+            } catch (parseError) {
+              console.error("Error parsing error response:", parseError);
+            }
+            throw new Error(errorMessage);
+          }
+
+          const responseData = await response.json();
+          console.log("✅ UPDATE response:", responseData);
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error updating data:", error);
+          throw error;
+        }
+      }
+
+      // Function to delete data via API
+      async function deleteData(endpoint) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log("🗑️ DELETE API CALL:", `${API_BASE_URL}${endpoint}`);
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "DELETE",
+            headers: headers,
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+              const errorData = await response.json();
+              console.error("❌ Server deletion error:", errorData);
+              errorMessage =
+                errorData?.detail || errorData?.message || errorMessage;
+            } catch (parseError) {
+              console.error("Error parsing error response:", parseError);
+            }
+            throw new Error(errorMessage);
+          }
+
+          // Some APIs return 204 No Content, so we need to handle that
+          let responseData = {};
+          try {
+            responseData = await response.json();
+            console.log("✅ DELETE response:", responseData);
+          } catch (e) {
+            console.log("✅ DELETE successful (no content returned)");
+            responseData = { success: true };
+          }
+
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error deleting data:", error);
+          throw error;
+        }
+      }
+
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🚀 Lessons page initializing...");
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Load current user info first
+        loadCurrentUserInfo();
+
+        // Check authentication first
+        if (!checkAuthentication()) {
+          return;
+        }
+
+        // Load courses first, then lessons
+        await loadAllCourses();
+        await loadLessons();
+        setupEventListeners();
+
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+
+        // Setup delete confirmation
+        setupDeleteConfirmation();
+      });
+    </script>
+  </body>
+</html>

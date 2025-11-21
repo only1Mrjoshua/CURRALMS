@@ -1,0 +1,3620 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | Assignments</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+        --sidebar-width: 250px;
+        --navbar-height: 70px;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        display: flex;
+        min-height: 100vh;
+        transition: background 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Sidebar Styles - Updated to match sign-in page */
+      .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(
+          180deg,
+          var(--primary-indigo),
+          var(--secondary-purple),
+          var(--primary-indigo)
+        );
+        color: var(--white);
+        height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+        transform: translateX(0);
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .sidebar-menu {
+        padding: 20px 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .sidebar-menu ul {
+        list-style: none;
+      }
+
+      .sidebar-menu li {
+        margin-bottom: 5px;
+      }
+
+      .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-menu a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .sidebar-menu a:hover::before,
+      .sidebar-menu a.active::before {
+        left: 0;
+      }
+
+      .sidebar-menu a:hover,
+      .sidebar-menu a.active {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .sidebar-menu i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* Add these styles to your existing CSS */
+
+      /* Center the submission count numbers */
+      .submission-count {
+        font-weight: 600;
+        color: var(--primary-indigo);
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+      }
+
+      /* Center align the table headers and cells for the Submissions column */
+      .assignments-table th:nth-child(4),
+      .assignments-table td:nth-child(4) {
+        text-align: center;
+      }
+
+      /* Create a footer for the assignments count on mobile */
+      .assignments-footer {
+        display: none;
+        padding: 15px 20px;
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+        background-color: var(--skeleton-bg);
+      }
+
+      .assignments-footer .assignments-count {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      /* Mobile responsive styles */
+      @media (max-width: 768px) {
+        /* Hide the assignments count from header on mobile */
+        .assignments-header .assignments-count {
+          display: block;
+          margin-left: auto;
+          font-size: 0.7rem;
+        }
+
+        /* Show the footer with assignments count on mobile */
+        .assignments-footer {
+          display: block;
+        }
+
+        /* Ensure table cells are properly centered */
+        .assignments-table th,
+        .assignments-table td {
+          text-align: left;
+        }
+
+        .assignments-table th:nth-child(4),
+        .assignments-table td:nth-child(4) {
+          text-align: center;
+        }
+
+        /* Adjust table padding for better mobile appearance */
+        .assignments-table th,
+        .assignments-table td {
+          padding: 12px 8px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .assignments-table th,
+        .assignments-table td {
+          padding: 10px 6px;
+        }
+
+        .assignments-footer {
+          padding: 12px 15px;
+        }
+      }
+
+      /* Hamburger Menu Button */
+      .hamburger-menu {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--white);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .hamburger-menu:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* Navbar Styles */
+      .navbar {
+        background-color: var(--navbar-bg);
+        height: var(--navbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-left h1 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 15px;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .mobile-menu-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .mobile-menu-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .logout-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .logout-btn i {
+        margin-right: 5px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .add-assignment-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+        font-weight: 600;
+        box-shadow: var(--card-shadow);
+      }
+
+      .add-assignment-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
+      .add-assignment-btn i {
+        margin-right: 8px;
+      }
+
+      /* Filters Section */
+      .filters {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+
+      .filter-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      /* Assignments Table - FIXED SCROLLING */
+      .assignments-container {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .assignments-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .assignments-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .assignments-count {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      /* FIXED: Mobile scrolling for table */
+      .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+      }
+
+      .assignments-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px; /* Ensure table has minimum width for all columns */
+      }
+
+      .assignments-table th {
+        background-color: var(--skeleton-bg);
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+
+      .assignments-table td {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+
+      .assignments-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .assignments-table tr:hover {
+        background-color: var(--skeleton-bg);
+      }
+
+      .assignment-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+      }
+
+      .assignment-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .assignment-category {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--white);
+      }
+
+      .assignment-due-date {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .assignment-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+        font-size: 1rem;
+      }
+
+      .action-btn:hover {
+        color: var(--primary-indigo);
+      }
+
+      .btn-edit:hover {
+        color: var(--success-green);
+      }
+
+      .btn-delete:hover {
+        color: var(--error-red);
+      }
+
+      .submission-count {
+        font-weight: 600;
+        color: var(--primary-indigo);
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        width: 90%;
+        max-width: 700px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        max-height: 90vh;
+        overflow-y: auto;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+      }
+
+      .close-btn:hover {
+        color: var(--error-red);
+      }
+
+      .modal-body {
+        padding: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .form-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      .form-row {
+        display: flex;
+        gap: 20px;
+      }
+
+      .form-col {
+        flex: 1;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-secondary {
+        background-color: var(--text-muted);
+        color: var(--white);
+      }
+
+      .btn-secondary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-danger {
+        background-color: var(--error-red);
+        color: var(--white);
+      }
+
+      .btn-danger:hover {
+        opacity: 0.9;
+      }
+
+      /* Delete Confirmation Modal */
+      .confirmation-modal {
+        text-align: center;
+      }
+
+      .confirmation-modal .modal-content {
+        max-width: 450px;
+      }
+
+      .confirmation-icon {
+        font-size: 3rem;
+        color: var(--error-red);
+        margin-bottom: 15px;
+      }
+
+      .confirmation-text {
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+      }
+
+      .confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        pointer-events: none;
+      }
+
+      .toast {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-bottom: 10px;
+        border-left: 4px solid;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        pointer-events: all;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.hide {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      .toast-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+      }
+
+      .toast-message {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px;
+      }
+
+      .toast-close:hover {
+        color: var(--text-primary);
+      }
+
+      /* Loading State */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--skeleton-bg);
+        border-top: 4px solid var(--primary-indigo);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--text-muted);
+      }
+
+      /* Read-only fields */
+      .read-only-field {
+        background-color: var(--skeleton-bg);
+        color: var(--text-muted);
+        cursor: not-allowed;
+      }
+
+      /* Colors */
+      .bg-design {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+      .bg-development {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+      .bg-blockchain {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+      .bg-cybersecurity {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+
+      /* Logout Confirmation Modal Styles */
+      .logout-confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .logout-confirmation-content {
+        background-color: var(--card-bg);
+        margin: 200px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .logout-confirmation-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 20px;
+      }
+
+      .logout-confirmation-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .logout-confirmation-message {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        font-size: 1rem;
+      }
+
+      .logout-confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .confirm-no {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-no:hover {
+        opacity: 0.9;
+      }
+
+      .confirm-yes {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-yes:hover {
+        opacity: 0.9;
+      }
+
+      /* Mobile Responsive Styles */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 280px;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .sidebar-header h2 {
+          display: block;
+        }
+
+        .sidebar-menu span {
+          display: inline;
+        }
+
+        .sidebar-menu a {
+          justify-content: flex-start;
+          padding: 12px 20px;
+        }
+
+        .sidebar-menu i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+        }
+
+        .hamburger-menu {
+          display: block;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+
+        .overlay.active {
+          display: block;
+        }
+
+        .navbar-left h1 {
+          font-size: 1.2rem !important;
+        }
+
+        /* FIXED: Ensure table scrolling works on mobile */
+        .table-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .assignments-table {
+          min-width: 800px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .navbar {
+          padding: 0 15px;
+        }
+
+        .user-info span {
+          display: none;
+        }
+
+        .filter-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .form-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        /* FIXED: Mobile table scrolling improvements */
+        .table-container {
+          border-radius: 0 0 10px 10px;
+        }
+
+        .assignments-table th,
+        .assignments-table td {
+          padding: 12px 10px;
+        }
+
+        .assignment-title {
+          font-size: 0.9rem;
+        }
+
+        .assignment-meta {
+          font-size: 0.8rem;
+        }
+
+        .page-title {
+          font-size: 1.5rem;
+        }
+
+        .add-assignment-btn {
+          padding: 8px 15px;
+          font-size: 0.9rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 15px;
+        }
+
+        .navbar {
+          padding: 0 10px;
+          margin-bottom: 20px;
+        }
+
+        .navbar-left h1 {
+          font-size: 0.9rem !important;
+          font-weight: 600;
+        }
+
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+        }
+
+        .logout-btn {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+
+        .filters {
+          padding: 12px;
+        }
+
+        .assignments-header {
+          padding: 12px;
+        }
+
+        .assignments-table th,
+        .assignments-table td {
+          padding: 10px 8px;
+        }
+
+        .assignment-title {
+          font-size: 0.85rem;
+        }
+
+        .assignment-meta {
+          font-size: 0.75rem;
+        }
+
+        .assignment-actions {
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .action-btn {
+          font-size: 0.9rem;
+        }
+
+        .modal-content {
+          width: 95%;
+        }
+
+        .modal-header,
+        .modal-body {
+          padding: 15px;
+        }
+
+        .form-group {
+          margin-bottom: 15px;
+        }
+
+        .form-actions {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .confirmation-actions {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>EduAdmin</h2>
+        <button class="hamburger-menu" id="hamburgerMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-menu">
+        <ul>
+          <li>
+            <a href="Admin-Dashboard-Overview.html"
+              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Courses.html"
+              ><i class="fas fa-book"></i> <span>Courses</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Lessons.html"
+              ><i class="fas fa-file-alt"></i> <span>Lessons</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Assignments.html" class="active"
+              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Quizzes.html"
+              ><i class="fas fa-question-circle"></i> <span>Quizzes</span></a
+            >
+          </li>
+          <li>
+            <a href="Admin-Dashboard-Users.html"
+              ><i class="fas fa-users"></i> <span>Users</span></a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Navbar -->
+      <div class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Assignment Management</h1>
+        </div>
+        <div class="navbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <span id="currentUserName">John Doe</span>
+          </div>
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2 class="page-title">All Assignments</h2>
+        <button class="add-assignment-btn" id="openModalBtn">
+          <i class="fas fa-plus"></i> Create New Assignment
+        </button>
+      </div>
+
+      <!-- Filters Section -->
+      <div class="filters">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label" for="categoryFilter">Category</label>
+            <select id="categoryFilter" class="filter-select">
+              <option value="">All Categories</option>
+              <option value="Design">Design</option>
+              <option value="Development">Development</option>
+              <option value="Blockchain">Blockchain</option>
+              <option value="Cyber Security">Cyber Security</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="courseFilter">Course</label>
+            <select id="courseFilter" class="filter-select">
+              <option value="">All Courses</option>
+              <option value="ui-ux">UI/UX Design</option>
+              <option value="web-dev">Web Development</option>
+              <option value="blockchain-fundamentals">
+                Blockchain Fundamentals
+              </option>
+              <option value="cyber-intro">
+                Introduction to Cyber Security
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignments Table - FIXED SCROLLING CONTAINER -->
+      <div class="assignments-container">
+        <div class="assignments-header">
+          <div class="assignments-title">Current Assignments</div>
+          <div class="assignments-count" id="assignmentsCount">
+            Loading assignments...
+          </div>
+        </div>
+        <div id="assignmentsTableContainer">
+          <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading assignments...</p>
+          </div>
+          <!-- FIXED: Added table-container for horizontal scrolling -->
+          <div class="table-container">
+            <table
+              class="assignments-table"
+              id="assignmentsTable"
+              style="display: none"
+            >
+              <thead>
+                <tr>
+                  <th>Assignment Details</th>
+                  <th>Category</th>
+                  <th>Due Date</th>
+                  <th>Submissions</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assignmentsTableBody">
+                <!-- Assignments will be populated here by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="emptyState" style="display: none">
+            <i class="fas fa-tasks"></i>
+            <h3>No Assignments Found</h3>
+            <p>There are no assignments scheduled at the moment.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Assignment Modal -->
+    <div class="modal" id="assignmentModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Create New Assignment</h3>
+          <button type="button" class="close-btn" id="closeModalBtn">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="assignmentForm">
+            <div class="form-group">
+              <label class="form-label" for="assignmentTitle"
+                >Assignment Title *</label
+              >
+              <input
+                type="text"
+                id="assignmentTitle"
+                class="form-control"
+                placeholder="Enter assignment title"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="assignmentDescription"
+                >Assignment Description *</label
+              >
+              <textarea
+                id="assignmentDescription"
+                class="form-control"
+                rows="4"
+                placeholder="Enter assignment description and requirements"
+                required
+              ></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="assignmentCategory"
+                    >Category *</label
+                  >
+                  <select id="assignmentCategory" class="form-select" required>
+                    <option value="">Select a category</option>
+                    <option value="Design">Design</option>
+                    <option value="Development">Development</option>
+                    <option value="Blockchain">Blockchain</option>
+                    <option value="Cyber Security">Cyber Security</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="assignmentCourse"
+                    >Course *</label
+                  >
+                  <select id="assignmentCourse" class="form-select" required>
+                    <option value="">Select a category first</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="assignmentDueDate"
+                    >Due Date *</label
+                  >
+                  <input
+                    type="datetime-local"
+                    id="assignmentDueDate"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="assignmentMaxScore"
+                    >Max Score *</label
+                  >
+                  <input
+                    type="number"
+                    id="assignmentMaxScore"
+                    class="form-control"
+                    placeholder="e.g., 100"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="cancelBtn">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Create Assignment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Assignment Modal -->
+    <div class="modal" id="editAssignmentModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Assignment</h3>
+          <button class="close-btn" id="closeEditModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="editAssignmentForm">
+            <input type="hidden" id="editAssignmentId" />
+
+            <div class="form-group">
+              <label class="form-label" for="editAssignmentTitle"
+                >Assignment Title *</label
+              >
+              <input
+                type="text"
+                id="editAssignmentTitle"
+                class="form-control"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="editAssignmentDescription"
+                >Assignment Description *</label
+              >
+              <textarea
+                id="editAssignmentDescription"
+                class="form-control"
+                rows="4"
+                required
+              ></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editAssignmentCategory"
+                    >Category *</label
+                  >
+                  <select
+                    id="editAssignmentCategory"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    <option value="Design">Design</option>
+                    <option value="Development">Development</option>
+                    <option value="Blockchain">Blockchain</option>
+                    <option value="Cyber Security">Cyber Security</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editAssignmentCourse"
+                    >Course *</label
+                  >
+                  <select
+                    id="editAssignmentCourse"
+                    class="form-select"
+                    required
+                  >
+                    <option value="">Select a course</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editAssignmentDueDate"
+                    >Due Date *</label
+                  >
+                  <input
+                    type="datetime-local"
+                    id="editAssignmentDueDate"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label class="form-label" for="editAssignmentMaxScore"
+                    >Max Score *</label
+                  >
+                  <input
+                    type="number"
+                    id="editAssignmentMaxScore"
+                    class="form-control"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="cancelEditBtn"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Update Assignment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal confirmation-modal" id="deleteConfirmationModal">
+      <div class="modal-content">
+        <div class="confirmation-icon">
+          <i class="fas fa-trash"></i>
+        </div>
+        <h3 class="confirmation-title">Confirm Deletion</h3>
+        <p class="confirmation-text" id="deleteConfirmationMessage">
+          Are you sure you want to delete this assignment? This action cannot be
+          undone.
+        </p>
+        <div class="confirmation-actions">
+          <button class="btn btn-secondary" id="confirmDeleteNo">
+            No, Cancel
+          </button>
+          <button class="btn btn-danger" id="confirmDeleteYes">
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-confirmation-modal" id="logoutConfirmationModal">
+      <div class="logout-confirmation-content">
+        <div class="logout-confirmation-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3 class="logout-confirmation-title">Confirm Logout</h3>
+        <p class="logout-confirmation-message">
+          Are you sure you want to logout? You will need to sign in again to
+          access the dashboard.
+        </p>
+        <div class="logout-confirmation-actions">
+          <button class="confirm-no" id="confirmNo">No, Cancel</button>
+          <button class="confirm-yes" id="confirmYes">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mobile Sidebar Toggle Functionality
+      const sidebar = document.getElementById("sidebar");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const hamburgerMenu = document.getElementById("hamburgerMenu");
+      const overlay = document.getElementById("overlay");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+
+      mobileMenuBtn.addEventListener("click", toggleSidebar);
+      hamburgerMenu.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme Management
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.style.cssText = `
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
+
+        // Set border color based on type
+        const colors = {
+          success: "var(--success-green)",
+          info: "var(--primary-indigo)",
+          warning: "var(--accent-purple)",
+          error: "var(--error-red)",
+        };
+        toast.style.borderLeftColor = colors[type] || colors.info;
+
+        const icons = {
+          success: "fas fa-check",
+          info: "fas fa-info-circle",
+          warning: "fas fa-exclamation-triangle",
+          error: "fas fa-exclamation-circle",
+        };
+
+        toast.innerHTML = `
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateX(0)";
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Function to load and display current user info
+      function loadCurrentUserInfo() {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          try {
+            // Decode the JWT token to get user information
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Get email from token (adjust the property name based on your token structure)
+            const userEmail = payload.email || payload.sub || "User";
+
+            // Update the UI with user's email
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = userEmail;
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = getInitials(userEmail);
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+            // Fallback to default
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = "User";
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = "U";
+            }
+          }
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // API Configuration
+      const API_BASE_URL = "http://localhost:8000";
+
+      // Global variables
+      let allAssignments = [];
+      let allCourses = [];
+      let courseIdToTitleMap = {};
+
+      // Modal Elements
+      const modal = document.getElementById("assignmentModal");
+      const editModal = document.getElementById("editAssignmentModal");
+      const openModalBtn = document.getElementById("openModalBtn");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const closeEditModalBtn = document.getElementById("closeEditModalBtn");
+      const cancelBtn = document.getElementById("cancelBtn");
+      const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+      // Form Elements
+      const assignmentForm = document.getElementById("assignmentForm");
+      const editAssignmentForm = document.getElementById("editAssignmentForm");
+      const assignmentCategory = document.getElementById("assignmentCategory");
+      const assignmentCourse = document.getElementById("assignmentCourse");
+      const editAssignmentCategory = document.getElementById(
+        "editAssignmentCategory"
+      );
+      const editAssignmentCourse = document.getElementById(
+        "editAssignmentCourse"
+      );
+
+      // Table Elements
+      const assignmentsTable = document.getElementById("assignmentsTable");
+      const assignmentsTableBody = document.getElementById(
+        "assignmentsTableBody"
+      );
+      const assignmentsCount = document.getElementById("assignmentsCount");
+      const loadingState = document.getElementById("loadingState");
+      const emptyState = document.getElementById("emptyState");
+
+      // Current assignment tracking
+      let currentEditAssignmentId = null;
+      let currentDeleteAssignmentId = null;
+      let currentDeleteAssignmentTitle = null;
+
+      // Logout Confirmation Elements
+      const logoutBtn = document.getElementById("logoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Delete Confirmation Elements
+      const deleteConfirmationModal = document.getElementById(
+        "deleteConfirmationModal"
+      );
+      const confirmDeleteYes = document.getElementById("confirmDeleteYes");
+      const confirmDeleteNo = document.getElementById("confirmDeleteNo");
+      const deleteConfirmationMessage = document.getElementById(
+        "deleteConfirmationMessage"
+      );
+
+      // Current assignment to be deleted
+      let currentAssignmentToDelete = null;
+
+      // Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view assignments",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // NEW: Function to get submission count for an assignment
+      async function getSubmissionCount(assignmentId) {
+        try {
+          const submissions = await fetchData(
+            `/assignments/${assignmentId}/submissions/simple`
+          );
+          return submissions ? submissions.length : 0;
+        } catch (error) {
+          console.error(
+            `Error fetching submissions for assignment ${assignmentId}:`,
+            error
+          );
+          return 0;
+        }
+      }
+
+      // NEW: Function to load submission counts for all assignments (optimized parallel approach)
+      async function loadSubmissionCounts(assignments) {
+        const promises = assignments.map(async (assignment) => {
+          try {
+            const submissionCount = await getSubmissionCount(
+              assignment._id || assignment.id
+            );
+            return {
+              ...assignment,
+              submissionCount: submissionCount,
+            };
+          } catch (error) {
+            console.error(
+              `Failed to get submission count for assignment ${assignment.title}:`,
+              error
+            );
+            return {
+              ...assignment,
+              submissionCount: 0,
+            };
+          }
+        });
+
+        return Promise.all(promises);
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        // Logout Confirmation Functionality
+        logoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 500);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
+      }
+
+      // Setup delete confirmation functionality
+      function setupDeleteConfirmation() {
+        // Delete Confirmation Functionality
+        confirmDeleteNo.addEventListener("click", function () {
+          deleteConfirmationModal.style.display = "none";
+          currentAssignmentToDelete = null;
+        });
+
+        confirmDeleteYes.addEventListener("click", function () {
+          if (currentAssignmentToDelete) {
+            handleDeleteAssignment(currentAssignmentToDelete);
+          }
+        });
+
+        // Close delete confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === deleteConfirmationModal) {
+            deleteConfirmationModal.style.display = "none";
+            currentAssignmentToDelete = null;
+          }
+        });
+      }
+
+      // Delete Confirmation Functionality
+      function openDeleteConfirmation(assignmentId, assignmentTitle) {
+        if (!assignmentId || assignmentId === "undefined") {
+          showToast(
+            "error",
+            "Error",
+            "Invalid assignment ID. Cannot delete this assignment.",
+            5000
+          );
+          return;
+        }
+
+        currentAssignmentToDelete = assignmentId;
+        deleteConfirmationMessage.textContent = `Are you sure you want to delete the assignment "${assignmentTitle}"? This action cannot be undone.`;
+        deleteConfirmationModal.style.display = "block";
+      }
+
+      // Load all courses for filtering
+      async function loadAllCourses() {
+        try {
+          console.log("📚 Loading all courses...");
+          const coursesData = await fetchData("/courses");
+          if (coursesData) {
+            allCourses = coursesData;
+            console.log(`✅ Loaded ${allCourses.length} courses:`, allCourses);
+
+            // Create a mapping of course IDs to course titles for easy lookup
+            courseIdToTitleMap = {};
+            allCourses.forEach((course) => {
+              const courseId = course._id || course.id;
+              const courseTitle =
+                course.title || course.name || "Untitled Course";
+              courseIdToTitleMap[courseId] = courseTitle;
+            });
+
+            console.log("📋 Course ID to Title Map:", courseIdToTitleMap);
+
+            // Return success
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("❌ Error loading courses:", error);
+          showToast(
+            "warning",
+            "Courses Load Failed",
+            "Could not load courses data",
+            3000
+          );
+          return false;
+        }
+      }
+
+      // Filter courses by category for ADD modal
+      async function filterCoursesByCategory(category) {
+        try {
+          const courseSelect = document.getElementById("assignmentCourse");
+
+          // Show loading state
+          courseSelect.innerHTML =
+            '<option value="">Loading courses...</option>';
+          courseSelect.disabled = true;
+
+          if (!category) {
+            // If no category selected, show all courses
+            populateCourseDropdown(allCourses);
+            courseSelect.disabled = false;
+            return;
+          }
+
+          console.log(`🔍 Frontend: Filtering for category: ${category}`);
+
+          // Use the category in the API call
+          const coursesByCategory = await fetchData(
+            `/courses/by-category/${encodeURIComponent(category)}`
+          );
+
+          if (coursesByCategory && coursesByCategory.length > 0) {
+            console.log(
+              `✅ Found ${coursesByCategory.length} courses for category: ${category}`
+            );
+            populateCourseDropdown(coursesByCategory);
+          } else {
+            console.log(
+              `❌ No courses found via API for category: ${category}, falling back to client-side filtering`
+            );
+
+            // Enhanced fallback: filter from allCourses with multiple matching strategies
+            const filteredCourses = allCourses.filter((course) => {
+              const courseCategory = course.category
+                ? course.category.toLowerCase()
+                : "";
+              const targetCategory = category.toLowerCase();
+
+              // Multiple matching strategies
+              return (
+                courseCategory === targetCategory ||
+                courseCategory.replace(/\s+/g, "") ===
+                  targetCategory.replace(/\s+/g, "") ||
+                courseCategory.includes(targetCategory) ||
+                targetCategory.includes(courseCategory)
+              );
+            });
+
+            if (filteredCourses.length > 0) {
+              console.log(
+                `✅ Found ${filteredCourses.length} courses via enhanced client-side filtering`
+              );
+              populateCourseDropdown(filteredCourses);
+            } else {
+              console.log(`❌ No courses found for category: ${category}`);
+              courseSelect.innerHTML =
+                '<option value="">No courses available for this category</option>';
+            }
+          }
+
+          courseSelect.disabled = false;
+        } catch (error) {
+          console.error("❌ Error filtering courses:", error);
+
+          const courseSelect = document.getElementById("assignmentCourse");
+
+          // Enhanced fallback to client-side filtering on error
+          const filteredCourses = allCourses.filter((course) => {
+            const courseCategory = course.category
+              ? course.category.toLowerCase()
+              : "";
+            const targetCategory = category.toLowerCase();
+
+            return (
+              courseCategory === targetCategory ||
+              courseCategory.replace(/\s+/g, "") ===
+                targetCategory.replace(/\s+/g, "") ||
+              courseCategory.includes(targetCategory) ||
+              targetCategory.includes(courseCategory)
+            );
+          });
+
+          if (filteredCourses.length > 0) {
+            console.log(
+              `✅ Fallback: Found ${filteredCourses.length} courses via enhanced client-side filtering`
+            );
+            populateCourseDropdown(filteredCourses);
+          } else {
+            courseSelect.innerHTML =
+              '<option value="">No courses available for this category</option>';
+          }
+
+          courseSelect.disabled = false;
+
+          showToast(
+            "warning",
+            "Courses Filter",
+            "Using cached courses data",
+            3000
+          );
+        }
+      }
+
+      // Filter courses by category for EDIT modal
+      async function filterEditCoursesByCategory(category) {
+        try {
+          const courseSelect = document.getElementById("editAssignmentCourse");
+
+          // Show loading state
+          courseSelect.innerHTML =
+            '<option value="">Loading courses...</option>';
+          courseSelect.disabled = true;
+
+          if (!category) {
+            populateEditCourseDropdown(allCourses);
+            courseSelect.disabled = false;
+            return;
+          }
+
+          console.log(
+            `🔍 Frontend: Filtering EDIT courses for category: ${category}`
+          );
+
+          const coursesByCategory = await fetchData(
+            `/courses/by-category/${encodeURIComponent(category)}`
+          );
+
+          if (coursesByCategory && coursesByCategory.length > 0) {
+            console.log(
+              `✅ Found ${coursesByCategory.length} courses for edit category: ${category}`
+            );
+            populateEditCourseDropdown(coursesByCategory);
+          } else {
+            // Enhanced fallback to client-side filtering
+            const filteredCourses = allCourses.filter((course) => {
+              const courseCategory = course.category
+                ? course.category.toLowerCase()
+                : "";
+              const targetCategory = category.toLowerCase();
+
+              return (
+                courseCategory === targetCategory ||
+                courseCategory.replace(/\s+/g, "") ===
+                  targetCategory.replace(/\s+/g, "") ||
+                courseCategory.includes(targetCategory) ||
+                targetCategory.includes(courseCategory)
+              );
+            });
+            populateEditCourseDropdown(filteredCourses);
+          }
+
+          courseSelect.disabled = false;
+        } catch (error) {
+          console.error("❌ Error filtering edit courses:", error);
+
+          // Enhanced fallback to client-side filtering
+          const filteredCourses = allCourses.filter((course) => {
+            const courseCategory = course.category
+              ? course.category.toLowerCase()
+              : "";
+            const targetCategory = category.toLowerCase();
+
+            return (
+              courseCategory === targetCategory ||
+              courseCategory.replace(/\s+/g, "") ===
+                targetCategory.replace(/\s+/g, "") ||
+              courseCategory.includes(targetCategory) ||
+              targetCategory.includes(courseCategory)
+            );
+          });
+          populateEditCourseDropdown(filteredCourses);
+        }
+      }
+
+      // Populate course dropdown for ADD modal
+      function populateCourseDropdown(courses) {
+        const courseSelect = document.getElementById("assignmentCourse");
+
+        if (!courses || courses.length === 0) {
+          courseSelect.innerHTML =
+            '<option value="">No courses available for this category</option>';
+          return;
+        }
+
+        let options = '<option value="">Select a course</option>';
+
+        courses.forEach((course) => {
+          const courseId = course._id || course.id;
+          const courseTitle = course.title || course.name || "Untitled Course";
+          options += `<option value="${courseId}">${courseTitle}</option>`;
+        });
+
+        courseSelect.innerHTML = options;
+
+        // Log for debugging
+        console.log(`📚 Populated ADD dropdown with ${courses.length} courses`);
+      }
+
+      // Populate course dropdown for EDIT modal
+      function populateEditCourseDropdown(courses) {
+        const courseSelect = document.getElementById("editAssignmentCourse");
+
+        if (!courses || courses.length === 0) {
+          courseSelect.innerHTML =
+            '<option value="">No courses available for this category</option>';
+          return;
+        }
+
+        let options = '<option value="">Select a course</option>';
+
+        courses.forEach((course) => {
+          const courseId = course._id || course.id;
+          const courseTitle = course.title || course.name || "Untitled Course";
+          options += `<option value="${courseId}">${courseTitle}</option>`;
+        });
+
+        courseSelect.innerHTML = options;
+
+        console.log(
+          `📚 Populated EDIT dropdown with ${courses.length} courses`
+        );
+      }
+
+      // Load assignments from API - UPDATED with submission counts
+      async function loadAssignments() {
+        try {
+          showLoadingState();
+
+          console.log(
+            "📚 Fetching assignments from:",
+            `${API_BASE_URL}/assignments`
+          );
+
+          // Wait for courses to load first
+          if (Object.keys(courseIdToTitleMap).length === 0) {
+            console.log("📚 Courses not loaded yet, loading courses first...");
+            await loadAllCourses();
+          }
+
+          const assignmentsData = await fetchData("/assignments");
+
+          if (!assignmentsData) {
+            console.log("❌ API fetch failed, showing empty state");
+            showEmptyState();
+            showToast(
+              "error",
+              "Load Failed",
+              "Could not load assignments data",
+              5000
+            );
+            return;
+          }
+
+          // NEW: Load submission counts for each assignment
+          console.log("📊 Loading submission counts for assignments...");
+          allAssignments = await loadSubmissionCounts(assignmentsData);
+
+          console.log(
+            `✅ Loaded ${allAssignments.length} assignments with submission counts`
+          );
+          renderAssignments();
+        } catch (error) {
+          console.error("❌ Error loading assignments:", error);
+          showEmptyState();
+          showToast(
+            "error",
+            "Load Error",
+            "Failed to load assignments. Please try again.",
+            5000
+          );
+        }
+      }
+
+      // Render assignments to the table
+      function renderAssignments() {
+        if (!allAssignments || allAssignments.length === 0) {
+          showEmptyState();
+          return;
+        }
+
+        assignmentsTableBody.innerHTML = "";
+
+        allAssignments.forEach((assignment) => {
+          const row = document.createElement("tr");
+
+          // Format date and time
+          let formattedDate = "Invalid Date";
+          let formattedTime = "N/A";
+
+          try {
+            if (assignment.due_date) {
+              const dueDate = new Date(assignment.due_date);
+
+              if (!isNaN(dueDate.getTime())) {
+                formattedDate = dueDate.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+
+                formattedTime = dueDate.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Error parsing date/time:", error);
+          }
+
+          // Get course title with improved lookup
+          let courseTitle = "Course not found";
+
+          // Try multiple ways to get the course title with retry logic
+          if (assignment.course_title) {
+            courseTitle = assignment.course_title;
+          } else if (assignment.course_name) {
+            courseTitle = assignment.course_name;
+          } else if (
+            assignment.course &&
+            typeof assignment.course === "object" &&
+            assignment.course.title
+          ) {
+            courseTitle = assignment.course.title;
+          } else if (
+            assignment.course &&
+            typeof assignment.course === "object" &&
+            assignment.course.name
+          ) {
+            courseTitle = assignment.course.name;
+          } else if (
+            assignment.course_id &&
+            courseIdToTitleMap[assignment.course_id]
+          ) {
+            courseTitle = courseIdToTitleMap[assignment.course_id];
+          } else if (
+            assignment.courseId &&
+            courseIdToTitleMap[assignment.courseId]
+          ) {
+            courseTitle = courseIdToTitleMap[assignment.courseId];
+          } else if (
+            assignment.course &&
+            typeof assignment.course === "string" &&
+            courseIdToTitleMap[assignment.course]
+          ) {
+            courseTitle = courseIdToTitleMap[assignment.course];
+          } else {
+            // If course title still not found, show a generic message
+            console.log(
+              `Course title not found for assignment: ${
+                assignment.title
+              }, course ID: ${
+                assignment.course_id || assignment.courseId || assignment.course
+              }`
+            );
+            courseTitle = "Loading course...";
+          }
+
+          // Get category from course
+          const course = allCourses.find(
+            (c) =>
+              c.id === assignment.course_id || c._id === assignment.course_id
+          );
+          const category = course ? course.category : "Unknown";
+          const categoryClass = getCategoryClass(category);
+
+          row.innerHTML = `
+    <td>
+      <div class="assignment-title">${assignment.title}</div>
+      <div class="assignment-meta">${courseTitle}</div>
+    </td>
+    <td>
+      <span class="assignment-category ${categoryClass}">${category}</span>
+    </td>
+    <td>
+      <div class="assignment-due-date">
+        <i class="far fa-calendar-alt"></i> ${formattedDate}
+      </div>
+      <div class="assignment-meta">${formattedTime}</div>
+    </td>
+    <td>
+      <div class="submission-count">${assignment.submissionCount}</div>
+    </td>
+    <td>
+      <div class="assignment-actions">
+        <button
+          class="action-btn btn-edit"
+          data-id="${assignment._id || assignment.id}"
+          data-title="${assignment.title}"
+          data-course="${courseTitle}"
+          data-category="${category}"
+          data-due-date="${assignment.due_date}"
+          data-max-score="${assignment.max_score || 0}"
+          data-description="${assignment.description || ""}"
+        >
+          <i class="fas fa-edit"></i>
+        </button>
+        <button
+          class="action-btn btn-delete"
+          data-id="${assignment._id || assignment.id}"
+          data-title="${assignment.title}"
+          type="button"
+        >
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </td>
+  `;
+
+          assignmentsTableBody.appendChild(row);
+        });
+
+        // Update assignments count
+        assignmentsCount.textContent = `Showing ${allAssignments.length} of ${allAssignments.length} assignments`;
+
+        // Show the table
+        hideLoadingState();
+        assignmentsTable.style.display = "table";
+        emptyState.style.display = "none";
+
+        // Re-attach event listeners to the new buttons
+        attachEditButtonListeners();
+        attachDeleteButtonListeners();
+
+        // Check for missing course titles and refresh if needed
+        setTimeout(() => {
+          refreshCourseTitles();
+        }, 1000);
+      }
+
+      // Function to refresh course titles for assignments that show "Course not found"
+      async function refreshCourseTitles() {
+        const courseNotFoundAssignments = allAssignments.filter(
+          (assignment) => {
+            const courseId =
+              assignment.course_id || assignment.courseId || assignment.course;
+            return !courseIdToTitleMap[courseId];
+          }
+        );
+
+        if (courseNotFoundAssignments.length > 0) {
+          console.log(
+            `🔄 Refreshing course titles for ${courseNotFoundAssignments.length} assignments`
+          );
+          await loadAllCourses();
+          renderAssignments();
+        }
+      }
+
+      // Helper functions
+      function formatCategory(category) {
+        const categoryMap = {
+          design: "Design",
+          development: "Development",
+          blockchain: "Blockchain",
+          cybersecurity: "Cyber Security",
+          "Cyber Security": "Cyber Security",
+        };
+
+        return categoryMap[category] || category;
+      }
+
+      function getCategoryClass(category) {
+        const classMap = {
+          design: "bg-design",
+          development: "bg-development",
+          blockchain: "bg-blockchain",
+          cybersecurity: "bg-cybersecurity",
+          "Cyber Security": "bg-cybersecurity",
+        };
+
+        return classMap[category] || "bg-design";
+      }
+
+      // UI State Management
+      function showLoadingState() {
+        loadingState.style.display = "flex";
+        assignmentsTable.style.display = "none";
+        emptyState.style.display = "none";
+        assignmentsCount.textContent = "Loading assignments...";
+      }
+
+      function hideLoadingState() {
+        loadingState.style.display = "none";
+      }
+
+      function showEmptyState() {
+        loadingState.style.display = "none";
+        assignmentsTable.style.display = "none";
+        emptyState.style.display = "flex";
+        assignmentsCount.textContent = "No assignments found";
+      }
+
+      // Event Listeners Setup
+      function setupEventListeners() {
+        console.log("🔧 Setting up event listeners...");
+
+        // Category change listener for add modal
+        if (assignmentCategory) {
+          assignmentCategory.addEventListener("change", function () {
+            const selectedCategory = this.value;
+            console.log(
+              `🎯 Add modal category changed to: ${selectedCategory}`
+            );
+            filterCoursesByCategory(selectedCategory);
+            assignmentCourse.value = ""; // Reset course selection
+          });
+        }
+
+        // Category change listener for edit modal
+        if (editAssignmentCategory) {
+          editAssignmentCategory.addEventListener("change", function () {
+            const selectedCategory = this.value;
+            console.log(
+              `🎯 Edit modal category changed to: ${selectedCategory}`
+            );
+            filterEditCoursesByCategory(selectedCategory);
+            editAssignmentCourse.value = ""; // Reset course selection
+          });
+        }
+
+        // Modal functionality
+        if (openModalBtn) {
+          openModalBtn.addEventListener("click", function () {
+            console.log("📝 Open modal button clicked");
+            modal.style.display = "flex";
+            populateCourseDropdown(allCourses);
+          });
+        }
+
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener("click", function () {
+            modal.style.display = "none";
+          });
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", function () {
+            modal.style.display = "none";
+          });
+        }
+
+        if (closeEditModalBtn) {
+          closeEditModalBtn.addEventListener("click", function () {
+            editModal.style.display = "none";
+          });
+        }
+
+        if (cancelEditBtn) {
+          cancelEditBtn.addEventListener("click", function () {
+            editModal.style.display = "none";
+          });
+        }
+
+        // Form submissions
+        if (assignmentForm) {
+          console.log("✅ Assignment form found, attaching submit handler");
+          assignmentForm.addEventListener("submit", handleAddAssignment);
+        }
+
+        if (editAssignmentForm) {
+          editAssignmentForm.addEventListener("submit", handleEditAssignment);
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener("click", function (e) {
+          if (e.target === modal) modal.style.display = "none";
+          if (e.target === editModal) editModal.style.display = "none";
+          if (e.target === deleteConfirmationModal) {
+            deleteConfirmationModal.style.display = "none";
+            currentAssignmentToDelete = null;
+          }
+        });
+
+        // Add active class to clicked sidebar items
+        const sidebarItems = document.querySelectorAll(".sidebar-menu a");
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            // Close sidebar on mobile after clicking a link
+            if (window.innerWidth <= 992) {
+              toggleSidebar();
+            }
+          });
+        });
+
+        // Filter functionality
+        const categoryFilter = document.getElementById("categoryFilter");
+        const courseFilter = document.getElementById("courseFilter");
+        [categoryFilter, courseFilter].forEach((filter) => {
+          filter.addEventListener("change", applyFilters);
+        });
+
+        console.log("✅ Event listeners setup completed");
+      }
+
+      function attachEditButtonListeners() {
+        document.querySelectorAll(".btn-edit").forEach((button) => {
+          button.addEventListener("click", function () {
+            const assignmentId = this.getAttribute("data-id");
+            const assignmentTitle = this.getAttribute("data-title");
+            const assignmentCourseTitle = this.getAttribute("data-course");
+            const assignmentCategory = this.getAttribute("data-category");
+            const assignmentDueDate = this.getAttribute("data-due-date");
+            const assignmentMaxScore = this.getAttribute("data-max-score");
+            const assignmentDescription = this.getAttribute("data-description");
+
+            // Set the form values
+            document.getElementById("editAssignmentId").value = assignmentId;
+            document.getElementById("editAssignmentTitle").value =
+              assignmentTitle;
+            document.getElementById("editAssignmentCategory").value =
+              assignmentCategory;
+            document.getElementById("editAssignmentDescription").value =
+              assignmentDescription;
+            document.getElementById("editAssignmentMaxScore").value =
+              assignmentMaxScore;
+
+            // Format datetime for the input field
+            if (assignmentDueDate) {
+              const dueDate = new Date(assignmentDueDate);
+              document.getElementById("editAssignmentDueDate").value = dueDate
+                .toISOString()
+                .slice(0, 16);
+            }
+
+            // Populate course dropdown for edit form with the current category
+            filterEditCoursesByCategory(assignmentCategory);
+
+            // Set the course selection
+            const assignment = allAssignments.find(
+              (a) => a.id === assignmentId || a._id === assignmentId
+            );
+            if (assignment) {
+              // Set the course after a small delay to ensure dropdown is populated
+              setTimeout(() => {
+                document.getElementById("editAssignmentCourse").value =
+                  assignment.course_id || "";
+              }, 500);
+            }
+
+            // Store the current assignment ID
+            currentEditAssignmentId = assignmentId;
+
+            // Show the modal
+            editModal.style.display = "flex";
+          });
+        });
+      }
+
+      function attachDeleteButtonListeners() {
+        const deleteButtons = document.querySelectorAll(".btn-delete");
+        console.log(
+          `🔧 Attaching delete listeners to ${deleteButtons.length} buttons`
+        );
+
+        deleteButtons.forEach((button) => {
+          // Remove any existing listeners to prevent duplicates
+          button.replaceWith(button.cloneNode(true));
+        });
+
+        // Re-select the buttons after cloning
+        document.querySelectorAll(".btn-delete").forEach((button) => {
+          button.addEventListener("click", function (e) {
+            e.stopPropagation(); // Prevent event bubbling
+
+            const assignmentId = this.getAttribute("data-id");
+            const assignmentTitle = this.getAttribute("data-title");
+
+            console.log(
+              `🗑️ Delete button clicked for assignment: ${assignmentTitle} (ID: ${assignmentId})`
+            );
+
+            if (!assignmentId || !assignmentTitle) {
+              console.error("❌ Missing assignment ID or title for deletion");
+              showToast(
+                "error",
+                "Error",
+                "Cannot delete assignment: missing information",
+                3000
+              );
+              return;
+            }
+
+            // Use the working delete confirmation function
+            openDeleteConfirmation(assignmentId, assignmentTitle);
+          });
+        });
+      }
+
+      // Handle Add Assignment function
+      async function handleAddAssignment(e) {
+        e.preventDefault();
+        console.log(
+          "📝 Add assignment form submitted - handleAddAssignment called"
+        );
+
+        try {
+          // Get form values
+          const assignmentTitle = document
+            .getElementById("assignmentTitle")
+            .value.trim();
+          const assignmentCategory =
+            document.getElementById("assignmentCategory").value;
+          const assignmentCourse =
+            document.getElementById("assignmentCourse").value;
+          const assignmentDueDate =
+            document.getElementById("assignmentDueDate").value;
+          const assignmentMaxScore = parseInt(
+            document.getElementById("assignmentMaxScore").value
+          );
+          const assignmentDescription = document
+            .getElementById("assignmentDescription")
+            .value.trim();
+
+          console.log("📋 All form values:", {
+            assignmentTitle,
+            assignmentCategory,
+            assignmentCourse,
+            assignmentDueDate,
+            assignmentMaxScore,
+            assignmentDescription,
+          });
+
+          // Validate required fields
+          if (
+            !assignmentTitle ||
+            !assignmentCategory ||
+            !assignmentCourse ||
+            !assignmentDueDate ||
+            !assignmentMaxScore ||
+            !assignmentDescription
+          ) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please fill in all required fields",
+              3000
+            );
+            return;
+          }
+
+          // Validate max score
+          if (isNaN(assignmentMaxScore) || assignmentMaxScore <= 0) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please enter a valid max score (positive number)",
+              3000
+            );
+            return;
+          }
+
+          // Show loading state
+          const submitButton = document.querySelector(
+            "#assignmentForm button[type='submit']"
+          );
+          const originalText = submitButton.innerHTML;
+          submitButton.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Creating...';
+          submitButton.disabled = true;
+
+          // Prepare the data for API
+          const assignmentData = {
+            title: assignmentTitle,
+            description: assignmentDescription,
+            course_id: assignmentCourse,
+            due_date: new Date(assignmentDueDate).toISOString(),
+            max_score: assignmentMaxScore,
+          };
+
+          console.log("📤 Sending assignment data:", assignmentData);
+
+          // Send the request
+          const response = await postData("/assignments", assignmentData);
+
+          if (!response) {
+            throw new Error("No response from server");
+          }
+
+          // Success
+          showToast(
+            "success",
+            "Success",
+            "Assignment created successfully!",
+            3000
+          );
+
+          // Close modal and reset
+          modal.style.display = "none";
+          assignmentForm.reset();
+
+          // Reload assignments
+          await loadAssignments();
+        } catch (error) {
+          console.error("❌ Error creating assignment:", error);
+          showToast(
+            "error",
+            "Creation Failed",
+            error.message ||
+              "Failed to create assignment. Please check the console for details.",
+            5000
+          );
+        } finally {
+          // Reset submit button
+          const submitButton = document.querySelector(
+            "#assignmentForm button[type='submit']"
+          );
+          if (submitButton) {
+            submitButton.innerHTML = "Create Assignment";
+            submitButton.disabled = false;
+          }
+        }
+      }
+
+      // Handle Edit Assignment function
+      async function handleEditAssignment(e) {
+        e.preventDefault();
+
+        if (!currentEditAssignmentId) {
+          showToast(
+            "error",
+            "Error",
+            "No assignment selected for editing",
+            3000
+          );
+          return;
+        }
+
+        try {
+          // Show loading state
+          const submitButton = document.querySelector(
+            "#editAssignmentForm button[type='submit']"
+          );
+          const originalText = submitButton.innerHTML;
+          submitButton.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Updating...';
+          submitButton.disabled = true;
+
+          // Get form data
+          const assignmentTitle = document
+            .getElementById("editAssignmentTitle")
+            .value.trim();
+          const assignmentCategory = document.getElementById(
+            "editAssignmentCategory"
+          ).value;
+          const assignmentCourse = document.getElementById(
+            "editAssignmentCourse"
+          ).value;
+          const assignmentDueDate = document.getElementById(
+            "editAssignmentDueDate"
+          ).value;
+          const assignmentMaxScore = parseInt(
+            document.getElementById("editAssignmentMaxScore").value
+          );
+          const assignmentDescription = document
+            .getElementById("editAssignmentDescription")
+            .value.trim();
+
+          console.log("📋 Edit form values:", {
+            assignmentTitle,
+            assignmentCategory,
+            assignmentCourse,
+            assignmentDueDate,
+            assignmentMaxScore,
+            assignmentDescription,
+          });
+
+          // Validate required fields
+          if (
+            !assignmentTitle ||
+            !assignmentCategory ||
+            !assignmentCourse ||
+            !assignmentDueDate ||
+            !assignmentMaxScore ||
+            !assignmentDescription
+          ) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please fill in all required fields",
+              3000
+            );
+            return;
+          }
+
+          // Validate max score
+          if (isNaN(assignmentMaxScore) || assignmentMaxScore <= 0) {
+            showToast(
+              "warning",
+              "Validation Error",
+              "Please enter a valid max score (positive number)",
+              3000
+            );
+            return;
+          }
+
+          // Prepare update data
+          const updateDataPayload = {
+            title: assignmentTitle,
+            description: assignmentDescription,
+            course_id: assignmentCourse,
+            due_date: new Date(assignmentDueDate).toISOString(),
+            max_score: assignmentMaxScore,
+          };
+
+          console.log("📤 Updating assignment with data:", updateDataPayload);
+
+          // Send update request
+          const response = await updateData(
+            `/assignments/${currentEditAssignmentId}`,
+            updateDataPayload
+          );
+
+          if (!response) {
+            throw new Error("Failed to update assignment");
+          }
+
+          showToast(
+            "success",
+            "Success",
+            "Assignment updated successfully!",
+            3000
+          );
+          editModal.style.display = "none";
+
+          // Reload assignments
+          await loadAssignments();
+        } catch (error) {
+          console.error("❌ Error updating assignment:", error);
+          showToast(
+            "error",
+            "Update Failed",
+            error.message || "Failed to update assignment. Please try again.",
+            5000
+          );
+        } finally {
+          // Reset submit button
+          const submitButton = document.querySelector(
+            "#editAssignmentForm button[type='submit']"
+          );
+          submitButton.innerHTML = "Update Assignment";
+          submitButton.disabled = false;
+        }
+      }
+
+      // Fix the handleDeleteAssignment function
+      async function handleDeleteAssignment(assignmentId) {
+        console.log(
+          "🗑️ handleDeleteAssignment called for assignment:",
+          assignmentId
+        );
+
+        if (!assignmentId) {
+          console.error("❌ No assignment selected for deletion");
+          showToast(
+            "error",
+            "Error",
+            "No assignment selected for deletion",
+            3000
+          );
+          return;
+        }
+
+        try {
+          // Show loading state
+          const deleteButton = document.getElementById("confirmDeleteYes");
+          if (deleteButton) {
+            const originalText = deleteButton.innerHTML;
+            deleteButton.innerHTML =
+              '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            deleteButton.disabled = true;
+          }
+
+          // Send delete request
+          console.log(
+            `🌐 Sending DELETE request for assignment: ${assignmentId}`
+          );
+          const response = await deleteData(`/assignments/${assignmentId}`);
+
+          if (!response) {
+            throw new Error(
+              "Failed to delete assignment - no response from server"
+            );
+          }
+
+          console.log("✅ Assignment deleted successfully");
+          showToast(
+            "success",
+            "Success",
+            "Assignment deleted successfully!",
+            3000
+          );
+
+          // Close modal
+          deleteConfirmationModal.style.display = "none";
+          currentAssignmentToDelete = null;
+
+          // Reload assignments
+          await loadAssignments();
+
+          console.log(`✅ Deletion completed for assignment: ${assignmentId}`);
+        } catch (error) {
+          console.error("❌ Error deleting assignment:", error);
+          showToast(
+            "error",
+            "Deletion Failed",
+            error.message || "Failed to delete assignment. Please try again.",
+            5000
+          );
+        } finally {
+          // Reset delete button
+          const deleteButton = document.getElementById("confirmDeleteYes");
+          if (deleteButton) {
+            deleteButton.innerHTML = "Yes, Delete";
+            deleteButton.disabled = false;
+          }
+        }
+      }
+
+      // Apply filters to assignments
+      function applyFilters() {
+        const categoryFilter = document.getElementById("categoryFilter").value;
+        const courseFilter = document.getElementById("courseFilter").value;
+
+        const filteredAssignments = allAssignments.filter((assignment) => {
+          // Category filter - use actual course category
+          if (categoryFilter) {
+            const course = allCourses.find(
+              (c) =>
+                c.id === assignment.course_id || c._id === assignment.course_id
+            );
+            const assignmentCategory = course ? course.category : "";
+            if (assignmentCategory !== categoryFilter) {
+              return false;
+            }
+          }
+
+          // Course filter
+          if (courseFilter && assignment.course_id !== courseFilter) {
+            return false;
+          }
+
+          return true;
+        });
+
+        renderFilteredAssignments(filteredAssignments);
+        document.getElementById(
+          "assignmentsCount"
+        ).textContent = `Showing ${filteredAssignments.length} of ${allAssignments.length} assignments`;
+      }
+
+      // Render filtered assignments
+      function renderFilteredAssignments(assignments) {
+        assignmentsTableBody.innerHTML = "";
+
+        if (assignments.length === 0) {
+          showEmptyState();
+          return;
+        }
+
+        assignments.forEach((assignment) => {
+          const row = document.createElement("tr");
+
+          // Format date and time
+          let formattedDate = "Invalid Date";
+          let formattedTime = "N/A";
+
+          try {
+            if (assignment.due_date) {
+              const dueDate = new Date(assignment.due_date);
+
+              if (!isNaN(dueDate.getTime())) {
+                formattedDate = dueDate.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+
+                formattedTime = dueDate.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Error parsing date/time:", error);
+          }
+
+          // Get course title
+          const courseTitle = getCourseName(assignment.course_id);
+
+          // Get category from course
+          const course = allCourses.find(
+            (c) =>
+              c.id === assignment.course_id || c._id === assignment.course_id
+          );
+          const category = course ? course.category : "Unknown";
+          const categoryClass = getCategoryClass(category);
+
+          row.innerHTML = `
+    <td>
+      <div class="assignment-title">${assignment.title}</div>
+      <div class="assignment-meta">${courseTitle}</div>
+    </td>
+    <td>
+      <span class="assignment-category ${categoryClass}">${category}</span>
+    </td>
+    <td>
+      <div class="assignment-due-date">
+        <i class="far fa-calendar-alt"></i> ${formattedDate}
+      </div>
+      <div class="assignment-meta">${formattedTime}</div>
+    </td>
+    <td>
+      <div class="submission-count">${assignment.submissionCount}</div>
+    </td>
+    <td>
+      <div class="assignment-actions">
+        <button
+          class="action-btn btn-edit"
+          data-id="${assignment._id || assignment.id}"
+          data-title="${assignment.title}"
+          data-course="${courseTitle}"
+          data-category="${category}"
+          data-due-date="${assignment.due_date}"
+          data-max-score="${assignment.max_score || 0}"
+          data-description="${assignment.description || ""}"
+        >
+          <i class="fas fa-edit"></i>
+        </button>
+        <button
+          class="action-btn btn-delete"
+          data-id="${assignment._id || assignment.id}"
+          data-title="${assignment.title}"
+          type="button"
+        >
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </td>
+  `;
+
+          assignmentsTableBody.appendChild(row);
+        });
+
+        // Re-attach event listeners to the new buttons
+        attachEditButtonListeners();
+        attachDeleteButtonListeners();
+
+        // Show the table
+        assignmentsTable.style.display = "table";
+        emptyState.style.display = "none";
+      }
+
+      // Helper function to get course name
+      function getCourseName(courseId) {
+        if (!courseId) return "—";
+        const course = allCourses.find(
+          (c) => c.id === courseId || c._id === courseId
+        );
+        return course ? course.title : "Unknown Course";
+      }
+
+      // Helper function to get auth headers
+      function getAuthHeaders() {
+        const token = localStorage.getItem("access_token");
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        return headers;
+      }
+
+      // Function to fetch data from API with enhanced logging
+      async function fetchData(endpoint) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log(`🌐 API CALL: GET ${API_BASE_URL}${endpoint}`);
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "GET",
+            headers: headers,
+          });
+
+          console.log(
+            `📡 API RESPONSE: ${response.status} ${response.statusText}`
+          );
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ API ERROR: ${response.status} - ${errorText}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log(`📦 API DATA RECEIVED:`, data);
+          return data;
+        } catch (error) {
+          console.error("❌ Network Error:", error);
+          showToast(
+            "error",
+            "Network Error",
+            "Failed to fetch data from server",
+            5000
+          );
+          return null;
+        }
+      }
+
+      // Function to post data to API
+      async function postData(endpoint, data) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log("🌐 POST API CALL:", `${API_BASE_URL}${endpoint}`);
+          console.log("📤 POST Data:", JSON.stringify(data, null, 2));
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(data),
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          const responseData = await response.json().catch(() => null);
+
+          if (!response.ok) {
+            console.error("❌ Server response error:", {
+              status: response.status,
+              statusText: response.statusText,
+              responseData: responseData,
+            });
+
+            const errorMessage =
+              responseData?.detail ||
+              responseData?.message ||
+              (responseData && JSON.stringify(responseData)) ||
+              `HTTP error! status: ${response.status}`;
+            throw new Error(errorMessage);
+          }
+
+          console.log("✅ POST response:", responseData);
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error posting data:", error);
+          throw error;
+        }
+      }
+
+      // Function to update data via API
+      async function updateData(endpoint, data) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log(
+            "🔄 UPDATE API CALL:",
+            `${API_BASE_URL}${endpoint}`,
+            data
+          );
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "PUT",
+            headers: headers,
+            body: JSON.stringify(data),
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+              const errorData = await response.json();
+              console.error("❌ Server validation error:", errorData);
+
+              if (errorData.detail) {
+                if (typeof errorData.detail === "string") {
+                  errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                  errorMessage = errorData.detail
+                    .map(
+                      (err) =>
+                        `${err.loc ? err.loc.join(".") + ": " : ""}${err.msg}`
+                    )
+                    .join(", ");
+                } else if (typeof errorData.detail === "object") {
+                  errorMessage = JSON.stringify(errorData.detail);
+                }
+              } else if (errorData.message) {
+                errorMessage = errorData.message;
+              }
+            } catch (parseError) {
+              console.error("Error parsing error response:", parseError);
+            }
+            throw new Error(errorMessage);
+          }
+
+          const responseData = await response.json();
+          console.log("✅ UPDATE response:", responseData);
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error updating data:", error);
+          throw error;
+        }
+      }
+
+      // Function to delete data via API
+      async function deleteData(endpoint) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log("🗑️ DELETE API CALL:", `${API_BASE_URL}${endpoint}`);
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "DELETE",
+            headers: headers,
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+              const errorData = await response.json();
+              console.error("❌ Server deletion error:", errorData);
+              errorMessage =
+                errorData?.detail || errorData?.message || errorMessage;
+            } catch (parseError) {
+              console.error("Error parsing error response:", parseError);
+            }
+            throw new Error(errorMessage);
+          }
+
+          // Some APIs return 204 No Content, so we need to handle that
+          let responseData = {};
+          try {
+            responseData = await response.json();
+            console.log("✅ DELETE response:", responseData);
+          } catch (e) {
+            console.log("✅ DELETE successful (no content returned)");
+            responseData = { success: true };
+          }
+
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error deleting data:", error);
+          throw error;
+        }
+      }
+
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🚀 Assignments page initializing...");
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Load current user info first
+        loadCurrentUserInfo();
+
+        // Check authentication first
+        if (!checkAuthentication()) {
+          return;
+        }
+
+        // Load courses first, then assignments
+        await loadAllCourses();
+        await loadAssignments();
+        setupEventListeners();
+
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+
+        // Setup delete confirmation
+        setupDeleteConfirmation();
+      });
+    </script>
+  </body>
+</html>
