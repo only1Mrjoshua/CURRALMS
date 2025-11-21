@@ -378,6 +378,8 @@ async def google_callback(
             "avatar_url": user.avatar_url,
             "is_active": user.is_active
         }
+
+        user_json = json.dumps(user_data_dict).replace("'", "\\'")
         
         # Custom messaging based on the actual action that occurred
         if action_type == "signup":
@@ -399,7 +401,7 @@ async def google_callback(
                 // Store authentication data
                 localStorage.setItem('access_token', '{jwt_token}');
                 localStorage.setItem('token_type', 'bearer');
-                localStorage.setItem('user', '{json.dumps(user_data_dict).replace("'", "\\'")}');
+                localStorage.setItem('user', '{user_json}');
                 
                 // Store custom success messaging
                 localStorage.setItem('auth_success_title', '{success_title}');
