@@ -1,7 +1,7 @@
 from datetime import date, time, datetime
 from typing import Optional
 from bson import ObjectId
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, validator, root_validator
 from enum import Enum
 
 class LocationType(str, Enum):
@@ -29,15 +29,20 @@ class LessonBase(BaseModel):
     status: LessonStatus = LessonStatus.UPCOMING
     is_active: bool = True
 
-    @model_validator(mode='after')
-    def validate_location_fields(self):
-        if self.location_type == LocationType.ZOOM and not self.zoom_link:
+    @root_validator
+    def validate_location_fields(cls, values):
+        location_type = values.get('location_type')
+        zoom_link = values.get('zoom_link')
+        google_meet_link = values.get('google_meet_link')
+        classroom_location = values.get('classroom_location')
+        
+        if location_type == LocationType.ZOOM and not zoom_link:
             raise ValueError("Zoom link is required for Zoom meetings")
-        if self.location_type == LocationType.GOOGLE_MEET and not self.google_meet_link:
+        if location_type == LocationType.GOOGLE_MEET and not google_meet_link:
             raise ValueError("Google Meet link is required for Google Meet sessions")
-        if self.location_type == LocationType.PHYSICAL_CLASSROOM and not self.classroom_location:
+        if location_type == LocationType.PHYSICAL_CLASSROOM and not classroom_location:
             raise ValueError("Classroom location is required for physical classrooms")
-        return self
+        return values
 
 class LessonCreate(LessonBase):
     pass
@@ -57,16 +62,21 @@ class LessonUpdate(BaseModel):
     status: Optional[LessonStatus] = None
     is_active: Optional[bool] = None
 
-    @model_validator(mode='after')
-    def validate_location_fields(self):
-        if self.location_type:
-            if self.location_type == LocationType.ZOOM and not self.zoom_link:
+    @root_validator
+    def validate_location_fields(cls, values):
+        location_type = values.get('location_type')
+        zoom_link = values.get('zoom_link')
+        google_meet_link = values.get('google_meet_link')
+        classroom_location = values.get('classroom_location')
+        
+        if location_type:
+            if location_type == LocationType.ZOOM and not zoom_link:
                 raise ValueError("Zoom link is required for Zoom meetings")
-            if self.location_type == LocationType.GOOGLE_MEET and not self.google_meet_link:
+            if location_type == LocationType.GOOGLE_MEET and not google_meet_link:
                 raise ValueError("Google Meet link is required for Google Meet sessions")
-            if self.location_type == LocationType.PHYSICAL_CLASSROOM and not self.classroom_location:
+            if location_type == LocationType.PHYSICAL_CLASSROOM and not classroom_location:
                 raise ValueError("Classroom location is required for physical classrooms")
-        return self
+        return values
 
 class LessonOut(LessonBase):
     id: str = Field(..., alias="_id")
@@ -74,12 +84,11 @@ class LessonOut(LessonBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+        allow_population_by_field_name = True
 
-# Add to your models/lesson.py
 class LessonWithCourseOut(LessonOut):
     course_title: Optional[str] = None
     course_name: Optional[str] = None
