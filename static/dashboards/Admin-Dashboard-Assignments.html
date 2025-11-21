@@ -1760,6 +1760,21 @@
           }
         });
 
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      const getApiBaseUrl = () => {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
+        }
+        // For production (Render), use relative path (same domain)
+        return "";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
       // Toast Notification System
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
@@ -1911,9 +1926,6 @@
         // If it's a name, use the first character
         return text.charAt(0).toUpperCase();
       }
-
-      // API Configuration
-      const API_BASE_URL = "http://localhost:8000";
 
       // Global variables
       let allAssignments = [];
