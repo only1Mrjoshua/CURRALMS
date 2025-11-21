@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduPortal - Professional Learning Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#6366f1",
+              secondary: "#4f46e5",
+              accent: "#8b5cf6",
+              success: "#10b981",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      /* CSS Variables for consistent theming - MATCHING DASHBOARD */
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors - MATCHING DASHBOARD */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        transition: background 0.3s ease, color 0.3s ease;
+      }
+
+      .feature-card {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+      }
+      .feature-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-5px);
+      }
+
+      .modern-input {
+        transition: all 0.3s ease;
+        border: 2px solid var(--border-color);
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+      }
+      .modern-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        outline: none;
+      }
+
+      /* Theme Toggle Button - Updated to match dashboard style */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main card styling */
+      .main-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        transition: background 0.3s ease;
+      }
+
+      /* Custom text color classes using CSS variables */
+      .text-primary-theme {
+        color: var(--text-primary);
+      }
+
+      .text-secondary-theme {
+        color: var(--text-secondary);
+      }
+
+      .text-muted-theme {
+        color: var(--text-muted);
+      }
+
+      /* Hero Section */
+      .hero-section {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        margin-top: 80px;
+      }
+
+      .hero-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      .hero-bg::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 500px;
+        height: 500px;
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .hero-bg::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 400px;
+        height: 400px;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      /* Navbar */
+      .navbar {
+        background: var(--navbar-bg);
+        backdrop-filter: blur(10px);
+        box-shadow: var(--card-shadow);
+        transition: background 0.3s ease;
+        position: fixed;
+        width: 100%;
+        z-index: 1000;
+        height: 70px;
+        display: flex;
+        align-items: center;
+      }
+
+      /* Stats Section */
+      .stat-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Testimonial Section */
+      .testimonial-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .testimonial-card:hover {
+        transform: translateY(-5px);
+      }
+
+      /* Footer */
+      .footer {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar fixed top-0 left-0 w-full z-40">
+      <div class="container mx-auto px-6 flex justify-between items-center">
+        <div class="flex items-center">
+          <div
+            class="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mr-3"
+          >
+            <i class="fas fa-graduation-cap text-white text-xl"></i>
+          </div>
+          <span class="text-xl font-bold text-primary-theme">EduPortal</span>
+        </div>
+
+        <div class="hidden md:flex space-x-8">
+          <a
+            href="#features"
+            class="text-secondary-theme hover:text-primary transition-colors"
+            >Features</a
+          >
+          <a
+            href="#courses"
+            class="text-secondary-theme hover:text-primary transition-colors"
+            >Courses</a
+          >
+          <a
+            href="#testimonials"
+            class="text-secondary-theme hover:text-primary transition-colors"
+            >Testimonials</a
+          >
+          <a
+            href="#pricing"
+            class="text-secondary-theme hover:text-primary transition-colors"
+            >Pricing</a
+          >
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <!-- Theme Toggle Button - Now in navbar like dashboard -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+
+          <a
+            href="signin.html"
+            class="text-secondary-theme hover:text-primary transition-colors"
+            >Sign In</a
+          >
+          <a
+            href="signup.html"
+            class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all"
+            >Get Started</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-bg"></div>
+      <div class="container mx-auto px-6 text-center">
+        <h1
+          class="text-5xl md:text-6xl font-bold mb-6 text-primary-theme leading-tight"
+        >
+          Transform Your Learning Experience
+        </h1>
+        <p class="text-xl text-muted-theme mb-10 max-w-2xl mx-auto">
+          Join thousands of students and educators using our powerful learning
+          management system to achieve academic excellence.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+          <a
+            href="signup.html"
+            class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
+          >
+            Start Learning Now
+          </a>
+          <a
+            href="#features"
+            class="bg-white text-indigo-600 px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 dark:bg-gray-800 dark:text-white"
+          >
+            Explore Features
+          </a>
+        </div>
+        <div class="relative max-w-4xl mx-auto">
+          <div class="main-card rounded-2xl shadow-2xl overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80"
+              alt="Students learning"
+              class="w-full h-64 object-cover"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section
+      class="py-16 bg-gradient-to-b from-transparent to-white/50 dark:to-gray-800/50"
+    >
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div class="stat-card rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-indigo-600 mb-2">10K+</div>
+            <div class="text-muted-theme">Active Students</div>
+          </div>
+          <div class="stat-card rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-purple-600 mb-2">500+</div>
+            <div class="text-muted-theme">Expert Instructors</div>
+          </div>
+          <div class="stat-card rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">1.2K+</div>
+            <div class="text-muted-theme">Online Courses</div>
+          </div>
+          <div class="stat-card rounded-xl p-6 text-center">
+            <div class="text-3xl font-bold text-blue-600 mb-2">98%</div>
+            <div class="text-muted-theme">Success Rate</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-primary-theme mb-4">
+            Why Choose EduPortal?
+          </h2>
+          <p class="text-xl text-muted-theme max-w-2xl mx-auto">
+            Our platform is designed to provide the best learning experience for
+            students and educators alike.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="feature-card rounded-2xl p-8">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-6"
+            >
+              <i class="fas fa-book-open text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-primary-theme mb-4">
+              Comprehensive Course Materials
+            </h3>
+            <p class="text-muted-theme">
+              Access a wide range of learning resources, from video lectures to
+              interactive assignments.
+            </p>
+          </div>
+
+          <div class="feature-card rounded-2xl p-8">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6"
+            >
+              <i class="fas fa-users text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-primary-theme mb-4">
+              Collaborative Learning
+            </h3>
+            <p class="text-muted-theme">
+              Connect with peers, join study groups, and collaborate on projects
+              in real-time.
+            </p>
+          </div>
+
+          <div class="feature-card rounded-2xl p-8">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6"
+            >
+              <i class="fas fa-chart-line text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-primary-theme mb-4">
+              Progress Tracking
+            </h3>
+            <p class="text-muted-theme">
+              Monitor your learning journey with detailed analytics and
+              performance insights.
+            </p>
+          </div>
+
+          <div class="feature-card rounded-2xl p-8">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6"
+            >
+              <i class="fas fa-mobile-alt text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-primary-theme mb-4">
+              Mobile Friendly
+            </h3>
+            <p class="text-muted-theme">
+              Learn on the go with our responsive design that works perfectly on
+              all devices.
+            </p>
+          </div>
+
+          <div class="feature-card rounded-2xl p-8">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-6"
+            >
+              <i class="fas fa-shield-alt text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-primary-theme mb-4">
+              Secure Platform
+            </h3>
+            <p class="text-muted-theme">
+              Your data is protected with enterprise-grade security and privacy
+              measures.
+            </p>
+          </div>
+
+          <div class="feature-card rounded-2xl p-8">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-6"
+            >
+              <i class="fas fa-headset text-white text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-primary-theme mb-4">
+              24/7 Support
+            </h3>
+            <p class="text-muted-theme">
+              Get help whenever you need it with our round-the-clock customer
+              support team.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Courses Section -->
+    <section
+      id="courses"
+      class="py-20 bg-gradient-to-b from-white/50 to-transparent dark:from-gray-800/50"
+    >
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-primary-theme mb-4">
+            Popular Course Categories
+          </h2>
+          <p class="text-xl text-muted-theme max-w-2xl mx-auto">
+            Explore our diverse range of courses designed to help you achieve
+            your learning goals.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            class="main-card rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl"
+          >
+            <div
+              class="h-48 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"
+            >
+              <i class="fas fa-palette text-white text-5xl"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-primary-theme mb-2">Design</h3>
+              <p class="text-muted-theme mb-4">
+                UI/UX, Graphic Design, Web Design
+              </p>
+              <a href="#" class="text-indigo-600 font-medium hover:underline"
+                >Explore Courses</a
+              >
+            </div>
+          </div>
+
+          <div
+            class="main-card rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl"
+          >
+            <div
+              class="h-48 bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center"
+            >
+              <i class="fas fa-code text-white text-5xl"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-primary-theme mb-2">
+                Development
+              </h3>
+              <p class="text-muted-theme mb-4">
+                Web, Mobile, Software Engineering
+              </p>
+              <a href="#" class="text-indigo-600 font-medium hover:underline"
+                >Explore Courses</a
+              >
+            </div>
+          </div>
+
+          <div
+            class="main-card rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl"
+          >
+            <div
+              class="h-48 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center"
+            >
+              <i class="fas fa-link text-white text-5xl"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-primary-theme mb-2">
+                Blockchain
+              </h3>
+              <p class="text-muted-theme mb-4">
+                Cryptocurrency, Smart Contracts, DApps
+              </p>
+              <a href="#" class="text-indigo-600 font-medium hover:underline"
+                >Explore Courses</a
+              >
+            </div>
+          </div>
+
+          <div
+            class="main-card rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl"
+          >
+            <div
+              class="h-48 bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center"
+            >
+              <i class="fas fa-shield-alt text-white text-5xl"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold text-primary-theme mb-2">
+                Cyber Security
+              </h3>
+              <p class="text-muted-theme mb-4">
+                Ethical Hacking, Network Security, Cryptography
+              </p>
+              <a href="#" class="text-indigo-600 font-medium hover:underline"
+                >Explore Courses</a
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-12">
+          <a
+            href="#"
+            class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+          >
+            View All Courses
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-20">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-primary-theme mb-4">
+            What Our Students Say
+          </h2>
+          <p class="text-xl text-muted-theme max-w-2xl mx-auto">
+            Hear from students who have transformed their learning journey with
+            EduPortal.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="testimonial-card rounded-2xl p-8">
+            <div class="flex items-center mb-6">
+              <div
+                class="w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-4"
+              >
+                JD
+              </div>
+              <div>
+                <h4 class="font-bold text-primary-theme">John Doe</h4>
+                <p class="text-muted-theme text-sm">Computer Science Student</p>
+              </div>
+            </div>
+            <p class="text-muted-theme mb-4">
+              "EduPortal has completely transformed how I learn. The interactive
+              courses and progress tracking have helped me stay motivated and
+              achieve my academic goals."
+            </p>
+            <div class="flex text-yellow-400">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+            </div>
+          </div>
+
+          <div class="testimonial-card rounded-2xl p-8">
+            <div class="flex items-center mb-6">
+              <div
+                class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold mr-4"
+              >
+                SJ
+              </div>
+              <div>
+                <h4 class="font-bold text-primary-theme">Sarah Johnson</h4>
+                <p class="text-muted-theme text-sm">Graphic Design Student</p>
+              </div>
+            </div>
+            <p class="text-muted-theme mb-4">
+              "The design courses on EduPortal are exceptional. The instructors
+              are industry professionals who provide practical knowledge that I
+              can apply immediately in my work."
+            </p>
+            <div class="flex text-yellow-400">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+            </div>
+          </div>
+
+          <div class="testimonial-card rounded-2xl p-8">
+            <div class="flex items-center mb-6">
+              <div
+                class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-4"
+              >
+                MR
+              </div>
+              <div>
+                <h4 class="font-bold text-primary-theme">Michael Roberts</h4>
+                <p class="text-muted-theme text-sm">Blockchain Developer</p>
+              </div>
+            </div>
+            <p class="text-muted-theme mb-4">
+              "As a working professional, I needed a flexible learning platform.
+              EduPortal's mobile-friendly design and self-paced courses have
+              been perfect for my busy schedule."
+            </p>
+            <div class="flex text-yellow-400">
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+              <i class="fas fa-star"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section
+      class="py-20 bg-gradient-to-r from-indigo-600 to-purple-700 text-white"
+    >
+      <div class="container mx-auto px-6 text-center">
+        <h2 class="text-4xl font-bold mb-6">
+          Ready to Start Your Learning Journey?
+        </h2>
+        <p class="text-xl mb-10 max-w-2xl mx-auto">
+          Join thousands of students who are already transforming their
+          education with EduPortal.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="signup.html"
+            class="bg-white text-indigo-600 px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
+          >
+            Create Free Account
+          </a>
+          <a
+            href="#"
+            class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-indigo-600 transition-all duration-300"
+          >
+            Schedule a Demo
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer py-12">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div class="flex items-center mb-6">
+              <div
+                class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mr-3"
+              >
+                <i class="fas fa-graduation-cap text-indigo-600 text-xl"></i>
+              </div>
+              <span class="text-xl font-bold">EduPortal</span>
+            </div>
+            <p class="text-indigo-100 mb-6">
+              Transforming education through innovative technology and
+              personalized learning experiences.
+            </p>
+            <div class="flex space-x-4">
+              <a
+                href="#"
+                class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <i class="fab fa-facebook-f"></i>
+              </a>
+              <a
+                href="#"
+                class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <i class="fab fa-twitter"></i>
+              </a>
+              <a
+                href="#"
+                class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <i class="fab fa-linkedin-in"></i>
+              </a>
+              <a
+                href="#"
+                class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <i class="fab fa-instagram"></i>
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold mb-6">Quick Links</h3>
+            <ul class="space-y-3">
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Home</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#features"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Features</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#courses"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Courses</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#testimonials"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Testimonials</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Pricing</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold mb-6">Categories</h3>
+            <ul class="space-y-3">
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Design</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Development</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Blockchain</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Cyber Security</a
+                >
+              </li>
+              <li>
+                <a
+                  href="#"
+                  class="text-indigo-100 hover:text-white transition-colors"
+                  >Business</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold mb-6">Contact Us</h3>
+            <ul class="space-y-3">
+              <li class="flex items-start">
+                <i class="fas fa-map-marker-alt mt-1 mr-3"></i>
+                <span class="text-indigo-100"
+                  >123 Education Street, Learning City</span
+                >
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-phone mt-1 mr-3"></i>
+                <span class="text-indigo-100">+1 (555) 123-4567</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-envelope mt-1 mr-3"></i>
+                <span class="text-indigo-100">info@eduportal.com</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div
+          class="border-t border-indigo-400 mt-12 pt-8 text-center text-indigo-200"
+        >
+          <p>&copy; 2023 EduPortal. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Theme Management - MATCHING DASHBOARD
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          const targetId = this.getAttribute("href");
+          if (targetId === "#") return;
+
+          const targetElement = document.querySelector(targetId);
+          if (targetElement) {
+            window.scrollTo({
+              top: targetElement.offsetTop - 100,
+              behavior: "smooth",
+            });
+          }
+        });
+      });
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        initTheme();
+        themeToggle.addEventListener("click", toggleTheme);
+      });
+    </script>
+  </body>
+</html>
