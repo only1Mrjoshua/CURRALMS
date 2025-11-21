@@ -75,7 +75,7 @@ async def get_courses_by_category(
     crud: CourseCRUD = Depends(get_course_crud)
 ):
     """
-    Get courses by category - ENHANCED DEBUG VERSION
+    Get courses by category - FIXED VERSION
     """
     print(f"🔍 ENDPOINT DEBUG: Called with category: '{category}'")
     

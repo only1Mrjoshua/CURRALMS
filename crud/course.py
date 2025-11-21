@@ -33,7 +33,7 @@ class CourseCRUD:
             return False
 
     def _convert_objectids_to_strings(self, data: dict) -> dict:
-        """Convert all ObjectId fields to strings in the data"""
+        """Convert all ObjectId fields to strings in the data and add missing required fields"""
         if not data:
             return data
             
@@ -55,6 +55,16 @@ class CourseCRUD:
         # Handle completed_lessons array
         if 'completed_lessons' in converted and converted['completed_lessons']:
             converted['completed_lessons'] = [str(lesson_id) for lesson_id in converted['completed_lessons']]
+        
+        # ✅ ADD MISSING REQUIRED FIELDS WITH DEFAULT VALUES
+        if 'is_active' not in converted:
+            converted['is_active'] = True
+        if 'is_public' not in converted:
+            converted['is_public'] = False
+        if 'created_at' not in converted:
+            converted['created_at'] = datetime.utcnow()
+        if 'updated_at' not in converted:
+            converted['updated_at'] = datetime.utcnow()
         
         return converted
 
@@ -129,9 +139,11 @@ class CourseCRUD:
             if course.instructor_id:
                 course_dict["instructor_id"] = ObjectId(course.instructor_id)
             
-            # Set timestamps
+            # Set timestamps and default values
             course_dict["created_at"] = datetime.utcnow()
             course_dict["updated_at"] = datetime.utcnow()
+            course_dict["is_active"] = course_dict.get("is_active", True)
+            course_dict["is_public"] = course_dict.get("is_public", False)
             
             result = await db.courses.insert_one(course_dict)
             created_course = await db.courses.find_one({"_id": result.inserted_id})
