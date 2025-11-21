@@ -8,23 +8,19 @@ SECRET_KEY = "fhu5a0PfLz0zCKHk4Xg14Lk9jKMG2E5bTnh6aZp3NfE6d6shbw2"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# Password context with bcrypt - FIXED for long passwords
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__max_password_length=128  # Allow longer passwords
-)
+# Password context with bcrypt - FIXED: removed invalid parameter
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt with long password support"""
-    # Truncate password if it's too long for bcrypt
+    # Truncate password if it's too long for bcrypt (72 bytes max)
     if len(password.encode('utf-8')) > 72:
         password = password[:72]  # Truncate to 72 bytes
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash with long password support"""
-    # Truncate password if it's too long for bcrypt
+    # Truncate password if it's too long for bcrypt (72 bytes max)
     if len(plain_password.encode('utf-8')) > 72:
         plain_password = plain_password[:72]  # Truncate to 72 bytes
     return pwd_context.verify(plain_password, hashed_password)
