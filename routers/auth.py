@@ -18,14 +18,11 @@ import string
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-# Google OAuth Configuration - UPDATE THE SECRET WHEN YOU GET IT
+# Google OAuth Configuration - UPDATED FOR PRODUCTION
 GOOGLE_CLIENT_ID = "1035631189611-ou2ig6bn8d1uqkljcimbsogth9p67kh8.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "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"
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-if "devtunnels.ms" in BASE_URL:
-    GOOGLE_REDIRECT_URI = "https://pmhfhd37-8000.uks1.devtunnels.ms/auth/google/callback"
-else:
-    GOOGLE_REDIRECT_URI = "http://localhost:8000/auth/google/callback"
+BASE_URL = os.getenv("BASE_URL", "https://curralms.onrender.com")
+GOOGLE_REDIRECT_URI = "https://curralms.onrender.com/auth/google/callback"
 
 class GoogleTokenRequest(BaseModel):
     code: str
@@ -264,7 +261,7 @@ async def google_callback(
             <title>Authentication Error</title>
             <script>
                 localStorage.setItem('auth_error', '{error_msg}');
-                window.location.href = '/static/{origin_page}.html';
+                window.location.href = '/{origin_page}.html';
             </script>
         </head>
         <body>
@@ -282,7 +279,7 @@ async def google_callback(
             <title>Authentication Error</title>
             <script>
                 localStorage.setItem('auth_error', 'No authorization code received');
-                window.location.href = '/static/{origin_page}.html';
+                window.location.href = '/{origin_page}.html';
             </script>
         </head>
         <body>
@@ -304,7 +301,7 @@ async def google_callback(
                 <title>Authentication Error</title>
                 <script>
                     localStorage.setItem('auth_error', 'No access token received from Google');
-                    window.location.href = '/static/{origin_page}.html';
+                    window.location.href = '/{origin_page}.html';
                 </script>
             </head>
             <body>
@@ -379,6 +376,7 @@ async def google_callback(
             "is_active": user.is_active
         }
 
+        # Escape the JSON properly for JavaScript
         user_json = json.dumps(user_data_dict).replace("'", "\\'")
         
         # Custom messaging based on the actual action that occurred
@@ -434,15 +432,18 @@ async def google_callback(
         import traceback
         print(f"❌ Traceback: {traceback.format_exc()}")
         
+        # Escape the error message for JavaScript
+        error_message = str(e).replace("'", "\\'")
+        
         return HTMLResponse(f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Authentication Error</title>
             <script>
-                localStorage.setItem('auth_error', 'Authentication failed: {str(e)}');
+                localStorage.setItem('auth_error', 'Authentication failed: {error_message}');
                 localStorage.setItem('auth_error_title', 'Authentication Failed');
-                window.location.href = '/static/{origin_page}.html';
+                window.location.href = '/{origin_page}.html';
             </script>
         </head>
         <body>
