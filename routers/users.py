@@ -114,13 +114,31 @@ async def login(
             detail="User not found"
         )
 
-    # Verify password
-    if not verify_password(form_data.password, user.password_hash):
+    # Verify password with bcrypt fallback for existing users
+    password_verified = False
+    try:
+        # First try with our current security utils (argon2)
+        password_verified = verify_password(form_data.password, user.password_hash)
+        
+        # If that fails and we're still using bcrypt hashes, try bcrypt directly
+        if not password_verified and user.password_hash.startswith("$2b$"):
+            from passlib.hash import bcrypt
+            # Truncate password if it's too long for bcrypt
+            password_to_check = form_data.password
+            if len(password_to_check.encode('utf-8')) > 72:
+                password_to_check = password_to_check[:72]
+            password_verified = bcrypt.verify(password_to_check, user.password_hash)
+            
+    except Exception as e:
+        print(f"❌ Password verification error: {e}")
+        password_verified = False
+
+    if not password_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid password"
         )
-
+        
     # Ensure user account is active
     if not user.is_active:
         raise HTTPException(
