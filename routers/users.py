@@ -92,43 +92,37 @@ async def login(
     crud = Depends(get_user_crud)
 ):
     identifier = form_data.username.strip()
-    print(f"🔍 Login attempt with identifier: '{identifier}'")  # Debug log
+    print(f"🔍 Login attempt with identifier: '{identifier}'")
 
     # Find user by email OR username
     user = await crud.get_user_by_identifier(identifier)
     
-    # Debug: Check what user was found
     if user:
         print(f"✅ User found: {user.username} ({user.email})")
+        print(f"🔐 Password hash type: {user.password_hash[:10]}...")  # Debug hash format
     else:
         print(f"❌ User not found for identifier: '{identifier}'")
-        # Let's check if any users exist at all
-        all_users = await crud.get_users()
-        print(f"📊 Total users in database: {len(all_users)}")
-        for u in all_users:
-            print(f"   - {u.username} ({u.email})")
-
-    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
 
-    # Verify password with bcrypt fallback for existing users
+    # Verify password using bcrypt with proper truncation
     password_verified = False
     try:
-        # First try with our current security utils (argon2)
-        password_verified = verify_password(form_data.password, user.password_hash)
+        # Import bcrypt directly
+        from passlib.hash import bcrypt
         
-        # If that fails and we're still using bcrypt hashes, try bcrypt directly
-        if not password_verified and user.password_hash.startswith("$2b$"):
-            from passlib.hash import bcrypt
-            # Truncate password if it's too long for bcrypt
-            password_to_check = form_data.password
-            if len(password_to_check.encode('utf-8')) > 72:
-                password_to_check = password_to_check[:72]
-            password_verified = bcrypt.verify(password_to_check, user.password_hash)
+        # Truncate password if it's too long for bcrypt (72 bytes max)
+        password_to_check = form_data.password
+        if len(password_to_check.encode('utf-8')) > 72:
+            print("⚠️ Password too long, truncating to 72 bytes")
+            password_to_check = password_to_check[:72]
             
+        # Verify using bcrypt
+        password_verified = bcrypt.verify(password_to_check, user.password_hash)
+        print(f"🔑 Password verification result: {password_verified}")
+        
     except Exception as e:
         print(f"❌ Password verification error: {e}")
         password_verified = False
