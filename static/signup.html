@@ -879,8 +879,8 @@
           }
         });
 
-      // ⚙️ API Configuration - Updated for FastAPI backend
-      const API_BASE_URL = "http://localhost:8000"; // Your FastAPI server URL
+      // ⚙️ API Configuration - FIXED: Use same domain as frontend
+      const API_BASE_URL = ""; // Empty string = same domain as frontend
 
       // Override default alert with toast
       window.alert = function (message) {
@@ -932,15 +932,15 @@
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.innerHTML = `
-          <div class="toast-icon">${icon}</div>
-          <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            <div class="toast-message">${message}</div>
-          </div>
-          <button class="toast-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon">${icon}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         container.appendChild(toast);
 
@@ -1211,7 +1211,7 @@
                   error.message.includes("Failed to fetch")
                 ) {
                   userMessage =
-                    "Cannot connect to server. Please check if the FastAPI backend is running.";
+                    "Cannot connect to server. Please check if the backend is running.";
                 }
 
                 showToast(userMessage, "error", "Signup Failed");
@@ -1515,11 +1515,7 @@
       async function handleGoogleCallback() {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get("code");
-        const googleCode = urlParams.get("google_code");
         const error = urlParams.get("error");
-        const googleSuccess = urlParams.get("google_success");
-        const token = urlParams.get("token");
-        const userData = urlParams.get("user");
         const state = urlParams.get("state"); // Get state parameter
 
         // Handle errors first
@@ -1534,146 +1530,77 @@
           return;
         }
 
-        // Handle successful backend authentication
-        if (googleSuccess === "true" && token && userData) {
-          console.log(
-            "✅ Handling successful Google authentication from backend..."
-          );
+        // Handle Google OAuth callback
+        if (code) {
+          console.log("🔄 Handling Google OAuth callback for sign-up...");
 
           try {
-            // Store the token and user data
-            localStorage.setItem("access_token", decodeURIComponent(token));
-            localStorage.setItem("user", decodeURIComponent(userData));
+            // Send code to backend
+            console.log("📡 Sending Google auth code to backend...");
+            const response = await fetch(`${API_BASE_URL}/auth/google`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ code: code, state: state }),
+            });
 
-            const user = JSON.parse(decodeURIComponent(userData));
-            console.log("✅ Google Sign-Up successful, user data:", user);
+            console.log("📨 Backend response status:", response.status);
 
-            // Show success message
-            showToast(
-              `Welcome, ${
-                user.full_name || user.username
-              }! Your account has been created.`,
-              "success",
-              "Google Sign-Up Successful!",
-              3000
-            );
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(
+                errorData.detail || `HTTP error! status: ${response.status}`
+              );
+            }
 
-            cleanUrl();
+            const data = await response.json();
+            console.log("✅ Backend response data:", data);
 
-            // Redirect to dashboard
-            setTimeout(() => {
-              if (user.role === "admin") {
-                window.location.href =
-                  "../static/dashboards/Admin-Dashboard-Overview.html";
-              } else {
-                window.location.href =
-                  "../static/dashboards/Student-Dashboard-Overview.html";
-              }
-            }, 1500);
-            return;
+            if (data.access_token) {
+              // Success! Store the token and user data
+              localStorage.setItem("access_token", data.access_token);
+              localStorage.setItem("token_type", data.token_type);
+              localStorage.setItem("user", JSON.stringify(data.user));
+
+              console.log(
+                "✅ Google Sign-Up successful, user data:",
+                data.user
+              );
+
+              // Show success message
+              showToast(
+                `Welcome, ${
+                  data.user.full_name || data.user.username
+                }! Your account has been created.`,
+                "success",
+                "Google Sign-Up Successful!",
+                3000
+              );
+
+              cleanUrl();
+
+              // Redirect to dashboard
+              setTimeout(() => {
+                if (data.user.role === "admin") {
+                  window.location.href =
+                    "/static/dashboards/Admin-Dashboard-Overview.html";
+                } else {
+                  window.location.href =
+                    "/static/dashboards/Student-Dashboard-Overview.html";
+                }
+              }, 1500);
+            } else {
+              throw new Error("No access token received from backend");
+            }
           } catch (error) {
-            console.error("❌ Error processing backend auth:", error);
+            console.error("❌ Google callback error:", error);
             showToast(
-              "Failed to process authentication. Please try again.",
+              error.message || "Google sign-up failed. Please try again.",
               "error",
-              "Authentication Error"
+              "Google Sign-Up Failed"
             );
             cleanUrl();
-            return;
-          }
-        }
-
-        // Handle frontend code exchange
-        const authCode = code || googleCode;
-        if (authCode) {
-          console.log("🔄 Handling Google OAuth code exchange for sign-up...");
-          await exchangeGoogleCode(authCode);
-        }
-      }
-
-      // Exchange Google code for tokens
-      async function exchangeGoogleCode(authCode) {
-        try {
-          // Show loading state
-          const submitBtn = document.getElementById("submit-btn");
-          if (submitBtn) {
-            submitBtn.disabled = true;
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML =
-              'Creating Account with Google... <div class="loading-spinner"></div>';
-          }
-
-          // Send code to backend
-          console.log("📡 Sending Google auth code to backend...");
-          const response = await fetch(`${API_BASE_URL}/auth/google`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ code: authCode }),
-          });
-
-          console.log("📨 Backend response status:", response.status);
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.detail || `HTTP error! status: ${response.status}`
-            );
-          }
-
-          const data = await response.json();
-          console.log("✅ Backend response data:", data);
-
-          if (data.access_token) {
-            // Success! Store the token and user data
-            localStorage.setItem("access_token", data.access_token);
-            localStorage.setItem("token_type", data.token_type);
-            localStorage.setItem("user", JSON.stringify(data.user));
-
-            console.log("✅ Google Sign-Up successful, user data:", data.user);
-
-            // Show success message
-            showToast(
-              `Welcome, ${
-                data.user.full_name || data.user.username
-              }! Your account has been created.`,
-              "success",
-              "Google Sign-Up Successful!",
-              3000
-            );
-
-            cleanUrl();
-
-            // Redirect to dashboard
-            setTimeout(() => {
-              if (data.user.role === "admin") {
-                window.location.href =
-                  "../static/dashboards/Admin-Dashboard-Overview.html";
-              } else {
-                window.location.href =
-                  "../static/dashboards/Student-Dashboard-Overview.html";
-              }
-            }, 1500);
-          } else {
-            throw new Error("No access token received from backend");
-          }
-        } catch (error) {
-          console.error("❌ Google code exchange error:", error);
-          showToast(
-            error.message || "Google sign-up failed. Please try again.",
-            "error",
-            "Google Sign-Up Failed"
-          );
-
-          cleanUrl();
-
-          // Reset button state if exists
-          const submitBtn = document.getElementById("submit-btn");
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML =
-              'Create Account <i class="fas fa-check ml-2"></i>';
           }
         }
       }
@@ -1689,33 +1616,6 @@
 
       // Call this when page loads
       document.addEventListener("DOMContentLoaded", function () {
-        handleGoogleCallback(); // Check for Google callback
-      });
-
-      // Debug function to check if Google Sign-Up is working
-      function debugGoogleSignUp() {
-        console.log("🔍 Debug: Google Sign-Up button clicked");
-        console.log(
-          "🔍 Debug: handleGoogleSignUp function exists:",
-          typeof handleGoogleSignUp
-        );
-        console.log("🔍 Debug: API_BASE_URL:", API_BASE_URL);
-
-        // Test if the function works
-        handleGoogleSignUp();
-      }
-
-      // Update the button temporarily for debugging
-      document.addEventListener("DOMContentLoaded", function () {
-        // Add debug onclick temporarily
-        const googleButton = document
-          .querySelector(".fa-google")
-          .closest("button");
-        if (googleButton) {
-          googleButton.setAttribute("onclick", "debugGoogleSignUp()");
-          console.log("✅ Debug: Added debug handler to Google button");
-        }
-
         handleGoogleCallback(); // Check for Google callback
       });
     </script>
