@@ -1738,8 +1738,20 @@
     }
   });
 
-  // ⚙️ API Configuration - FIXED: Use same domain as frontend
-  const API_BASE_URL = ""; // Empty string = same domain as frontend
+  // ⚙️ API Configuration - Dynamic URL for localhost and Render
+  const getApiBaseUrl = () => {
+    // Check if we're on localhost
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    ) {
+      return "http://localhost:8000";
+    }
+    // For production (Render), use relative path (same domain)
+    return "";
+  };
+
+  const API_BASE_URL = getApiBaseUrl();
 
   // Logout Confirmation Elements
   const logoutBtn = document.getElementById("logoutBtn");

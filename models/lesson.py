@@ -29,7 +29,7 @@ class LessonBase(BaseModel):
     status: LessonStatus = LessonStatus.UPCOMING
     is_active: bool = True
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_location_fields(cls, values):
         location_type = values.get('location_type')
         zoom_link = values.get('zoom_link')
@@ -62,7 +62,7 @@ class LessonUpdate(BaseModel):
     status: Optional[LessonStatus] = None
     is_active: Optional[bool] = None
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_location_fields(cls, values):
         location_type = values.get('location_type')
         zoom_link = values.get('zoom_link')

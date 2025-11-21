@@ -2094,6 +2094,21 @@
           }
         });
 
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      const getApiBaseUrl = () => {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
+        }
+        // For production (Render), use relative path (same domain)
+        return "";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
       // Toast Notification System
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
@@ -2245,12 +2260,6 @@
         // If it's a name, use the first character
         return text.charAt(0).toUpperCase();
       }
-
-      // API Configuration
-      const API_BASE_URL = "http://localhost:8000";
-      const LESSONS_ENDPOINT = `${API_BASE_URL}/lessons/admin/all-lesson`;
-      const CREATE_LESSON_ENDPOINT = `${API_BASE_URL}/lessons/`;
-      const COURSES_ENDPOINT = `${API_BASE_URL}/courses`;
 
       // Global variables
       let lessons = [];
@@ -2731,7 +2740,7 @@
         try {
           showLoadingState();
 
-          console.log("📚 Fetching lessons from:", LESSONS_ENDPOINT);
+          console.log("📚 Fetching lessons from:", `${API_BASE_URL}/lessons`);
 
           // Wait for courses to load first
           if (Object.keys(courseIdToTitleMap).length === 0) {
@@ -2916,67 +2925,67 @@
           }
 
           row.innerHTML = `
-    <td>
-      <div class="lesson-title">${lesson.title}</div>
-      <div class="lesson-meta">${courseTitle}</div>
-    </td>
-    <td>
-      <span class="lesson-category ${categoryClass}">${formatCategory(
+        <td>
+          <div class="lesson-title">${lesson.title}</div>
+          <div class="lesson-meta">${courseTitle}</div>
+        </td>
+        <td>
+          <span class="lesson-category ${categoryClass}">${formatCategory(
             lesson.category
           )}</span>
-    </td>
-    <td>
-      <div>${formattedDate}</div>
-      <div class="lesson-meta">${startTime} - ${endTime}</div>
-    </td>
-    <td>
-      <div class="lesson-location ${locationClass}">
-        <i class="${locationIcon}"></i>
-        ${
-          isClickable
-            ? `<a href="${locationLink}" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer; margin-left: 5px;" class="clickable-location">${locationDisplay}</a>`
-            : `<span style="margin-left: 5px;">${locationDisplay}</span>`
-        }
-      </div>
-    </td>
-    <td>
-      <span class="status-badge ${statusClass}" data-id="${
+        </td>
+        <td>
+          <div>${formattedDate}</div>
+          <div class="lesson-meta">${startTime} - ${endTime}</div>
+        </td>
+        <td>
+          <div class="lesson-location ${locationClass}">
+            <i class="${locationIcon}"></i>
+            ${
+              isClickable
+                ? `<a href="${locationLink}" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer; margin-left: 5px;" class="clickable-location">${locationDisplay}</a>`
+                : `<span style="margin-left: 5px;">${locationDisplay}</span>`
+            }
+          </div>
+        </td>
+        <td>
+          <span class="status-badge ${statusClass}" data-id="${
             lesson._id || lesson.id
           }" data-title="${lesson.title}" data-status="${status}">
-        ${formatStatus(status)}
-      </span>
-    </td>
-    <td>
-      <div class="lesson-actions">
-        <button
-          class="action-btn btn-edit"
-          data-id="${lesson._id || lesson.id}"
-          data-title="${lesson.title}"
-          data-course="${courseTitle}"
-          data-category="${lesson.category}"
-          data-date="${lesson.start_date}"
-          data-time="${lesson.start_time}"
-          data-duration="${lesson.duration || 0}"
-          data-location="${lesson.location_type}"
-          data-status="${status}"
-          data-zoom-link="${lesson.zoom_link || ""}"
-          data-google-meet-link="${lesson.google_meet_link || ""}"
-          data-classroom-location="${lesson.classroom_location || ""}"
-          data-description="${lesson.description || ""}"
-        >
-          <i class="fas fa-edit"></i>
-        </button>
-        <button
-          class="action-btn btn-delete"
-          data-id="${lesson._id || lesson.id}"
-          data-title="${lesson.title}"
-          type="button"
-        >
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    </td>
-  `;
+            ${formatStatus(status)}
+          </span>
+        </td>
+        <td>
+          <div class="lesson-actions">
+            <button
+              class="action-btn btn-edit"
+              data-id="${lesson._id || lesson.id}"
+              data-title="${lesson.title}"
+              data-course="${courseTitle}"
+              data-category="${lesson.category}"
+              data-date="${lesson.start_date}"
+              data-time="${lesson.start_time}"
+              data-duration="${lesson.duration || 0}"
+              data-location="${lesson.location_type}"
+              data-status="${status}"
+              data-zoom-link="${lesson.zoom_link || ""}"
+              data-google-meet-link="${lesson.google_meet_link || ""}"
+              data-classroom-location="${lesson.classroom_location || ""}"
+              data-description="${lesson.description || ""}"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button
+              class="action-btn btn-delete"
+              data-id="${lesson._id || lesson.id}"
+              data-title="${lesson.title}"
+              type="button"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      `;
 
           lessonsTableBody.appendChild(row);
         });
