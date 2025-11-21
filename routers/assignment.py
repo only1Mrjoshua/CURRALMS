@@ -43,7 +43,7 @@ async def create_assignment(
             detail="Only admins and instructors can create assignments"
         )
 
-    assignment = await create_assignment_crud(assignment_data.model_dump())
+    assignment = await create_assignment_crud(assignment_data.dict())
     return assignment
 
 
@@ -92,6 +92,7 @@ async def get_assignment(
             )
 
     return assignment
+
 
 @router.get("/{assignment_id}/submissions/simple", response_model=List[dict])
 async def get_assignment_submissions_simple(
@@ -153,6 +154,7 @@ async def get_assignment_submissions_simple(
             detail="Failed to fetch submissions"
         )
 
+
 @router.put("/{assignment_id}", response_model=AssignmentOut)
 async def update_assignment(
     assignment_id: str,
@@ -174,7 +176,7 @@ async def update_assignment(
         )
 
     # If course_id is being updated, handle category logic
-    update_data = assignment_data.model_dump(exclude_unset=True)
+    update_data = assignment_data.dict(exclude_unset=True)
     
     if "course_id" in update_data and update_data["course_id"] != assignment.course_id:
         print(f"🔍 [DEBUG] Course changed from {assignment.course_id} to {update_data['course_id']}")
@@ -229,7 +231,6 @@ async def delete_assignment(
     return
 
 
-# -------------------- SEPARATE SUBMISSION ENDPOINTS -------------------- #
 # -------------------- SEPARATE SUBMISSION ENDPOINTS -------------------- #
 @router.post("/{course_id}/{assignment_id}/submit/text", response_model=AssignmentSubmissionResponse)
 async def submit_text_assignment(
@@ -447,7 +448,7 @@ async def approve_late_submission(
             detail="Only admins and instructors can approve late submissions"
         )
 
-    approval = await create_late_approval_crud(approval_data.model_dump())
+    approval = await create_late_approval_crud(approval_data.dict())
     return approval
 
 
@@ -474,7 +475,7 @@ async def request_extension(
         )
 
     # Create extension request
-    request_data_dict = request_data.model_dump()
+    request_data_dict = request_data.dict()
     request_data_dict["user_id"] = current_user.id
     request_data_dict["assignment_id"] = assignment_id
     
