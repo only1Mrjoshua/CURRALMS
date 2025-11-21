@@ -2045,6 +2045,21 @@
           }
         });
 
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      const getApiBaseUrl = () => {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
+        }
+        // For production (Render), use relative path (same domain)
+        return "";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
       // Toast Notification System
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
@@ -2052,30 +2067,30 @@
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
           toastContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            max-width: 400px;
-          `;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.style.cssText = `
-          background: var(--card-bg);
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          padding: 16px;
-          margin-bottom: 10px;
-          border-left: 4px solid;
-          display: flex;
-          align-items: center;
-          opacity: 0;
-          transform: translateX(100%);
-          transition: all 0.3s ease;
-        `;
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
 
         // Set border color based on type
         const colors = {
@@ -2094,19 +2109,19 @@
         };
 
         toast.innerHTML = `
-          <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-            colors[type] || colors.info
-          }">
-            <i class="${icons[type]}"></i>
-          </div>
-          <div class="toast-content" style="flex: 1;">
-            <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-            <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-          </div>
-          <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         toastContainer.appendChild(toast);
 
@@ -2196,9 +2211,6 @@
         // If it's a name, use the first character
         return text.charAt(0).toUpperCase();
       }
-
-      // API Configuration
-      const API_BASE_URL = "http://localhost:8000";
 
       // DOM Elements
       const courseCategories = document.getElementById("courseCategories");
