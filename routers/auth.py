@@ -1,4 +1,3 @@
-# routers/auth.py
 import httpx
 from fastapi import Request
 from fastapi import APIRouter, HTTPException, Depends, status
@@ -49,6 +48,7 @@ def generate_random_password(length=16):
 
 async def get_google_tokens(code: str):
     """Exchange authorization code for access token"""
+    print(f"🔄 Exchanging code for tokens with Google...")
     token_url = "https://oauth2.googleapis.com/token"
     
     data = {
@@ -63,15 +63,19 @@ async def get_google_tokens(code: str):
         response = await client.post(token_url, data=data)
         
         if response.status_code != 200:
+            print(f"❌ Token exchange failed: {response.status_code} - {response.text}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to exchange code for tokens"
             )
         
-        return response.json()
+        tokens = response.json()
+        print(f"✅ Token exchange successful, access_token received: {bool(tokens.get('access_token'))}")
+        return tokens
 
 async def get_google_user_info(access_token: str):
     """Get user info from Google using access token"""
+    print(f"🔄 Getting user info from Google...")
     userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
     
     headers = {
@@ -82,18 +86,22 @@ async def get_google_user_info(access_token: str):
         response = await client.get(userinfo_url, headers=headers)
         
         if response.status_code != 200:
+            print(f"❌ Failed to get user info: {response.status_code} - {response.text}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to get user info from Google"
             )
         
         user_data = response.json()
+        print(f"✅ User info received: {user_data.get('email')} - {user_data.get('name')}")
         return GoogleUserInfo(**user_data)
 
 @router.post("/google")
 async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
     """Handle Google OAuth callback"""
     try:
+        print(f"🔍 Starting Google OAuth POST processing...")
+        
         # Exchange code for tokens
         tokens = await get_google_tokens(request.code)
         access_token = tokens.get("access_token")
@@ -114,9 +122,11 @@ async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
         
         if existing_user:
             # User exists, log them in
+            print(f"✅ Existing user found: {existing_user.email}")
             user = existing_user
         else:
             # Create new user with Google info
+            print(f"🆕 Creating new user for: {google_user.email}")
             random_password = generate_random_password()
             
             # Create username from email (remove @domain.com)
@@ -128,6 +138,8 @@ async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
             while await crud.get_user_by_username(username):
                 username = f"{base_username}{counter}"
                 counter += 1
+            
+            print(f"📝 Creating user with username: {username}")
             
             # Create UserCreate object
             user_data = UserCreate(
@@ -149,19 +161,23 @@ async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
             )
             
             if not user:
+                print(f"❌ Failed to create user in database")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to create user from Google account"
                 )
+            print(f"✅ New user created successfully: {user.email}")
         
         # Update last login
         await crud.update_last_login(user.id)
+        print(f"✅ Last login updated for user: {user.id}")
         
         # Create JWT token
         jwt_token = create_access_token(
             data={"sub": user.email, "role": user.role}
         )
-        
+        print(f"✅ JWT token created for user: {user.email}")
+
         return {
             "access_token": jwt_token,
             "token_type": "bearer",
@@ -179,7 +195,9 @@ async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Google auth error: {e}")
+        print(f"❌ Google auth error: {e}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authentication failed"
@@ -312,6 +330,10 @@ async def google_callback(
         
         # Get user info from Google
         google_user = await get_google_user_info(access_token)
+        print(f"🔍 Starting Google OAuth callback processing...")
+        print(f"📧 Google user email: {google_user.email}")
+        print(f"👤 Google user name: {google_user.name}")
+        
         crud = UserCRUD(db)
         
         # Check if user already exists
@@ -321,6 +343,7 @@ async def google_callback(
         
         if existing_user:
             user = existing_user
+            print(f"✅ Existing user found: {user.email}")
             if is_signup:
                 print("ℹ️ Existing user attempting sign-up - treating as signin")
                 action_type = "signin"
@@ -328,6 +351,7 @@ async def google_callback(
                 action_type = "signin"
         else:
             # Create new user
+            print(f"🆕 Creating new user for: {google_user.email}")
             random_password = generate_random_password()
             base_username = google_user.email.split('@')[0]
             username = base_username
@@ -337,6 +361,8 @@ async def google_callback(
             while await crud.get_user_by_username(username):
                 username = f"{base_username}{counter}"
                 counter += 1
+            
+            print(f"📝 Creating user with username: {username}")
             
             # Create UserCreate object
             user_data = UserCreate(
@@ -356,14 +382,36 @@ async def google_callback(
                 user_data=user_data,
                 avatar_url=google_user.picture
             )
+            
+            if not user:
+                print(f"❌ Failed to create user in database")
+                return HTMLResponse(f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Authentication Error</title>
+                    <script>
+                        localStorage.setItem('auth_error', 'Failed to create user account');
+                        window.location.href = '/{origin_page}.html';
+                    </script>
+                </head>
+                <body>
+                    <p>Redirecting...</p>
+                </body>
+                </html>
+                """)
+            
             user_was_created = True
             action_type = "signup"
+            print(f"✅ New user created successfully: {user.email}")
         
         # Update last login
         await crud.update_last_login(user.id)
+        print(f"✅ Last login updated for user: {user.id}")
         
         # Create JWT token
         jwt_token = create_access_token(data={"sub": user.email, "role": user.role})
+        print(f"✅ JWT token created for user: {user.email}")
         
         # Prepare user data
         user_data_dict = {
