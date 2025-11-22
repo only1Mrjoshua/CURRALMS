@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Student Dashboard | Lessons</title>
@@ -1275,8 +1275,8 @@
         }
       }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1291,42 +1291,56 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
+
       <div class="sidebar-menu">
         <ul>
           <li>
-            <a href="student-dashboard-overview.html"
-              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
-            >
+            <a href="student-dashboard-overview.html">
+              <i class="fas fa-chart-pie"></i>
+              <span>Overview</span>
+            </a>
           </li>
           <li>
-            <a href="student-courses.html"
-              ><i class="fas fa-book"></i> <span>My Courses</span></a
-            >
+            <a href="student-courses.html">
+              <i class="fas fa-book"></i>
+              <span>Courses</span>
+            </a>
           </li>
           <li>
-            <a href="student-assignments.html"
-              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
-            >
+            <a href="student-lessons.html" class="active">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Lessons</span>
+            </a>
           </li>
           <li>
-            <a href="student-quizzes.html"
-              ><i class="fas fa-question-circle"></i> <span>Quizzes</span></a
-            >
+            <a href="student-assignments.html">
+              <i class="fas fa-tasks"></i>
+              <span>Assignments</span>
+            </a>
           </li>
           <li>
-            <a href="student-lessons.html" class="active"
-              ><i class="fas fa-file-alt"></i> <span>Lessons</span></a
-            >
+            <a href="student-quiz.html">
+              <i class="fas fa-chart-bar"></i>
+              <span>Quizzes</span>
+            </a>
           </li>
           <li>
-            <a href="student-grades.html"
-              ><i class="fas fa-chart-bar"></i> <span>Grades</span></a
-            >
+            <a href="student-grades.html">
+              <i class="fas fa-chart-bar"></i>
+              <span>Grades</span>
+            </a>
           </li>
           <li>
-            <a href="student-progress.html"
-              ><i class="fas fa-trophy"></i> <span>Progress</span></a
-            >
+            <a href="student-progress.html">
+              <i class="fas fa-trophy"></i>
+              <span>Progress</span>
+            </a>
+          </li>
+          <li>
+            <a href="student-resources.html">
+              <i class="fas fa-folder"></i>
+              <span>Resources</span>
+            </a>
           </li>
         </ul>
       </div>
@@ -1450,9 +1464,7 @@
       <div class="lessons-container">
         <div class="lessons-header">
           <div class="lessons-title">Available Lessons</div>
-          <div class="lessons-count" id="lessonsCount">
-            Loading lessons...
-          </div>
+          <div class="lessons-count" id="lessonsCount">Loading lessons...</div>
         </div>
         <div id="lessonsContainer">
           <div class="loading-state" id="loadingState">
@@ -1485,7 +1497,9 @@
             <div class="lesson-details-grid">
               <div class="lesson-detail-item">
                 <div class="lesson-detail-label">Category</div>
-                <div class="lesson-detail-value" id="lessonModalCategory">-</div>
+                <div class="lesson-detail-value" id="lessonModalCategory">
+                  -
+                </div>
               </div>
               <div class="lesson-detail-item">
                 <div class="lesson-detail-label">Course</div>
@@ -1493,35 +1507,49 @@
               </div>
               <div class="lesson-detail-item">
                 <div class="lesson-detail-label">Date & Time</div>
-                <div class="lesson-detail-value" id="lessonModalDateTime">-</div>
+                <div class="lesson-detail-value" id="lessonModalDateTime">
+                  -
+                </div>
               </div>
               <div class="lesson-detail-item">
                 <div class="lesson-detail-label">Duration</div>
-                <div class="lesson-detail-value" id="lessonModalDuration">-</div>
+                <div class="lesson-detail-value" id="lessonModalDuration">
+                  -
+                </div>
               </div>
               <div class="lesson-detail-item">
                 <div class="lesson-detail-label">Location Type</div>
-                <div class="lesson-detail-value" id="lessonModalLocationType">-</div>
+                <div class="lesson-detail-value" id="lessonModalLocationType">
+                  -
+                </div>
               </div>
               <div class="lesson-detail-item">
                 <div class="lesson-detail-label">Status</div>
                 <div class="lesson-detail-value" id="lessonModalStatus">-</div>
               </div>
             </div>
-            
+
             <div class="lesson-content" id="lessonModalContentSection">
               <div class="lesson-content-title">Lesson Content</div>
               <div class="lesson-content-text" id="lessonModalContent">-</div>
             </div>
 
-            <div class="lesson-resources" id="lessonModalResourcesSection" style="display: none;">
+            <div
+              class="lesson-resources"
+              id="lessonModalResourcesSection"
+              style="display: none"
+            >
               <div class="resources-title">Resources</div>
               <ul class="resources-list" id="lessonModalResources">
                 <!-- Resources will be populated here -->
               </ul>
             </div>
 
-            <div class="lesson-location" id="lessonModalLocationSection" style="display: none;">
+            <div
+              class="lesson-location"
+              id="lessonModalLocationSection"
+              style="display: none"
+            >
               <div class="resources-title">Join Lesson</div>
               <div id="lessonModalLocationDetails">
                 <!-- Location details will be populated here -->
@@ -1532,13 +1560,25 @@
             <button class="btn btn-secondary" id="cancelLessonBtn">
               Close
             </button>
-            <button class="btn btn-outline" id="viewResourcesBtn" style="display: none;">
+            <button
+              class="btn btn-outline"
+              id="viewResourcesBtn"
+              style="display: none"
+            >
               <i class="fas fa-download"></i> Resources
             </button>
-            <button class="btn btn-primary" id="joinLessonBtn" style="display: none;">
+            <button
+              class="btn btn-primary"
+              id="joinLessonBtn"
+              style="display: none"
+            >
               <i class="fas fa-video"></i> Join Lesson
             </button>
-            <button class="btn btn-success" id="completeLessonBtn" style="display: none;">
+            <button
+              class="btn btn-success"
+              id="completeLessonBtn"
+              style="display: none"
+            >
               <i class="fas fa-check"></i> Mark Complete
             </button>
           </div>
@@ -1809,7 +1849,9 @@
 
       // Modal Elements
       const lessonDetailModal = document.getElementById("lessonDetailModal");
-      const closeLessonModalBtn = document.getElementById("closeLessonModalBtn");
+      const closeLessonModalBtn = document.getElementById(
+        "closeLessonModalBtn"
+      );
       const cancelLessonBtn = document.getElementById("cancelLessonBtn");
       const joinLessonBtn = document.getElementById("joinLessonBtn");
       const completeLessonBtn = document.getElementById("completeLessonBtn");
@@ -1823,9 +1865,11 @@
 
       // Stats Elements
       const totalLessonsElement = document.getElementById("totalLessons");
-      const completedLessonsElement = document.getElementById("completedLessons");
+      const completedLessonsElement =
+        document.getElementById("completedLessons");
       const upcomingLessonsElement = document.getElementById("upcomingLessons");
-      const progressPercentageElement = document.getElementById("progressPercentage");
+      const progressPercentageElement =
+        document.getElementById("progressPercentage");
 
       // Logout Confirmation Elements
       const logoutBtn = document.getElementById("logoutBtn");
@@ -1913,13 +1957,14 @@
             // Populate course filter dropdown
             const courseFilter = document.getElementById("courseFilter");
             let courseOptions = '<option value="">All Courses</option>';
-            
+
             allCourses.forEach((course) => {
               const courseId = course._id || course.id;
-              const courseTitle = course.title || course.name || "Untitled Course";
+              const courseTitle =
+                course.title || course.name || "Untitled Course";
               courseOptions += `<option value="${courseId}">${courseTitle}</option>`;
             });
-            
+
             courseFilter.innerHTML = courseOptions;
 
             // Return success
@@ -1943,10 +1988,7 @@
         try {
           showLoadingState();
 
-          console.log(
-            "📚 Fetching lessons from:",
-            `${API_BASE_URL}/lessons`
-          );
+          console.log("📚 Fetching lessons from:", `${API_BASE_URL}/lessons`);
 
           // Wait for courses to load first
           if (Object.keys(courseIdToTitleMap).length === 0) {
@@ -1994,16 +2036,22 @@
         totalLessonsElement.textContent = allLessons.length;
 
         // Calculate completed lessons (based on status)
-        const completedLessons = allLessons.filter(lesson => lesson.status === "completed").length;
+        const completedLessons = allLessons.filter(
+          (lesson) => lesson.status === "completed"
+        ).length;
         completedLessonsElement.textContent = completedLessons;
 
         // Calculate upcoming lessons
-        const upcomingLessons = allLessons.filter(lesson => lesson.status === "upcoming").length;
+        const upcomingLessons = allLessons.filter(
+          (lesson) => lesson.status === "upcoming"
+        ).length;
         upcomingLessonsElement.textContent = upcomingLessons;
 
         // Calculate progress percentage
-        const progressPercentage = allLessons.length > 0 ? 
-          Math.round((completedLessons / allLessons.length) * 100) : 0;
+        const progressPercentage =
+          allLessons.length > 0
+            ? Math.round((completedLessons / allLessons.length) * 100)
+            : 0;
         progressPercentageElement.textContent = `${progressPercentage}%`;
       }
 
@@ -2019,14 +2067,18 @@
         allLessons.forEach((lesson) => {
           const card = document.createElement("div");
           const isCompleted = lesson.status === "completed";
-          const cardClass = isCompleted ? "lesson-card completed" : "lesson-card";
-          
+          const cardClass = isCompleted
+            ? "lesson-card completed"
+            : "lesson-card";
+
           card.className = cardClass;
 
           // Format date and time
           const formattedDate = formatLessonDate(lesson.start_date);
           const formattedTime = formatLessonTime(lesson.start_time);
-          const durationText = lesson.duration ? `${lesson.duration} min` : "N/A";
+          const durationText = lesson.duration
+            ? `${lesson.duration} min`
+            : "N/A";
 
           // Get course title
           const courseTitle = getCourseName(lesson.course_id);
@@ -2036,8 +2088,10 @@
           const categoryClass = getCategoryClass(category);
 
           // Status badge
-          const statusClass = `status-${lesson.status || 'upcoming'}`;
-          const statusText = lesson.status ? lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1) : "Upcoming";
+          const statusClass = `status-${lesson.status || "upcoming"}`;
+          const statusText = lesson.status
+            ? lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)
+            : "Upcoming";
 
           card.innerHTML = `
             <div class="lesson-card-header">
@@ -2069,7 +2123,10 @@
                 </div>
                 <div class="lesson-card-meta-item">
                   <i class="fas fa-info-circle"></i>
-                  <span>${lesson.order || 1} of ${allLessons.filter(l => l.course_id === lesson.course_id).length || 1}</span>
+                  <span>${lesson.order || 1} of ${
+            allLessons.filter((l) => l.course_id === lesson.course_id).length ||
+            1
+          }</span>
                 </div>
               </div>
             </div>
@@ -2078,18 +2135,26 @@
                 <span class="status-badge ${statusClass}">${statusText}</span>
               </div>
               <div class="lesson-actions">
-                <button class="btn btn-outline view-lesson-btn" data-lesson-id="${lesson._id || lesson.id}">
+                <button class="btn btn-outline view-lesson-btn" data-lesson-id="${
+                  lesson._id || lesson.id
+                }">
                   <i class="fas fa-eye"></i> View
                 </button>
-                ${!isCompleted ? `
-                  <button class="btn btn-primary join-lesson-btn" data-lesson-id="${lesson._id || lesson.id}">
+                ${
+                  !isCompleted
+                    ? `
+                  <button class="btn btn-primary join-lesson-btn" data-lesson-id="${
+                    lesson._id || lesson.id
+                  }">
                     <i class="fas fa-play"></i> Join
                   </button>
-                ` : `
+                `
+                    : `
                   <button class="btn btn-success" disabled>
                     <i class="fas fa-check"></i> Completed
                   </button>
-                `}
+                `
+                }
               </div>
             </div>
           `;
@@ -2115,8 +2180,10 @@
         document.querySelectorAll(".view-lesson-btn").forEach((button) => {
           button.addEventListener("click", function () {
             const lessonId = this.getAttribute("data-lesson-id");
-            const lesson = allLessons.find(l => (l._id === lessonId || l.id === lessonId));
-            
+            const lesson = allLessons.find(
+              (l) => l._id === lessonId || l.id === lessonId
+            );
+
             if (lesson) {
               openLessonDetailModal(lesson);
             }
@@ -2127,8 +2194,10 @@
         document.querySelectorAll(".join-lesson-btn").forEach((button) => {
           button.addEventListener("click", function () {
             const lessonId = this.getAttribute("data-lesson-id");
-            const lesson = allLessons.find(l => (l._id === lessonId || l.id === lessonId));
-            
+            const lesson = allLessons.find(
+              (l) => l._id === lessonId || l.id === lessonId
+            );
+
             if (lesson) {
               joinLesson(lesson);
             }
@@ -2142,63 +2211,91 @@
 
         // Set modal content
         document.getElementById("lessonModalTitle").textContent = lesson.title;
-        document.getElementById("lessonModalCategory").textContent = lesson.category || "General";
-        document.getElementById("lessonModalCourse").textContent = getCourseName(lesson.course_id);
-        document.getElementById("lessonModalDateTime").textContent = `${formatLessonDate(lesson.start_date)} at ${formatLessonTime(lesson.start_time)}`;
-        document.getElementById("lessonModalDuration").textContent = lesson.duration ? `${lesson.duration} minutes` : "Not specified";
-        document.getElementById("lessonModalLocationType").textContent = formatLocationType(lesson.location_type);
-        document.getElementById("lessonModalStatus").textContent = lesson.status ? lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1) : "Upcoming";
-        
+        document.getElementById("lessonModalCategory").textContent =
+          lesson.category || "General";
+        document.getElementById("lessonModalCourse").textContent =
+          getCourseName(lesson.course_id);
+        document.getElementById(
+          "lessonModalDateTime"
+        ).textContent = `${formatLessonDate(
+          lesson.start_date
+        )} at ${formatLessonTime(lesson.start_time)}`;
+        document.getElementById("lessonModalDuration").textContent =
+          lesson.duration ? `${lesson.duration} minutes` : "Not specified";
+        document.getElementById("lessonModalLocationType").textContent =
+          formatLocationType(lesson.location_type);
+        document.getElementById("lessonModalStatus").textContent = lesson.status
+          ? lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)
+          : "Upcoming";
+
         // Set lesson content
         const contentElement = document.getElementById("lessonModalContent");
         if (lesson.content) {
           contentElement.textContent = lesson.content;
-          document.getElementById("lessonModalContentSection").style.display = "block";
+          document.getElementById("lessonModalContentSection").style.display =
+            "block";
         } else {
-          document.getElementById("lessonModalContentSection").style.display = "none";
+          document.getElementById("lessonModalContentSection").style.display =
+            "none";
         }
 
         // Set resources
         const resourcesList = document.getElementById("lessonModalResources");
         if (lesson.resources && lesson.resources.length > 0) {
           resourcesList.innerHTML = "";
-          lesson.resources.forEach(resource => {
+          lesson.resources.forEach((resource) => {
             const li = document.createElement("li");
-            li.innerHTML = `<i class="fas fa-file-download"></i> <a href="${resource}" class="resource-link" target="_blank">${getResourceName(resource)}</a>`;
+            li.innerHTML = `<i class="fas fa-file-download"></i> <a href="${resource}" class="resource-link" target="_blank">${getResourceName(
+              resource
+            )}</a>`;
             resourcesList.appendChild(li);
           });
-          document.getElementById("lessonModalResourcesSection").style.display = "block";
+          document.getElementById("lessonModalResourcesSection").style.display =
+            "block";
           viewResourcesBtn.style.display = "inline-flex";
         } else {
-          document.getElementById("lessonModalResourcesSection").style.display = "none";
+          document.getElementById("lessonModalResourcesSection").style.display =
+            "none";
           viewResourcesBtn.style.display = "none";
         }
 
         // Set location details
-        const locationDetails = document.getElementById("lessonModalLocationDetails");
+        const locationDetails = document.getElementById(
+          "lessonModalLocationDetails"
+        );
         if (lesson.location_type === "zoom" && lesson.zoom_link) {
           locationDetails.innerHTML = `
             <p><strong>Zoom Meeting:</strong> <a href="${lesson.zoom_link}" target="_blank">Join Zoom Meeting</a></p>
             <p><small>Click the link above to join the Zoom session</small></p>
           `;
-          document.getElementById("lessonModalLocationSection").style.display = "block";
+          document.getElementById("lessonModalLocationSection").style.display =
+            "block";
           joinLessonBtn.style.display = "inline-flex";
-        } else if (lesson.location_type === "google_meet" && lesson.google_meet_link) {
+        } else if (
+          lesson.location_type === "google_meet" &&
+          lesson.google_meet_link
+        ) {
           locationDetails.innerHTML = `
             <p><strong>Google Meet:</strong> <a href="${lesson.google_meet_link}" target="_blank">Join Google Meet</a></p>
             <p><small>Click the link above to join the Google Meet session</small></p>
           `;
-          document.getElementById("lessonModalLocationSection").style.display = "block";
+          document.getElementById("lessonModalLocationSection").style.display =
+            "block";
           joinLessonBtn.style.display = "inline-flex";
-        } else if (lesson.location_type === "physical_classroom" && lesson.classroom_location) {
+        } else if (
+          lesson.location_type === "physical_classroom" &&
+          lesson.classroom_location
+        ) {
           locationDetails.innerHTML = `
             <p><strong>Location:</strong> ${lesson.classroom_location}</p>
             <p><small>Please arrive at the specified classroom location</small></p>
           `;
-          document.getElementById("lessonModalLocationSection").style.display = "block";
+          document.getElementById("lessonModalLocationSection").style.display =
+            "block";
           joinLessonBtn.style.display = "inline-flex";
         } else {
-          document.getElementById("lessonModalLocationSection").style.display = "none";
+          document.getElementById("lessonModalLocationSection").style.display =
+            "none";
           joinLessonBtn.style.display = "none";
         }
 
@@ -2216,15 +2313,28 @@
       // Join lesson function
       function joinLesson(lesson) {
         if (lesson.location_type === "zoom" && lesson.zoom_link) {
-          window.open(lesson.zoom_link, '_blank');
+          window.open(lesson.zoom_link, "_blank");
           showToast("info", "Zoom Meeting", "Opening Zoom meeting...", 3000);
-        } else if (lesson.location_type === "google_meet" && lesson.google_meet_link) {
-          window.open(lesson.google_meet_link, '_blank');
+        } else if (
+          lesson.location_type === "google_meet" &&
+          lesson.google_meet_link
+        ) {
+          window.open(lesson.google_meet_link, "_blank");
           showToast("info", "Google Meet", "Opening Google Meet...", 3000);
         } else if (lesson.location_type === "physical_classroom") {
-          showToast("info", "Classroom Location", `Lesson is in: ${lesson.classroom_location}`, 5000);
+          showToast(
+            "info",
+            "Classroom Location",
+            `Lesson is in: ${lesson.classroom_location}`,
+            5000
+          );
         } else {
-          showToast("warning", "No Link Available", "No join link available for this lesson", 3000);
+          showToast(
+            "warning",
+            "No Link Available",
+            "No join link available for this lesson",
+            3000
+          );
         }
       }
 
@@ -2233,36 +2343,47 @@
         if (!currentSelectedLesson) return;
 
         try {
-          const lessonId = currentSelectedLesson._id || currentSelectedLesson.id;
+          const lessonId =
+            currentSelectedLesson._id || currentSelectedLesson.id;
           const response = await postData(`/lessons/${lessonId}/complete`, {});
 
           if (response) {
-            showToast("success", "Lesson Completed", "Lesson marked as completed successfully!", 3000);
-            
+            showToast(
+              "success",
+              "Lesson Completed",
+              "Lesson marked as completed successfully!",
+              3000
+            );
+
             // Update the lesson status locally
             currentSelectedLesson.status = "completed";
-            
+
             // Close modal and reload lessons to reflect changes
             lessonDetailModal.style.display = "none";
             await loadLessons();
           }
         } catch (error) {
           console.error("Error completing lesson:", error);
-          showToast("error", "Completion Failed", "Failed to mark lesson as completed", 3000);
+          showToast(
+            "error",
+            "Completion Failed",
+            "Failed to mark lesson as completed",
+            3000
+          );
         }
       }
 
       // Helper functions
       function formatLessonDate(dateString) {
         if (!dateString) return "Date not set";
-        
+
         try {
           const date = new Date(dateString);
-          return date.toLocaleDateString('en-US', { 
-            weekday: 'short', 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+          return date.toLocaleDateString("en-US", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
           });
         } catch (e) {
           return "Invalid date";
@@ -2271,19 +2392,19 @@
 
       function formatLessonTime(timeString) {
         if (!timeString) return "Time not set";
-        
+
         try {
           // Handle both time strings and full datetime strings
           let timePart = timeString;
-          if (timeString.includes('T')) {
-            timePart = timeString.split('T')[1];
+          if (timeString.includes("T")) {
+            timePart = timeString.split("T")[1];
           }
-          
+
           const time = new Date(`1970-01-01T${timePart}`);
-          return time.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: true 
+          return time.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
           });
         } catch (e) {
           return "Invalid time";
@@ -2292,11 +2413,11 @@
 
       function formatLocationType(locationType) {
         const typeMap = {
-          'zoom': 'Zoom Meeting',
-          'google_meet': 'Google Meet',
-          'physical_classroom': 'Classroom'
+          zoom: "Zoom Meeting",
+          google_meet: "Google Meet",
+          physical_classroom: "Classroom",
         };
-        return typeMap[locationType] || locationType || 'Not specified';
+        return typeMap[locationType] || locationType || "Not specified";
       }
 
       function getCourseName(courseId) {
@@ -2306,7 +2427,7 @@
 
       function getResourceName(resourceUrl) {
         // Extract filename from URL
-        const parts = resourceUrl.split('/');
+        const parts = resourceUrl.split("/");
         return parts[parts.length - 1] || "Resource";
       }
 
@@ -2373,13 +2494,16 @@
         if (viewResourcesBtn) {
           viewResourcesBtn.addEventListener("click", function () {
             // Scroll to resources section
-            document.getElementById("lessonModalResourcesSection").scrollIntoView({ behavior: 'smooth' });
+            document
+              .getElementById("lessonModalResourcesSection")
+              .scrollIntoView({ behavior: "smooth" });
           });
         }
 
         // Close modals when clicking outside
         window.addEventListener("click", function (e) {
-          if (e.target === lessonDetailModal) lessonDetailModal.style.display = "none";
+          if (e.target === lessonDetailModal)
+            lessonDetailModal.style.display = "none";
         });
 
         // Add active class to clicked sidebar items
@@ -2401,10 +2525,12 @@
         const courseFilter = document.getElementById("courseFilter");
         const statusFilter = document.getElementById("statusFilter");
         const sortFilter = document.getElementById("sortFilter");
-        
-        [categoryFilter, courseFilter, statusFilter, sortFilter].forEach((filter) => {
-          filter.addEventListener("change", applyFilters);
-        });
+
+        [categoryFilter, courseFilter, statusFilter, sortFilter].forEach(
+          (filter) => {
+            filter.addEventListener("change", applyFilters);
+          }
+        );
 
         console.log("✅ Event listeners setup completed");
       }
@@ -2473,14 +2599,18 @@
         lessons.forEach((lesson) => {
           const card = document.createElement("div");
           const isCompleted = lesson.status === "completed";
-          const cardClass = isCompleted ? "lesson-card completed" : "lesson-card";
-          
+          const cardClass = isCompleted
+            ? "lesson-card completed"
+            : "lesson-card";
+
           card.className = cardClass;
 
           // Format date and time
           const formattedDate = formatLessonDate(lesson.start_date);
           const formattedTime = formatLessonTime(lesson.start_time);
-          const durationText = lesson.duration ? `${lesson.duration} min` : "N/A";
+          const durationText = lesson.duration
+            ? `${lesson.duration} min`
+            : "N/A";
 
           // Get course title
           const courseTitle = getCourseName(lesson.course_id);
@@ -2490,8 +2620,10 @@
           const categoryClass = getCategoryClass(category);
 
           // Status badge
-          const statusClass = `status-${lesson.status || 'upcoming'}`;
-          const statusText = lesson.status ? lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1) : "Upcoming";
+          const statusClass = `status-${lesson.status || "upcoming"}`;
+          const statusText = lesson.status
+            ? lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)
+            : "Upcoming";
 
           card.innerHTML = `
             <div class="lesson-card-header">
@@ -2523,7 +2655,10 @@
                 </div>
                 <div class="lesson-card-meta-item">
                   <i class="fas fa-info-circle"></i>
-                  <span>${lesson.order || 1} of ${allLessons.filter(l => l.course_id === lesson.course_id).length || 1}</span>
+                  <span>${lesson.order || 1} of ${
+            allLessons.filter((l) => l.course_id === lesson.course_id).length ||
+            1
+          }</span>
                 </div>
               </div>
             </div>
@@ -2532,18 +2667,26 @@
                 <span class="status-badge ${statusClass}">${statusText}</span>
               </div>
               <div class="lesson-actions">
-                <button class="btn btn-outline view-lesson-btn" data-lesson-id="${lesson._id || lesson.id}">
+                <button class="btn btn-outline view-lesson-btn" data-lesson-id="${
+                  lesson._id || lesson.id
+                }">
                   <i class="fas fa-eye"></i> View
                 </button>
-                ${!isCompleted ? `
-                  <button class="btn btn-primary join-lesson-btn" data-lesson-id="${lesson._id || lesson.id}">
+                ${
+                  !isCompleted
+                    ? `
+                  <button class="btn btn-primary join-lesson-btn" data-lesson-id="${
+                    lesson._id || lesson.id
+                  }">
                     <i class="fas fa-play"></i> Join
                   </button>
-                ` : `
+                `
+                    : `
                   <button class="btn btn-success" disabled>
                     <i class="fas fa-check"></i> Completed
                   </button>
-                `}
+                `
+                }
               </div>
             </div>
           `;
@@ -2715,5 +2858,5 @@
         setupLogoutConfirmation();
       });
     </script>
-</body>
+  </body>
 </html>
