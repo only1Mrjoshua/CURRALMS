@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard | Progress</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --warning-orange: #f59e0b;
+        --info-blue: #06b6d4;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+        --sidebar-width: 250px;
+        --navbar-height: 70px;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        display: flex;
+        min-height: 100vh;
+        transition: background 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Sidebar Styles */
+      .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(
+          180deg,
+          var(--primary-indigo),
+          var(--secondary-purple),
+          var(--primary-indigo)
+        );
+        color: var(--white);
+        height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+        transform: translateX(0);
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .sidebar-menu {
+        padding: 20px 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .sidebar-menu ul {
+        list-style: none;
+      }
+
+      .sidebar-menu li {
+        margin-bottom: 5px;
+      }
+
+      .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-menu a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .sidebar-menu a:hover::before,
+      .sidebar-menu a.active::before {
+        left: 0;
+      }
+
+      .sidebar-menu a:hover,
+      .sidebar-menu a.active {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .sidebar-menu i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* Hamburger Menu Button */
+      .hamburger-menu {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--white);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .hamburger-menu:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* Navbar Styles */
+      .navbar {
+        background-color: var(--navbar-bg);
+        height: var(--navbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-left h1 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 15px;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .mobile-menu-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .mobile-menu-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .logout-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .logout-btn i {
+        margin-right: 5px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      /* Stats Cards */
+      .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.5rem;
+        color: var(--white);
+      }
+
+      .stat-content {
+        flex: 1;
+      }
+
+      .stat-title {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+      }
+
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+      }
+
+      .stat-description {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .bg-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+
+      .bg-success {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+
+      .bg-warning {
+        background: linear-gradient(135deg, var(--warning-orange), #d97706);
+      }
+
+      .bg-info {
+        background: linear-gradient(135deg, var(--info-blue), #0891b2);
+      }
+
+      .bg-purple {
+        background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+      }
+
+      /* Progress Overview */
+      .progress-overview {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .overview-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .overview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .overview-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .overview-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.85rem;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--skeleton-bg);
+      }
+
+      /* Charts Section */
+      .charts-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .chart-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .chart-container {
+        position: relative;
+        height: 250px;
+      }
+
+      /* Progress Timeline */
+      .timeline-section {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+        margin-bottom: 30px;
+      }
+
+      .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .timeline-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .timeline {
+        position: relative;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      .timeline::after {
+        content: "";
+        position: absolute;
+        width: 4px;
+        background-color: var(--primary-indigo);
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        margin-left: -2px;
+        border-radius: 2px;
+      }
+
+      .timeline-item {
+        padding: 10px 40px;
+        position: relative;
+        width: 50%;
+        box-sizing: border-box;
+      }
+
+      .timeline-item::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: var(--white);
+        border: 4px solid var(--primary-indigo);
+        top: 15px;
+        border-radius: 50%;
+        z-index: 1;
+      }
+
+      .timeline-item.left {
+        left: 0;
+      }
+
+      .timeline-item.right {
+        left: 50%;
+      }
+
+      .timeline-item.left::after {
+        right: -10px;
+      }
+
+      .timeline-item.right::after {
+        left: -10px;
+      }
+
+      .timeline-content {
+        padding: 20px;
+        background-color: var(--skeleton-bg);
+        border-radius: 10px;
+        position: relative;
+      }
+
+      .timeline-date {
+        font-weight: 600;
+        color: var(--primary-indigo);
+        margin-bottom: 5px;
+      }
+
+      .timeline-event {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+      }
+
+      .timeline-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      /* Course Progress */
+      .course-progress-section {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .course-progress-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .course-progress-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      /* Progress Cards */
+      .progress-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+      }
+
+      .progress-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .progress-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .progress-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+      }
+
+      .progress-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+      }
+
+      .progress-card-category {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--white);
+      }
+
+      .progress-card-body {
+        margin-bottom: 15px;
+      }
+
+      .progress-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .progress-stat {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .progress-stat-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 3px;
+      }
+
+      .progress-stat-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .progress-bar-container {
+        height: 8px;
+        background-color: var(--skeleton-bg);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+
+      .progress-bar-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+
+      .progress-bar-success {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+
+      .progress-bar-warning {
+        background: linear-gradient(135deg, var(--warning-orange), #d97706);
+      }
+
+      .progress-bar-info {
+        background: linear-gradient(135deg, var(--info-blue), #0891b2);
+      }
+
+      .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      /* Achievement Badges */
+      .achievements-section {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+        margin-bottom: 30px;
+      }
+
+      .achievements-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .achievements-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .badges-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 20px;
+      }
+
+      .badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .badge-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--white);
+        margin-bottom: 8px;
+        position: relative;
+      }
+
+      .badge-icon.locked {
+        background-color: var(--skeleton-bg);
+        color: var(--text-muted);
+      }
+
+      .badge-icon.unlocked {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+
+      .badge-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .badge-date {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        pointer-events: none;
+      }
+
+      .toast {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-bottom: 10px;
+        border-left: 4px solid;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        pointer-events: all;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.hide {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      .toast-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+      }
+
+      .toast-message {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px;
+      }
+
+      .toast-close:hover {
+        color: var(--text-primary);
+      }
+
+      /* Loading State */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--skeleton-bg);
+        border-top: 4px solid var(--primary-indigo);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--text-muted);
+      }
+
+      /* Colors */
+      .bg-design {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+      .bg-development {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+      .bg-blockchain {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+      .bg-cybersecurity {
+        background: linear-gradient(
+          135deg,
+          var(--accent-purple),
+          var(--secondary-purple)
+        );
+      }
+
+      /* Logout Confirmation Modal Styles */
+      .logout-confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .logout-confirmation-content {
+        background-color: var(--card-bg);
+        margin: 200px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .logout-confirmation-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 20px;
+      }
+
+      .logout-confirmation-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .logout-confirmation-message {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        font-size: 1rem;
+      }
+
+      .logout-confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .confirm-no {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-no:hover {
+        opacity: 0.9;
+      }
+
+      .confirm-yes {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-yes:hover {
+        opacity: 0.9;
+      }
+
+      /* Mobile Responsive Styles */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 280px;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .sidebar-header h2 {
+          display: block;
+        }
+
+        .sidebar-menu span {
+          display: inline;
+        }
+
+        .sidebar-menu a {
+          justify-content: flex-start;
+          padding: 12px 20px;
+        }
+
+        .sidebar-menu i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+        }
+
+        .hamburger-menu {
+          display: block;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+
+        .overlay.active {
+          display: block;
+        }
+
+        .navbar-left h1 {
+          font-size: 1.2rem !important;
+        }
+
+        .progress-overview {
+          grid-template-columns: 1fr;
+        }
+
+        .charts-section {
+          grid-template-columns: 1fr;
+        }
+
+        .timeline::after {
+          left: 31px;
+        }
+
+        .timeline-item {
+          width: 100%;
+          padding-left: 70px;
+          padding-right: 25px;
+        }
+
+        .timeline-item.right {
+          left: 0;
+        }
+
+        .timeline-item.left::after,
+        .timeline-item.right::after {
+          left: 21px;
+        }
+
+        .progress-cards {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .navbar {
+          padding: 0 15px;
+        }
+
+        .user-info span {
+          display: none;
+        }
+
+        .stats-cards {
+          grid-template-columns: 1fr;
+        }
+
+        .page-title {
+          font-size: 1.5rem;
+        }
+
+        .badges-grid {
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 15px;
+        }
+
+        .navbar {
+          padding: 0 10px;
+          margin-bottom: 20px;
+        }
+
+        .navbar-left h1 {
+          font-size: 0.9rem !important;
+          font-weight: 600;
+        }
+
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+        }
+
+        .logout-btn {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+
+        .overview-card,
+        .chart-card,
+        .timeline-section,
+        .achievements-section {
+          padding: 15px;
+        }
+
+        .btn {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+        }
+
+        .progress-card {
+          padding: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>EduStudent</h2>
+        <button class="hamburger-menu" id="hamburgerMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-menu">
+        <ul>
+          <li>
+            <a href="student-dashboard-overview.html"
+              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
+            >
+          </li>
+          <li>
+            <a href="student-courses.html"
+              ><i class="fas fa-book"></i> <span>My Courses</span></a
+            >
+          </li>
+          <li>
+            <a href="student-assignments.html"
+              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
+            >
+          </li>
+          <li>
+            <a href="student-quizzes.html"
+              ><i class="fas fa-question-circle"></i> <span>Quizzes</span></a
+            >
+          </li>
+          <li>
+            <a href="student-lessons.html"
+              ><i class="fas fa-file-alt"></i> <span>Lessons</span></a
+            >
+          </li>
+          <li>
+            <a href="student-grades.html"
+              ><i class="fas fa-chart-bar"></i> <span>Grades</span></a
+            >
+          </li>
+          <li>
+            <a href="student-progress.html" class="active"
+              ><i class="fas fa-trophy"></i> <span>Progress</span></a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Navbar -->
+      <div class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Learning Progress</h1>
+        </div>
+        <div class="navbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <span id="currentUserName">John Doe</span>
+          </div>
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2 class="page-title">My Learning Journey</h2>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon bg-primary">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Overall Progress</div>
+            <div class="stat-value" id="overallProgress">78%</div>
+            <div class="stat-description">Across all courses</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Completed</div>
+            <div class="stat-value" id="completedItems">42</div>
+            <div class="stat-description">Lessons & Assignments</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-warning">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">In Progress</div>
+            <div class="stat-value" id="inProgressItems">15</div>
+            <div class="stat-description">Active items</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-purple">
+            <i class="fas fa-star"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Achievements</div>
+            <div class="stat-value" id="achievementsCount">8</div>
+            <div class="stat-description">Badges earned</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Overview -->
+      <div class="progress-overview">
+        <div class="overview-card">
+          <div class="overview-header">
+            <div class="overview-title">Learning Progress</div>
+            <div class="overview-actions">
+              <button class="btn btn-outline">
+                <i class="fas fa-download"></i> Export
+              </button>
+              <button class="btn btn-primary">
+                <i class="fas fa-sync"></i> Refresh
+              </button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-header">
+            <div class="overview-title">Time Spent</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="timeChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="charts-section">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Weekly Activity</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="activityChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Performance Trend</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline Section -->
+      <div class="timeline-section">
+        <div class="timeline-header">
+          <div class="timeline-title">Learning Timeline</div>
+          <button class="btn btn-outline">
+            <i class="fas fa-filter"></i> Filter
+          </button>
+        </div>
+        <div class="timeline">
+          <div class="timeline-item left">
+            <div class="timeline-content">
+              <div class="timeline-date">Jan 15, 2024</div>
+              <div class="timeline-event">Started UI/UX Design Course</div>
+              <div class="timeline-description">
+                Began learning design fundamentals and principles
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-content">
+              <div class="timeline-date">Jan 22, 2024</div>
+              <div class="timeline-event">Completed First Project</div>
+              <div class="timeline-description">
+                Submitted wireframe project with 92% score
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item left">
+            <div class="timeline-content">
+              <div class="timeline-date">Feb 1, 2024</div>
+              <div class="timeline-event">Earned Quick Learner Badge</div>
+              <div class="timeline-description">
+                Completed 5 lessons in one week
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-content">
+              <div class="timeline-date">Feb 10, 2024</div>
+              <div class="timeline-event">Midterm Exams</div>
+              <div class="timeline-description">
+                Scored 85% average across all courses
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item left">
+            <div class="timeline-content">
+              <div class="timeline-date">Feb 20, 2024</div>
+              <div class="timeline-event">Started Final Projects</div>
+              <div class="timeline-description">
+                Began work on capstone projects for each course
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements Section -->
+      <div class="achievements-section">
+        <div class="achievements-header">
+          <div class="achievements-title">Achievements & Badges</div>
+          <button class="btn btn-outline">
+            <i class="fas fa-award"></i> View All
+          </button>
+        </div>
+        <div class="badges-grid">
+          <div class="badge">
+            <div class="badge-icon unlocked">
+              <i class="fas fa-rocket"></i>
+            </div>
+            <div class="badge-name">Quick Starter</div>
+            <div class="badge-date">Jan 15, 2024</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon unlocked">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="badge-name">Quick Learner</div>
+            <div class="badge-date">Feb 1, 2024</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon unlocked">
+              <i class="fas fa-code"></i>
+            </div>
+            <div class="badge-name">Code Master</div>
+            <div class="badge-date">Jan 28, 2024</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon unlocked">
+              <i class="fas fa-palette"></i>
+            </div>
+            <div class="badge-name">Design Pro</div>
+            <div class="badge-date">Feb 5, 2024</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon unlocked">
+              <i class="fas fa-tasks"></i>
+            </div>
+            <div class="badge-name">Task Master</div>
+            <div class="badge-date">Jan 25, 2024</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon locked">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="badge-name">Course Complete</div>
+            <div class="badge-date">Locked</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon locked">
+              <i class="fas fa-star"></i>
+            </div>
+            <div class="badge-name">Perfect Score</div>
+            <div class="badge-date">Locked</div>
+          </div>
+          <div class="badge">
+            <div class="badge-icon locked">
+              <i class="fas fa-infinity"></i>
+            </div>
+            <div class="badge-name">Marathon Runner</div>
+            <div class="badge-date">Locked</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Progress Section -->
+      <div class="course-progress-section">
+        <div class="course-progress-header">
+          <div class="course-progress-title">Course Progress Details</div>
+          <button class="btn btn-outline">
+            <i class="fas fa-sort"></i> Sort
+          </button>
+        </div>
+        <div class="progress-cards" id="progressCards">
+          <!-- Progress cards will be populated here by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-confirmation-modal" id="logoutConfirmationModal">
+      <div class="logout-confirmation-content">
+        <div class="logout-confirmation-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3 class="logout-confirmation-title">Confirm Logout</h3>
+        <p class="logout-confirmation-message">
+          Are you sure you want to logout? You will need to sign in again to
+          access the dashboard.
+        </p>
+        <div class="logout-confirmation-actions">
+          <button class="confirm-no" id="confirmNo">No, Cancel</button>
+          <button class="confirm-yes" id="confirmYes">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mobile Sidebar Toggle Functionality
+      const sidebar = document.getElementById("sidebar");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const hamburgerMenu = document.getElementById("hamburgerMenu");
+      const overlay = document.getElementById("overlay");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+
+      mobileMenuBtn.addEventListener("click", toggleSidebar);
+      hamburgerMenu.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme Management
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      const getApiBaseUrl = () => {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
+        }
+        // For production (Render), use relative path (same domain)
+        return "";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.style.cssText = `
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
+
+        // Set border color based on type
+        const colors = {
+          success: "var(--success-green)",
+          info: "var(--primary-indigo)",
+          warning: "var(--accent-purple)",
+          error: "var(--error-red)",
+        };
+        toast.style.borderLeftColor = colors[type] || colors.info;
+
+        const icons = {
+          success: "fas fa-check",
+          info: "fas fa-info-circle",
+          warning: "fas fa-exclamation-triangle",
+          error: "fas fa-exclamation-circle",
+        };
+
+        toast.innerHTML = `
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateX(0)";
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Function to load and display current user info
+      function loadCurrentUserInfo() {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          try {
+            // Decode the JWT token to get user information
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Get email from token (adjust the property name based on your token structure)
+            const userEmail = payload.email || payload.sub || "User";
+
+            // Update the UI with user's email
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = userEmail;
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = getInitials(userEmail);
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+            // Fallback to default
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = "User";
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = "U";
+            }
+          }
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // Global variables
+      let progressChart = null;
+      let timeChart = null;
+      let activityChart = null;
+      let performanceChart = null;
+
+      // Logout Confirmation Elements
+      const logoutBtn = document.getElementById("logoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view progress",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        // Logout Confirmation Functionality
+        logoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 500);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
+      }
+
+      // Load progress data
+      async function loadProgressData() {
+        try {
+          console.log("📊 Loading progress data...");
+
+          // Generate mock progress data
+          const mockProgressData = await generateMockProgressData();
+
+          // Update stats
+          updateProgressStats(mockProgressData);
+
+          // Render progress cards
+          renderProgressCards(mockProgressData.courses);
+
+          // Initialize charts
+          initializeCharts(mockProgressData);
+        } catch (error) {
+          console.error("❌ Error loading progress data:", error);
+          showToast(
+            "error",
+            "Load Error",
+            "Failed to load progress data. Please try again.",
+            5000
+          );
+        }
+      }
+
+      // Generate mock progress data
+      async function generateMockProgressData() {
+        return {
+          overallProgress: 78,
+          completedItems: 42,
+          inProgressItems: 15,
+          achievementsCount: 5,
+          courses: [
+            {
+              id: "1",
+              title: "UI/UX Design Fundamentals",
+              category: "Design",
+              progress: 85,
+              completedLessons: 17,
+              totalLessons: 20,
+              assignmentsCompleted: 8,
+              totalAssignments: 10,
+              averageGrade: 88,
+              lastActivity: "2024-02-15",
+            },
+            {
+              id: "2",
+              title: "Web Development Bootcamp",
+              category: "Development",
+              progress: 72,
+              completedLessons: 18,
+              totalLessons: 25,
+              assignmentsCompleted: 6,
+              totalAssignments: 8,
+              averageGrade: 92,
+              lastActivity: "2024-02-14",
+            },
+            {
+              id: "3",
+              title: "Blockchain Fundamentals",
+              category: "Blockchain",
+              progress: 65,
+              completedLessons: 13,
+              totalLessons: 20,
+              assignmentsCompleted: 5,
+              totalAssignments: 7,
+              averageGrade: 84,
+              lastActivity: "2024-02-12",
+            },
+            {
+              id: "4",
+              title: "Cyber Security Essentials",
+              category: "Cyber Security",
+              progress: 90,
+              completedLessons: 18,
+              totalLessons: 20,
+              assignmentsCompleted: 9,
+              totalAssignments: 10,
+              averageGrade: 86,
+              lastActivity: "2024-02-16",
+            },
+          ],
+          weeklyActivity: [12, 8, 15, 10, 18, 14, 9],
+          performanceTrend: [75, 78, 82, 80, 85, 88, 90],
+          timeSpent: {
+            design: 25,
+            development: 35,
+            blockchain: 20,
+            cybersecurity: 20,
+          },
+        };
+      }
+
+      // Update progress statistics
+      function updateProgressStats(data) {
+        document.getElementById(
+          "overallProgress"
+        ).textContent = `${data.overallProgress}%`;
+        document.getElementById("completedItems").textContent =
+          data.completedItems;
+        document.getElementById("inProgressItems").textContent =
+          data.inProgressItems;
+        document.getElementById("achievementsCount").textContent =
+          data.achievementsCount;
+      }
+
+      // Render progress cards
+      function renderProgressCards(courses) {
+        const progressCards = document.getElementById("progressCards");
+        progressCards.innerHTML = "";
+
+        courses.forEach((course) => {
+          const card = document.createElement("div");
+          card.className = "progress-card";
+
+          // Determine progress bar class based on progress percentage
+          let progressBarClass = "progress-bar-primary";
+          if (course.progress >= 90) progressBarClass = "progress-bar-success";
+          else if (course.progress >= 70)
+            progressBarClass = "progress-bar-info";
+          else if (course.progress < 60)
+            progressBarClass = "progress-bar-warning";
+
+          // Format category
+          const categoryClass = getCategoryClass(course.category);
+
+          card.innerHTML = `
+            <div class="progress-card-header">
+              <div>
+                <div class="progress-card-title">${course.title}</div>
+                <span class="progress-card-category ${categoryClass}">${
+            course.category
+          }</span>
+              </div>
+              <div class="progress-stat-value">${course.progress}%</div>
+            </div>
+            <div class="progress-card-body">
+              <div class="progress-stats">
+                <div class="progress-stat">
+                  <div class="progress-stat-label">Lessons</div>
+                  <div class="progress-stat-value">${course.completedLessons}/${
+            course.totalLessons
+          }</div>
+                </div>
+                <div class="progress-stat">
+                  <div class="progress-stat-label">Assignments</div>
+                  <div class="progress-stat-value">${
+                    course.assignmentsCompleted
+                  }/${course.totalAssignments}</div>
+                </div>
+                <div class="progress-stat">
+                  <div class="progress-stat-label">Avg Grade</div>
+                  <div class="progress-stat-value">${course.averageGrade}%</div>
+                </div>
+                <div class="progress-stat">
+                  <div class="progress-stat-label">Last Active</div>
+                  <div class="progress-stat-value">${formatDate(
+                    course.lastActivity
+                  )}</div>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar ${progressBarClass}" style="width: ${
+            course.progress
+          }%"></div>
+              </div>
+              <div class="progress-labels">
+                <span>0%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          `;
+
+          progressCards.appendChild(card);
+        });
+      }
+
+      // Initialize charts
+      function initializeCharts(data) {
+        // Progress Chart (Doughnut)
+        const progressCtx = document
+          .getElementById("progressChart")
+          .getContext("2d");
+
+        if (progressChart) {
+          progressChart.destroy();
+        }
+
+        progressChart = new Chart(progressCtx, {
+          type: "doughnut",
+          data: {
+            labels: ["Completed", "In Progress", "Not Started"],
+            datasets: [
+              {
+                data: [
+                  data.overallProgress,
+                  15,
+                  100 - data.overallProgress - 15,
+                ],
+                backgroundColor: [
+                  "rgba(16, 185, 129, 0.7)",
+                  "rgba(6, 182, 212, 0.7)",
+                  "rgba(107, 114, 128, 0.7)",
+                ],
+                borderColor: [
+                  "rgb(16, 185, 129)",
+                  "rgb(6, 182, 212)",
+                  "rgb(107, 114, 128)",
+                ],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+            },
+          },
+        });
+
+        // Time Spent Chart (Pie)
+        const timeCtx = document.getElementById("timeChart").getContext("2d");
+
+        if (timeChart) {
+          timeChart.destroy();
+        }
+
+        timeChart = new Chart(timeCtx, {
+          type: "pie",
+          data: {
+            labels: ["Design", "Development", "Blockchain", "Cyber Security"],
+            datasets: [
+              {
+                data: [
+                  data.timeSpent.design,
+                  data.timeSpent.development,
+                  data.timeSpent.blockchain,
+                  data.timeSpent.cybersecurity,
+                ],
+                backgroundColor: [
+                  "rgba(99, 102, 241, 0.7)",
+                  "rgba(139, 92, 246, 0.7)",
+                  "rgba(16, 185, 129, 0.7)",
+                  "rgba(6, 182, 212, 0.7)",
+                ],
+                borderColor: [
+                  "rgb(99, 102, 241)",
+                  "rgb(139, 92, 246)",
+                  "rgb(16, 185, 129)",
+                  "rgb(6, 182, 212)",
+                ],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+            },
+          },
+        });
+
+        // Activity Chart (Line)
+        const activityCtx = document
+          .getElementById("activityChart")
+          .getContext("2d");
+
+        if (activityChart) {
+          activityChart.destroy();
+        }
+
+        activityChart = new Chart(activityCtx, {
+          type: "line",
+          data: {
+            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            datasets: [
+              {
+                label: "Learning Hours",
+                data: data.weeklyActivity,
+                borderColor: "rgb(99, 102, 241)",
+                backgroundColor: "rgba(99, 102, 241, 0.1)",
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Hours",
+                },
+              },
+            },
+          },
+        });
+
+        // Performance Chart (Line)
+        const performanceCtx = document
+          .getElementById("performanceChart")
+          .getContext("2d");
+
+        if (performanceChart) {
+          performanceChart.destroy();
+        }
+
+        performanceChart = new Chart(performanceCtx, {
+          type: "line",
+          data: {
+            labels: [
+              "Week 1",
+              "Week 2",
+              "Week 3",
+              "Week 4",
+              "Week 5",
+              "Week 6",
+              "Week 7",
+            ],
+            datasets: [
+              {
+                label: "Average Score",
+                data: data.performanceTrend,
+                borderColor: "rgb(16, 185, 129)",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                min: 70,
+                max: 100,
+                title: {
+                  display: true,
+                  text: "Score %",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Helper functions
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function getCategoryClass(category) {
+        const classMap = {
+          design: "bg-design",
+          development: "bg-development",
+          blockchain: "bg-blockchain",
+          cybersecurity: "bg-cybersecurity",
+          "Cyber Security": "bg-cybersecurity",
+        };
+
+        return classMap[category] || "bg-design";
+      }
+
+      // Event Listeners Setup
+      function setupEventListeners() {
+        console.log("🔧 Setting up event listeners...");
+
+        // Add active class to clicked sidebar items
+        const sidebarItems = document.querySelectorAll(".sidebar-menu a");
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            // Close sidebar on mobile after clicking a link
+            if (window.innerWidth <= 992) {
+              toggleSidebar();
+            }
+          });
+        });
+
+        // Refresh button functionality
+        const refreshBtn = document.querySelector(".btn-primary");
+        if (refreshBtn) {
+          refreshBtn.addEventListener("click", function () {
+            showToast("info", "Refreshing", "Updating progress data...", 2000);
+            setTimeout(() => {
+              loadProgressData();
+              showToast(
+                "success",
+                "Updated",
+                "Progress data refreshed successfully",
+                3000
+              );
+            }, 1500);
+          });
+        }
+
+        console.log("✅ Event listeners setup completed");
+      }
+
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🚀 Student Progress page initializing...");
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Load current user info first
+        loadCurrentUserInfo();
+
+        // Check authentication first
+        if (!checkAuthentication()) {
+          return;
+        }
+
+        // Load progress data
+        await loadProgressData();
+        setupEventListeners();
+
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+      });
+    </script>
+  </body>
+</html>

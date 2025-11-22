@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard | Grades</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+        --warning-orange: #f59e0b;
+        --info-blue: #06b6d4;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+        --sidebar-width: 250px;
+        --navbar-height: 70px;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        display: flex;
+        min-height: 100vh;
+        transition: background 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Sidebar Styles */
+      .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(
+          180deg,
+          var(--primary-indigo),
+          var(--secondary-purple),
+          var(--primary-indigo)
+        );
+        color: var(--white);
+        height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+        transform: translateX(0);
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .sidebar-menu {
+        padding: 20px 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .sidebar-menu ul {
+        list-style: none;
+      }
+
+      .sidebar-menu li {
+        margin-bottom: 5px;
+      }
+
+      .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-menu a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .sidebar-menu a:hover::before,
+      .sidebar-menu a.active::before {
+        left: 0;
+      }
+
+      .sidebar-menu a:hover,
+      .sidebar-menu a.active {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .sidebar-menu i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* Hamburger Menu Button */
+      .hamburger-menu {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--white);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .hamburger-menu:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* Navbar Styles */
+      .navbar {
+        background-color: var(--navbar-bg);
+        height: var(--navbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-left h1 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 15px;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .mobile-menu-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .mobile-menu-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .logout-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .logout-btn i {
+        margin-right: 5px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      /* Stats Cards */
+      .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.5rem;
+        color: var(--white);
+      }
+
+      .stat-content {
+        flex: 1;
+      }
+
+      .stat-title {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+      }
+
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+      }
+
+      .stat-description {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .bg-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+
+      .bg-success {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+
+      .bg-warning {
+        background: linear-gradient(135deg, var(--warning-orange), #d97706);
+      }
+
+      .bg-info {
+        background: linear-gradient(135deg, var(--info-blue), #0891b2);
+      }
+
+      .bg-purple {
+        background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+      }
+
+      /* Filters Section */
+      .filters {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+      }
+
+      .filter-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      /* Charts Section */
+      .charts-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .chart-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .chart-container {
+        position: relative;
+        height: 300px;
+      }
+
+      /* Grades Container */
+      .grades-container {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .grades-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .grades-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .grades-count {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      /* Grades Table */
+      .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .grades-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+      }
+
+      .grades-table th {
+        background-color: var(--skeleton-bg);
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+
+      .grades-table td {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+
+      .grades-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .grades-table tr:hover {
+        background-color: var(--skeleton-bg);
+      }
+
+      .course-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--text-primary);
+      }
+
+      .course-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .grade-score {
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+
+      .grade-excellent {
+        color: var(--success-green);
+      }
+
+      .grade-good {
+        color: var(--info-blue);
+      }
+
+      .grade-average {
+        color: var(--warning-orange);
+      }
+
+      .grade-poor {
+        color: var(--error-red);
+      }
+
+      .grade-status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .status-passed {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success-green);
+      }
+
+      .status-failed {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--error-red);
+      }
+
+      .status-pending {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: var(--warning-orange);
+      }
+
+      .grade-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+        font-size: 1rem;
+      }
+
+      .action-btn:hover {
+        color: var(--primary-indigo);
+      }
+
+      .btn-download:hover {
+        color: var(--success-green);
+      }
+
+      .btn-view:hover {
+        color: var(--info-blue);
+      }
+
+      /* Progress Section */
+      .progress-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .progress-card {
+        background-color: var(--card-bg);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--card-shadow);
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .progress-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .progress-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .progress-bar-container {
+        height: 8px;
+        background-color: var(--skeleton-bg);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+
+      .progress-bar-excellent {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+
+      .progress-bar-good {
+        background: linear-gradient(135deg, var(--info-blue), #0891b2);
+      }
+
+      .progress-bar-average {
+        background: linear-gradient(135deg, var(--warning-orange), #d97706);
+      }
+
+      .progress-bar-poor {
+        background: linear-gradient(135deg, var(--error-red), #dc2626);
+      }
+
+      .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        pointer-events: none;
+      }
+
+      .toast {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-bottom: 10px;
+        border-left: 4px solid;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        pointer-events: all;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.hide {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      .toast-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+      }
+
+      .toast-message {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px;
+      }
+
+      .toast-close:hover {
+        color: var(--text-primary);
+      }
+
+      /* Loading State */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--skeleton-bg);
+        border-top: 4px solid var(--primary-indigo);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--text-muted);
+      }
+
+      /* Logout Confirmation Modal Styles */
+      .logout-confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .logout-confirmation-content {
+        background-color: var(--card-bg);
+        margin: 200px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .logout-confirmation-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 20px;
+      }
+
+      .logout-confirmation-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .logout-confirmation-message {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        font-size: 1rem;
+      }
+
+      .logout-confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .confirm-no {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-no:hover {
+        opacity: 0.9;
+      }
+
+      .confirm-yes {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-yes:hover {
+        opacity: 0.9;
+      }
+
+      /* Mobile Responsive Styles */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 280px;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .sidebar-header h2 {
+          display: block;
+        }
+
+        .sidebar-menu span {
+          display: inline;
+        }
+
+        .sidebar-menu a {
+          justify-content: flex-start;
+          padding: 12px 20px;
+        }
+
+        .sidebar-menu i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+        }
+
+        .hamburger-menu {
+          display: block;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+
+        .overlay.active {
+          display: block;
+        }
+
+        .navbar-left h1 {
+          font-size: 1.2rem !important;
+        }
+
+        .charts-section {
+          grid-template-columns: 1fr;
+        }
+
+        .progress-section {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .navbar {
+          padding: 0 15px;
+        }
+
+        .user-info span {
+          display: none;
+        }
+
+        .filter-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .stats-cards {
+          grid-template-columns: 1fr;
+        }
+
+        .page-title {
+          font-size: 1.5rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 15px;
+        }
+
+        .navbar {
+          padding: 0 10px;
+          margin-bottom: 20px;
+        }
+
+        .navbar-left h1 {
+          font-size: 0.9rem !important;
+          font-weight: 600;
+        }
+
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+        }
+
+        .logout-btn {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+
+        .filters {
+          padding: 12px;
+        }
+
+        .grades-header {
+          padding: 12px;
+        }
+
+        .grades-table th,
+        .grades-table td {
+          padding: 12px 10px;
+        }
+
+        .chart-card,
+        .progress-card {
+          padding: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>EduStudent</h2>
+        <button class="hamburger-menu" id="hamburgerMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-menu">
+        <ul>
+          <li>
+            <a href="student-dashboard-overview.html"
+              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
+            >
+          </li>
+          <li>
+            <a href="student-courses.html"
+              ><i class="fas fa-book"></i> <span>My Courses</span></a
+            >
+          </li>
+          <li>
+            <a href="student-assignments.html"
+              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
+            >
+          </li>
+          <li>
+            <a href="student-quiz.html"
+              ><i class="fas fa-question-circle"></i> <span>Quizzes</span></a
+            >
+          </li>
+          <li>
+            <a href="student-lessons.html"
+              ><i class="fas fa-file-alt"></i> <span>Lessons</span></a
+            >
+          </li>
+          <li>
+            <a href="student-grades.html" class="active"
+              ><i class="fas fa-chart-bar"></i> <span>Grades</span></a
+            >
+          </li>
+          <li>
+            <a href="student-progress.html"
+              ><i class="fas fa-trophy"></i> <span>Progress</span></a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Navbar -->
+      <div class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Academic Performance</h1>
+        </div>
+        <div class="navbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <span id="currentUserName">John Doe</span>
+          </div>
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2 class="page-title">My Grades & Performance</h2>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-icon bg-primary">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Overall GPA</div>
+            <div class="stat-value" id="overallGPA">3.75</div>
+            <div class="stat-description">Out of 4.0 scale</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Completed Courses</div>
+            <div class="stat-value" id="completedCourses">8</div>
+            <div class="stat-description">Out of 12 total</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-warning">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Average Grade</div>
+            <div class="stat-value" id="averageGrade">87%</div>
+            <div class="stat-description">Across all courses</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon bg-purple">
+            <i class="fas fa-trend-up"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-title">Performance Trend</div>
+            <div class="stat-value" id="performanceTrend">+5.2%</div>
+            <div class="stat-description">Since last semester</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="charts-section">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Grade Distribution</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="gradeDistributionChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Performance by Category</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Section -->
+      <div class="progress-section">
+        <div class="progress-card">
+          <div class="progress-header">
+            <div class="progress-title">Assignments Completion</div>
+            <div class="progress-value">85%</div>
+          </div>
+          <div class="progress-bar-container">
+            <div
+              class="progress-bar progress-bar-good"
+              style="width: 85%"
+            ></div>
+          </div>
+          <div class="progress-labels">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <div class="progress-card">
+          <div class="progress-header">
+            <div class="progress-title">Quiz Performance</div>
+            <div class="progress-value">92%</div>
+          </div>
+          <div class="progress-bar-container">
+            <div
+              class="progress-bar progress-bar-excellent"
+              style="width: 92%"
+            ></div>
+          </div>
+          <div class="progress-labels">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <div class="progress-card">
+          <div class="progress-header">
+            <div class="progress-title">Final Exams</div>
+            <div class="progress-value">78%</div>
+          </div>
+          <div class="progress-bar-container">
+            <div
+              class="progress-bar progress-bar-average"
+              style="width: 78%"
+            ></div>
+          </div>
+          <div class="progress-labels">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters Section -->
+      <div class="filters">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label" for="courseFilter">Course</label>
+            <select id="courseFilter" class="filter-select">
+              <option value="">All Courses</option>
+              <option value="ui-ux">UI/UX Design</option>
+              <option value="web-dev">Web Development</option>
+              <option value="blockchain">Blockchain Fundamentals</option>
+              <option value="cybersecurity">Cyber Security</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="semesterFilter">Semester</label>
+            <select id="semesterFilter" class="filter-select">
+              <option value="">All Semesters</option>
+              <option value="fall-2023">Fall 2023</option>
+              <option value="spring-2024">Spring 2024</option>
+              <option value="summer-2024">Summer 2024</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="typeFilter">Grade Type</label>
+            <select id="typeFilter" class="filter-select">
+              <option value="">All Types</option>
+              <option value="assignment">Assignments</option>
+              <option value="quiz">Quizzes</option>
+              <option value="exam">Exams</option>
+              <option value="project">Projects</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="statusFilter">Status</label>
+            <select id="statusFilter" class="filter-select">
+              <option value="">All Status</option>
+              <option value="passed">Passed</option>
+              <option value="failed">Failed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grades Container -->
+      <div class="grades-container">
+        <div class="grades-header">
+          <div class="grades-title">Grade Details</div>
+          <div class="grades-count" id="gradesCount">Loading grades...</div>
+        </div>
+        <div id="gradesTableContainer">
+          <div class="loading-state" id="loadingState">
+            <div class="loading-spinner"></div>
+            <p>Loading grades...</p>
+          </div>
+          <div class="table-container">
+            <table class="grades-table" id="gradesTable" style="display: none">
+              <thead>
+                <tr>
+                  <th>Course & Assignment</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Score</th>
+                  <th>Grade</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="gradesTableBody">
+                <!-- Grades will be populated here by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="emptyState" style="display: none">
+            <i class="fas fa-chart-bar"></i>
+            <h3>No Grades Available</h3>
+            <p>There are no grades recorded for you at the moment.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-confirmation-modal" id="logoutConfirmationModal">
+      <div class="logout-confirmation-content">
+        <div class="logout-confirmation-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3 class="logout-confirmation-title">Confirm Logout</h3>
+        <p class="logout-confirmation-message">
+          Are you sure you want to logout? You will need to sign in again to
+          access the dashboard.
+        </p>
+        <div class="logout-confirmation-actions">
+          <button class="confirm-no" id="confirmNo">No, Cancel</button>
+          <button class="confirm-yes" id="confirmYes">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mobile Sidebar Toggle Functionality
+      const sidebar = document.getElementById("sidebar");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const hamburgerMenu = document.getElementById("hamburgerMenu");
+      const overlay = document.getElementById("overlay");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+
+      mobileMenuBtn.addEventListener("click", toggleSidebar);
+      hamburgerMenu.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme Management
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      const getApiBaseUrl = () => {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
+        }
+        // For production (Render), use relative path (same domain)
+        return "";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.style.cssText = `
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
+
+        // Set border color based on type
+        const colors = {
+          success: "var(--success-green)",
+          info: "var(--primary-indigo)",
+          warning: "var(--accent-purple)",
+          error: "var(--error-red)",
+        };
+        toast.style.borderLeftColor = colors[type] || colors.info;
+
+        const icons = {
+          success: "fas fa-check",
+          info: "fas fa-info-circle",
+          warning: "fas fa-exclamation-triangle",
+          error: "fas fa-exclamation-circle",
+        };
+
+        toast.innerHTML = `
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateX(0)";
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Function to load and display current user info
+      function loadCurrentUserInfo() {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          try {
+            // Decode the JWT token to get user information
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Get email from token (adjust the property name based on your token structure)
+            const userEmail = payload.email || payload.sub || "User";
+
+            // Update the UI with user's email
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = userEmail;
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = getInitials(userEmail);
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+            // Fallback to default
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = "User";
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = "U";
+            }
+          }
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // Global variables
+      let allGrades = [];
+      let gradeDistributionChart = null;
+      let performanceChart = null;
+
+      // UI Elements
+      const gradesTable = document.getElementById("gradesTable");
+      const gradesTableBody = document.getElementById("gradesTableBody");
+      const gradesCount = document.getElementById("gradesCount");
+      const loadingState = document.getElementById("loadingState");
+      const emptyState = document.getElementById("emptyState");
+
+      // Logout Confirmation Elements
+      const logoutBtn = document.getElementById("logoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view grades",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        // Logout Confirmation Functionality
+        logoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 500);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
+      }
+
+      // Load grades from API
+      async function loadGrades() {
+        try {
+          showLoadingState();
+
+          console.log(
+            "📊 Fetching grades from:",
+            `${API_BASE_URL}/grades/student`
+          );
+
+          // In a real application, you would fetch from your grades API
+          // For now, we'll use mock data
+          const mockGrades = await generateMockGrades();
+          allGrades = mockGrades;
+
+          console.log(`✅ Loaded ${allGrades.length} grades`);
+
+          // Update stats
+          updateGradeStats();
+
+          // Render grades table
+          renderGrades();
+
+          // Initialize charts
+          initializeCharts();
+        } catch (error) {
+          console.error("❌ Error loading grades:", error);
+          showEmptyState();
+          showToast(
+            "error",
+            "Load Error",
+            "Failed to load grades. Please try again.",
+            5000
+          );
+        }
+      }
+
+      // Generate mock grades data
+      async function generateMockGrades() {
+        return [
+          {
+            id: "1",
+            course: "UI/UX Design",
+            assignment: "Wireframe Project",
+            type: "project",
+            date: "2024-01-15",
+            score: 92,
+            maxScore: 100,
+            grade: "A",
+            status: "passed",
+            category: "Design",
+          },
+          {
+            id: "2",
+            course: "Web Development",
+            assignment: "JavaScript Quiz",
+            type: "quiz",
+            date: "2024-01-20",
+            score: 88,
+            maxScore: 100,
+            grade: "B+",
+            status: "passed",
+            category: "Development",
+          },
+          {
+            id: "3",
+            course: "Blockchain Fundamentals",
+            assignment: "Smart Contract Assignment",
+            type: "assignment",
+            date: "2024-01-25",
+            score: 95,
+            maxScore: 100,
+            grade: "A",
+            status: "passed",
+            category: "Blockchain",
+          },
+          {
+            id: "4",
+            course: "Cyber Security",
+            assignment: "Midterm Exam",
+            type: "exam",
+            date: "2024-02-01",
+            score: 78,
+            maxScore: 100,
+            grade: "C+",
+            status: "passed",
+            category: "Cyber Security",
+          },
+          {
+            id: "5",
+            course: "UI/UX Design",
+            assignment: "Prototype Development",
+            type: "project",
+            date: "2024-02-10",
+            score: 85,
+            maxScore: 100,
+            grade: "B",
+            status: "passed",
+            category: "Design",
+          },
+          {
+            id: "6",
+            course: "Web Development",
+            assignment: "React Final Project",
+            type: "project",
+            date: "2024-02-15",
+            score: 96,
+            maxScore: 100,
+            grade: "A",
+            status: "passed",
+            category: "Development",
+          },
+          {
+            id: "7",
+            course: "Blockchain Fundamentals",
+            assignment: "Final Exam",
+            type: "exam",
+            date: "2024-02-20",
+            score: 82,
+            maxScore: 100,
+            grade: "B-",
+            status: "passed",
+            category: "Blockchain",
+          },
+          {
+            id: "8",
+            course: "Cyber Security",
+            assignment: "Security Audit Report",
+            type: "assignment",
+            date: "2024-02-25",
+            score: 90,
+            maxScore: 100,
+            grade: "A-",
+            status: "passed",
+            category: "Cyber Security",
+          },
+        ];
+      }
+
+      // Update grade statistics
+      function updateGradeStats() {
+        // Calculate average grade
+        const totalScore = allGrades.reduce(
+          (sum, grade) => sum + grade.score,
+          0
+        );
+        const averageScore =
+          allGrades.length > 0 ? Math.round(totalScore / allGrades.length) : 0;
+        document.getElementById(
+          "averageGrade"
+        ).textContent = `${averageScore}%`;
+
+        // Calculate GPA (simplified)
+        const gradePoints = allGrades.map((grade) => {
+          switch (grade.grade) {
+            case "A":
+              return 4.0;
+            case "A-":
+              return 3.7;
+            case "B+":
+              return 3.3;
+            case "B":
+              return 3.0;
+            case "B-":
+              return 2.7;
+            case "C+":
+              return 2.3;
+            case "C":
+              return 2.0;
+            case "C-":
+              return 1.7;
+            case "D":
+              return 1.0;
+            default:
+              return 0.0;
+          }
+        });
+
+        const gpa =
+          gradePoints.length > 0
+            ? (
+                gradePoints.reduce((sum, point) => sum + point, 0) /
+                gradePoints.length
+              ).toFixed(2)
+            : "0.00";
+        document.getElementById("overallGPA").textContent = gpa;
+      }
+
+      // Render grades to the table
+      function renderGrades() {
+        if (!allGrades || allGrades.length === 0) {
+          showEmptyState();
+          return;
+        }
+
+        gradesTableBody.innerHTML = "";
+
+        allGrades.forEach((grade) => {
+          const row = document.createElement("tr");
+
+          // Format date
+          const formattedDate = new Date(grade.date).toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            }
+          );
+
+          // Determine grade class based on score
+          let gradeClass = "grade-average";
+          if (grade.score >= 90) gradeClass = "grade-excellent";
+          else if (grade.score >= 80) gradeClass = "grade-good";
+          else if (grade.score < 70) gradeClass = "grade-poor";
+
+          // Status badge
+          const statusClass = `status-${grade.status}`;
+          const statusText =
+            grade.status.charAt(0).toUpperCase() + grade.status.slice(1);
+
+          row.innerHTML = `
+            <td>
+              <div class="course-title">${grade.course}</div>
+              <div class="course-meta">${grade.assignment}</div>
+            </td>
+            <td>
+              <span class="grade-status status-${grade.type}">${grade.type}</span>
+            </td>
+            <td>${formattedDate}</td>
+            <td>
+              <div class="grade-score ${gradeClass}">${grade.score}%</div>
+              <div class="course-meta">out of ${grade.maxScore}%</div>
+            </td>
+            <td>
+              <div class="grade-score ${gradeClass}">${grade.grade}</div>
+            </td>
+            <td>
+              <span class="grade-status ${statusClass}">${statusText}</span>
+            </td>
+            <td>
+              <div class="grade-actions">
+                <button class="action-btn btn-view" data-id="${grade.id}" title="View Details">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn btn-download" data-id="${grade.id}" title="Download Report">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </td>
+          `;
+
+          gradesTableBody.appendChild(row);
+        });
+
+        // Update grades count
+        gradesCount.textContent = `Showing ${allGrades.length} of ${allGrades.length} grades`;
+
+        // Show the table
+        hideLoadingState();
+        gradesTable.style.display = "table";
+        emptyState.style.display = "none";
+
+        // Re-attach event listeners to the new buttons
+        attachGradeButtonListeners();
+      }
+
+      // Attach event listeners to grade buttons
+      function attachGradeButtonListeners() {
+        // View grade buttons
+        document.querySelectorAll(".btn-view").forEach((button) => {
+          button.addEventListener("click", function () {
+            const gradeId = this.getAttribute("data-id");
+            const grade = allGrades.find((g) => g.id === gradeId);
+
+            if (grade) {
+              showGradeDetails(grade);
+            }
+          });
+        });
+
+        // Download grade buttons
+        document.querySelectorAll(".btn-download").forEach((button) => {
+          button.addEventListener("click", function () {
+            const gradeId = this.getAttribute("data-id");
+            showToast(
+              "info",
+              "Download Started",
+              "Grade report download has started",
+              3000
+            );
+            // In a real application, this would trigger a file download
+          });
+        });
+      }
+
+      // Show grade details
+      function showGradeDetails(grade) {
+        // Format a detailed message
+        const details = `
+          Course: ${grade.course}
+          Assignment: ${grade.assignment}
+          Type: ${grade.type}
+          Date: ${new Date(grade.date).toLocaleDateString()}
+          Score: ${grade.score}% / ${grade.maxScore}%
+          Grade: ${grade.grade}
+          Status: ${grade.status}
+        `;
+
+        showToast("info", "Grade Details", details, 5000);
+      }
+
+      // Initialize charts
+      function initializeCharts() {
+        // Grade Distribution Chart
+        const gradeDistributionCtx = document
+          .getElementById("gradeDistributionChart")
+          .getContext("2d");
+
+        // Destroy existing chart if it exists
+        if (gradeDistributionChart) {
+          gradeDistributionChart.destroy();
+        }
+
+        gradeDistributionChart = new Chart(gradeDistributionCtx, {
+          type: "bar",
+          data: {
+            labels: ["A", "B", "C", "D", "F"],
+            datasets: [
+              {
+                label: "Number of Grades",
+                data: [3, 2, 2, 1, 0],
+                backgroundColor: [
+                  "rgba(16, 185, 129, 0.7)",
+                  "rgba(6, 182, 212, 0.7)",
+                  "rgba(245, 158, 11, 0.7)",
+                  "rgba(239, 68, 68, 0.7)",
+                  "rgba(107, 114, 128, 0.7)",
+                ],
+                borderColor: [
+                  "rgb(16, 185, 129)",
+                  "rgb(6, 182, 212)",
+                  "rgb(245, 158, 11)",
+                  "rgb(239, 68, 68)",
+                  "rgb(107, 114, 128)",
+                ],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return `${context.parsed.y} grades`;
+                  },
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                },
+              },
+            },
+          },
+        });
+
+        // Performance by Category Chart
+        const performanceCtx = document
+          .getElementById("performanceChart")
+          .getContext("2d");
+
+        // Destroy existing chart if it exists
+        if (performanceChart) {
+          performanceChart.destroy();
+        }
+
+        performanceChart = new Chart(performanceCtx, {
+          type: "doughnut",
+          data: {
+            labels: ["Design", "Development", "Blockchain", "Cyber Security"],
+            datasets: [
+              {
+                data: [88.5, 92, 88.5, 84],
+                backgroundColor: [
+                  "rgba(99, 102, 241, 0.7)",
+                  "rgba(139, 92, 246, 0.7)",
+                  "rgba(16, 185, 129, 0.7)",
+                  "rgba(6, 182, 212, 0.7)",
+                ],
+                borderColor: [
+                  "rgb(99, 102, 241)",
+                  "rgb(139, 92, 246)",
+                  "rgb(16, 185, 129)",
+                  "rgb(6, 182, 212)",
+                ],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return `${context.label}: ${context.parsed}%`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // UI State Management
+      function showLoadingState() {
+        loadingState.style.display = "flex";
+        gradesTable.style.display = "none";
+        emptyState.style.display = "none";
+        gradesCount.textContent = "Loading grades...";
+      }
+
+      function hideLoadingState() {
+        loadingState.style.display = "none";
+      }
+
+      function showEmptyState() {
+        loadingState.style.display = "none";
+        gradesTable.style.display = "none";
+        emptyState.style.display = "flex";
+        gradesCount.textContent = "No grades found";
+      }
+
+      // Event Listeners Setup
+      function setupEventListeners() {
+        console.log("🔧 Setting up event listeners...");
+
+        // Add active class to clicked sidebar items
+        const sidebarItems = document.querySelectorAll(".sidebar-menu a");
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            // Close sidebar on mobile after clicking a link
+            if (window.innerWidth <= 992) {
+              toggleSidebar();
+            }
+          });
+        });
+
+        // Filter functionality
+        const courseFilter = document.getElementById("courseFilter");
+        const semesterFilter = document.getElementById("semesterFilter");
+        const typeFilter = document.getElementById("typeFilter");
+        const statusFilter = document.getElementById("statusFilter");
+
+        [courseFilter, semesterFilter, typeFilter, statusFilter].forEach(
+          (filter) => {
+            filter.addEventListener("change", applyFilters);
+          }
+        );
+
+        console.log("✅ Event listeners setup completed");
+      }
+
+      // Apply filters to grades
+      function applyFilters() {
+        const courseFilter = document.getElementById("courseFilter").value;
+        const semesterFilter = document.getElementById("semesterFilter").value;
+        const typeFilter = document.getElementById("typeFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+
+        let filteredGrades = [...allGrades];
+
+        // Course filter
+        if (courseFilter) {
+          filteredGrades = filteredGrades.filter((grade) => {
+            return grade.course
+              .toLowerCase()
+              .includes(courseFilter.toLowerCase());
+          });
+        }
+
+        // Type filter
+        if (typeFilter) {
+          filteredGrades = filteredGrades.filter((grade) => {
+            return grade.type === typeFilter;
+          });
+        }
+
+        // Status filter
+        if (statusFilter) {
+          filteredGrades = filteredGrades.filter((grade) => {
+            return grade.status === statusFilter;
+          });
+        }
+
+        renderFilteredGrades(filteredGrades);
+        document.getElementById(
+          "gradesCount"
+        ).textContent = `Showing ${filteredGrades.length} of ${allGrades.length} grades`;
+      }
+
+      // Render filtered grades
+      function renderFilteredGrades(grades) {
+        gradesTableBody.innerHTML = "";
+
+        if (grades.length === 0) {
+          showEmptyState();
+          return;
+        }
+
+        grades.forEach((grade) => {
+          const row = document.createElement("tr");
+
+          // Format date
+          const formattedDate = new Date(grade.date).toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            }
+          );
+
+          // Determine grade class based on score
+          let gradeClass = "grade-average";
+          if (grade.score >= 90) gradeClass = "grade-excellent";
+          else if (grade.score >= 80) gradeClass = "grade-good";
+          else if (grade.score < 70) gradeClass = "grade-poor";
+
+          // Status badge
+          const statusClass = `status-${grade.status}`;
+          const statusText =
+            grade.status.charAt(0).toUpperCase() + grade.status.slice(1);
+
+          row.innerHTML = `
+            <td>
+              <div class="course-title">${grade.course}</div>
+              <div class="course-meta">${grade.assignment}</div>
+            </td>
+            <td>
+              <span class="grade-status status-${grade.type}">${grade.type}</span>
+            </td>
+            <td>${formattedDate}</td>
+            <td>
+              <div class="grade-score ${gradeClass}">${grade.score}%</div>
+              <div class="course-meta">out of ${grade.maxScore}%</div>
+            </td>
+            <td>
+              <div class="grade-score ${gradeClass}">${grade.grade}</div>
+            </td>
+            <td>
+              <span class="grade-status ${statusClass}">${statusText}</span>
+            </td>
+            <td>
+              <div class="grade-actions">
+                <button class="action-btn btn-view" data-id="${grade.id}" title="View Details">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn btn-download" data-id="${grade.id}" title="Download Report">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </td>
+          `;
+
+          gradesTableBody.appendChild(row);
+        });
+
+        // Re-attach event listeners to the new buttons
+        attachGradeButtonListeners();
+
+        // Show the table
+        gradesTable.style.display = "table";
+        emptyState.style.display = "none";
+      }
+
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🚀 Student Grades page initializing...");
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Load current user info first
+        loadCurrentUserInfo();
+
+        // Check authentication first
+        if (!checkAuthentication()) {
+          return;
+        }
+
+        // Load grades
+        await loadGrades();
+        setupEventListeners();
+
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+      });
+    </script>
+  </body>
+</html>
