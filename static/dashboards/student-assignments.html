@@ -1,0 +1,2863 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard | Assignments</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary-indigo: #6366f1;
+        --secondary-purple: #4f46e5;
+        --accent-purple: #8b5cf6;
+        --success-green: #10b981;
+        --warning-orange: #f59e0b;
+        --info-blue: #3b82f6;
+        --error-red: #ef4444;
+        --dark-text: #111827;
+        --medium-text: #374151;
+        --light-text: #6b7280;
+        --white: #ffffff;
+        --sidebar-width: 250px;
+        --navbar-height: 70px;
+
+        /* Light mode colors (default) */
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
+        display: flex;
+        min-height: 100vh;
+        transition: background 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
+
+      /* Sidebar Styles - Updated for Student */
+      .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(
+          180deg,
+          var(--primary-indigo),
+          var(--secondary-purple),
+          var(--primary-indigo)
+        );
+        color: var(--white);
+        height: 100vh;
+        position: fixed;
+        transition: all 0.3s;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        overflow: hidden;
+        transform: translateX(0);
+      }
+
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(40%, -40%);
+      }
+
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-40%, 40%);
+      }
+
+      .sidebar-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sidebar-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .sidebar-menu {
+        padding: 20px 0;
+        position: relative;
+        z-index: 10;
+      }
+
+      .sidebar-menu ul {
+        list-style: none;
+      }
+
+      .sidebar-menu li {
+        margin-bottom: 5px;
+      }
+
+      .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sidebar-menu a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .sidebar-menu a:hover::before,
+      .sidebar-menu a.active::before {
+        left: 0;
+      }
+
+      .sidebar-menu a:hover,
+      .sidebar-menu a.active {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .sidebar-menu i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
+      /* Hamburger Menu Button */
+      .hamburger-menu {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--white);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .hamburger-menu:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content Styles */
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* Navbar Styles */
+      .navbar {
+        background-color: var(--navbar-bg);
+        height: var(--navbar-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        box-shadow: var(--card-shadow);
+        border-radius: 10px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-left h1 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 15px;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .mobile-menu-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .mobile-menu-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .navbar-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      /* Theme Toggle Button */
+      .theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+      }
+
+      .theme-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .logout-btn {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .logout-btn i {
+        margin-right: 5px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .page-actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .filter-btn,
+      .sort-btn,
+      .add-btn {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+      }
+
+      .filter-btn:hover,
+      .sort-btn:hover,
+      .add-btn:hover {
+        background-color: var(--skeleton-bg);
+      }
+
+      .filter-btn i,
+      .sort-btn i,
+      .add-btn i {
+        margin-right: 8px;
+      }
+
+      /* Assignment Stats */
+      .assignment-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 20px;
+        transition: transform 0.3s, background 0.3s ease;
+        backdrop-filter: blur(10px);
+        text-align: center;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-3px);
+      }
+
+      .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 15px;
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .stat-number.pending {
+        color: var(--warning-orange);
+      }
+
+      .stat-number.submitted {
+        color: var(--success-green);
+      }
+
+      .stat-number.graded {
+        color: var(--primary-indigo);
+      }
+
+      .stat-number.overdue {
+        color: var(--error-red);
+      }
+
+      .stat-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      /* Assignment Filters */
+      .assignment-filters {
+        background: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 20px;
+        margin-bottom: 25px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filter-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+      }
+
+      .filter-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: border-color 0.3s;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+      }
+
+      /* Assignment Tabs */
+      .assignment-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 25px;
+        gap: 5px;
+      }
+
+      .tab-btn {
+        background: none;
+        border: none;
+        padding: 12px 24px;
+        color: var(--text-muted);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        border-bottom: 3px solid transparent;
+        position: relative;
+      }
+
+      .tab-btn.active {
+        color: var(--primary-indigo);
+        border-bottom-color: var(--primary-indigo);
+      }
+
+      .tab-btn:hover:not(.active) {
+        color: var(--text-primary);
+        background-color: var(--skeleton-bg);
+      }
+
+      .tab-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: var(--primary-indigo);
+        color: var(--white);
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+        min-width: 18px;
+        text-align: center;
+      }
+
+      /* Assignment List */
+      .assignment-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .assignment-card {
+        background: var(--card-bg);
+        border-radius: 10px;
+        box-shadow: var(--card-shadow);
+        padding: 20px;
+        transition: transform 0.3s, background 0.3s ease;
+        backdrop-filter: blur(10px);
+        border-left: 4px solid var(--warning-orange);
+      }
+
+      .assignment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .assignment-card.urgent {
+        border-left-color: var(--error-red);
+      }
+
+      .assignment-card.submitted {
+        border-left-color: var(--success-green);
+      }
+
+      .assignment-card.graded {
+        border-left-color: var(--primary-indigo);
+      }
+
+      .assignment-card.overdue {
+        border-left-color: var(--error-red);
+        background: rgba(239, 68, 68, 0.05);
+      }
+
+      .assignment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+      }
+
+      .assignment-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+      }
+
+      .assignment-course {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .course-badge {
+        background: var(--skeleton-bg);
+        color: var(--text-muted);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .assignment-meta {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .meta-item i {
+        font-size: 0.8rem;
+      }
+
+      .assignment-description {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .assignment-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .assignment-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .status-badge.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning-orange);
+      }
+
+      .status-badge.submitted {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-green);
+      }
+
+      .status-badge.graded {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary-indigo);
+      }
+
+      .status-badge.overdue {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--error-red);
+      }
+
+      .assignment-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--skeleton-bg);
+      }
+
+      .btn-success {
+        background: var(--success-green);
+        color: var(--white);
+      }
+
+      .btn-success:hover {
+        opacity: 0.9;
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        grid-column: 1 / -1;
+      }
+
+      .empty-state i {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+      }
+
+      .empty-state h3 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .empty-state p {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .btn-large {
+        padding: 12px 24px;
+        font-size: 1rem;
+      }
+
+      /* Submission Modal */
+      .submission-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .submission-modal-content {
+        background-color: var(--card-bg);
+        margin: 50px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .submission-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .submission-modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .close-modal-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: color 0.3s;
+        padding: 5px;
+      }
+
+      .close-modal-btn:hover {
+        color: var(--error-red);
+      }
+
+      .submission-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .form-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        resize: vertical;
+        min-height: 120px;
+        transition: border-color 0.3s;
+      }
+
+      .form-textarea:focus {
+        outline: none;
+        border-color: var(--primary-indigo);
+      }
+
+      .file-upload-area {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .file-upload-area:hover {
+        border-color: var(--primary-indigo);
+        background: rgba(99, 102, 241, 0.05);
+      }
+
+      .file-upload-area i {
+        font-size: 2rem;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .file-upload-text {
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .file-upload-hint {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .file-preview {
+        margin-top: 15px;
+        padding: 15px;
+        background: var(--skeleton-bg);
+        border-radius: 6px;
+        display: none;
+      }
+
+      .file-preview-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+      }
+
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .file-icon {
+        color: var(--primary-indigo);
+      }
+
+      .file-name {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .file-size {
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      .remove-file {
+        background: none;
+        border: none;
+        color: var(--error-red);
+        cursor: pointer;
+        padding: 5px;
+      }
+
+      .submission-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* Toast Notification Styles */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+        pointer-events: none;
+      }
+
+      .toast {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        margin-bottom: 10px;
+        border-left: 4px solid;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        pointer-events: all;
+        max-width: 350px;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .toast.hide {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      .toast-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+      }
+
+      .toast-message {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px;
+      }
+
+      .toast-close:hover {
+        color: var(--text-primary);
+      }
+
+      /* Loading Spinner */
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Loading State - Skeleton Screens */
+      .skeleton-loading {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .skeleton-loading::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0,
+          rgba(255, 255, 255, 0.2) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        animation: shimmer 1.5s infinite;
+      }
+
+      @keyframes shimmer {
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      .skeleton-card {
+        background-color: var(--skeleton-bg);
+        border-radius: 10px;
+        height: 24px;
+        margin-bottom: 8px;
+      }
+
+      .skeleton-card.small {
+        height: 16px;
+        width: 60%;
+      }
+
+      .skeleton-card.medium {
+        height: 20px;
+        width: 80%;
+      }
+
+      .skeleton-card.large {
+        height: 32px;
+        width: 100%;
+      }
+
+      .skeleton-circle {
+        background-color: var(--skeleton-bg);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+      }
+
+      /* Loading State */
+      .loading-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+        grid-column: 1 / -1;
+      }
+
+      .loading-state i {
+        margin-right: 8px;
+      }
+
+      .loading-text {
+        font-style: italic;
+      }
+
+      /* Error State */
+      .error-state {
+        text-align: center;
+        padding: 60px 20px;
+        grid-column: 1 / -1;
+      }
+
+      .error-state i {
+        font-size: 4rem;
+        color: var(--error-red);
+        margin-bottom: 20px;
+      }
+
+      .error-state h3 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .error-state p {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Logout Confirmation Modal Styles */
+      .confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        overflow-y: auto;
+      }
+
+      .confirmation-content {
+        background-color: var(--card-bg);
+        margin: 200px auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        position: relative;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: background 0.3s ease;
+      }
+
+      .confirmation-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-size: 1.5rem;
+        margin: 0 auto 20px;
+      }
+
+      .confirmation-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .confirmation-message {
+        color: var(--text-muted);
+        margin-bottom: 25px;
+        font-size: 1rem;
+      }
+
+      .confirmation-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .confirm-no {
+        background-color: var(--text-muted);
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-no:hover {
+        opacity: 0.9;
+      }
+
+      .confirm-yes {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+        color: var(--white);
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s;
+        min-width: 100px;
+      }
+
+      .confirm-yes:hover {
+        opacity: 0.9;
+      }
+
+      /* Colors */
+      .bg-pending {
+        background: linear-gradient(135deg, var(--warning-orange), #d97706);
+      }
+      .bg-submitted {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+      }
+      .bg-graded {
+        background: linear-gradient(
+          135deg,
+          var(--primary-indigo),
+          var(--secondary-purple)
+        );
+      }
+      .bg-overdue {
+        background: linear-gradient(135deg, var(--error-red), #dc2626);
+      }
+
+      /* Mobile Responsive Styles */
+      @media (max-width: 992px) {
+        .sidebar {
+          transform: translateX(-100%);
+          width: 280px;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .sidebar-header h2 {
+          display: block;
+        }
+
+        .sidebar-menu span {
+          display: inline;
+        }
+
+        .sidebar-menu a {
+          justify-content: flex-start;
+          padding: 12px 20px;
+        }
+
+        .sidebar-menu i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+        }
+
+        .hamburger-menu {
+          display: block;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 999;
+          display: none;
+        }
+
+        .overlay.active {
+          display: block;
+        }
+
+        .navbar-left h1 {
+          font-size: 1.2rem !important;
+        }
+
+        .assignment-stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .assignment-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .page-actions {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .filter-row {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .filter-group {
+          min-width: 100%;
+        }
+
+        .assignment-tabs {
+          flex-wrap: wrap;
+        }
+
+        .assignment-header {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .assignment-footer {
+          flex-direction: column;
+          gap: 15px;
+          align-items: flex-start;
+        }
+
+        .assignment-actions {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .submission-modal-content {
+          padding: 20px;
+          margin: 20px auto;
+        }
+
+        .submission-actions {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 15px;
+        }
+
+        .navbar {
+          padding: 0 10px;
+          margin-bottom: 20px;
+        }
+
+        .navbar-left h1 {
+          font-size: 1rem !important;
+          font-weight: 600;
+        }
+
+        .user-avatar {
+          width: 35px;
+          height: 35px;
+        }
+
+        .logout-btn {
+          padding: 6px 10px;
+          font-size: 0.9rem;
+        }
+
+        .page-title {
+          font-size: 1.5rem;
+        }
+
+        .assignment-card {
+          padding: 15px;
+        }
+
+        .assignment-title {
+          font-size: 1.1rem;
+        }
+
+        .assignment-meta {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .btn {
+          padding: 6px 12px;
+          font-size: 0.8rem;
+        }
+
+        .tab-btn {
+          padding: 10px 16px;
+          font-size: 0.85rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>EduStudent</h2>
+        <button class="hamburger-menu" id="hamburgerMenu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-menu">
+        <ul>
+          <li>
+            <a href="student-dashboard-overview.html"
+              ><i class="fas fa-chart-pie"></i> <span>Overview</span></a
+            >
+          </li>
+          <li>
+            <a href="student-courses.html"
+              ><i class="fas fa-book"></i> <span>My Courses</span></a
+            >
+          </li>
+          <li>
+            <a href="student-assignments.html" class="active"
+              ><i class="fas fa-tasks"></i> <span>Assignments</span></a
+            >
+          </li>
+          <li>
+            <a href="student-grades.html"
+              ><i class="fas fa-chart-bar"></i> <span>Grades</span></a
+            >
+          </li>
+          <li>
+            <a href="student-progress.html"
+              ><i class="fas fa-trophy"></i> <span>Progress</span></a
+            >
+          </li>
+          <li>
+            <a href="student-resources.html"
+              ><i class="fas fa-folder"></i> <span>Resources</span></a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Navbar -->
+      <div class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Assignments</h1>
+        </div>
+        <div class="navbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <span id="currentUserName">John Doe</span>
+          </div>
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+            <i class="fas fa-moon" id="themeIcon"></i>
+          </button>
+          <button class="logout-btn" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h2 class="page-title">Assignment Center</h2>
+        <div class="page-actions">
+          <button class="filter-btn" id="filterBtn">
+            <i class="fas fa-filter"></i> Filter
+          </button>
+          <button class="sort-btn" id="sortBtn">
+            <i class="fas fa-sort"></i> Sort
+          </button>
+        </div>
+      </div>
+
+      <!-- Assignment Stats -->
+      <div class="assignment-stats">
+        <div class="stat-card">
+          <div class="stat-icon bg-pending">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-number pending skeleton-loading" id="pending-count">
+            <div class="skeleton-card large"></div>
+          </div>
+          <div class="stat-label">Pending Submission</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon bg-submitted">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div
+            class="stat-number submitted skeleton-loading"
+            id="submitted-count"
+          >
+            <div class="skeleton-card large"></div>
+          </div>
+          <div class="stat-label">Submitted</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon bg-graded">
+            <i class="fas fa-star"></i>
+          </div>
+          <div class="stat-number graded skeleton-loading" id="graded-count">
+            <div class="skeleton-card large"></div>
+          </div>
+          <div class="stat-label">Graded</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon bg-overdue">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-number overdue skeleton-loading" id="overdue-count">
+            <div class="skeleton-card large"></div>
+          </div>
+          <div class="stat-label">Overdue</div>
+        </div>
+      </div>
+
+      <!-- Assignment Filters -->
+      <div
+        class="assignment-filters"
+        id="assignmentFilters"
+        style="display: none"
+      >
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label" for="courseFilter">Course</label>
+            <select class="filter-select" id="courseFilter">
+              <option value="">All Courses</option>
+              <option value="web-dev">Web Development</option>
+              <option value="ui-ux">UI/UX Design</option>
+              <option value="blockchain">Blockchain</option>
+              <option value="cybersecurity">Cyber Security</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="statusFilter">Status</label>
+            <select class="filter-select" id="statusFilter">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="submitted">Submitted</option>
+              <option value="graded">Graded</option>
+              <option value="overdue">Overdue</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="priorityFilter">Priority</label>
+            <select class="filter-select" id="priorityFilter">
+              <option value="">All Priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="dateFilter">Due Date</label>
+            <select class="filter-select" id="dateFilter">
+              <option value="">Any Date</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="future">Future</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment Tabs -->
+      <div class="assignment-tabs">
+        <button class="tab-btn active" data-tab="all">
+          All Assignments
+          <span class="tab-badge" id="all-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="pending">
+          Pending
+          <span class="tab-badge" id="pending-tab-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="submitted">
+          Submitted
+          <span class="tab-badge" id="submitted-tab-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="graded">
+          Graded
+          <span class="tab-badge" id="graded-tab-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="overdue">
+          Overdue
+          <span class="tab-badge" id="overdue-tab-count">0</span>
+        </button>
+      </div>
+
+      <!-- Assignment List -->
+      <div class="assignment-list" id="assignmentList">
+        <!-- Assignments will be dynamically loaded here -->
+      </div>
+    </div>
+
+    <!-- Submission Modal -->
+    <div class="submission-modal" id="submissionModal">
+      <div class="submission-modal-content">
+        <div class="submission-modal-header">
+          <h2 class="submission-modal-title" id="submissionTitle">
+            Submit Assignment
+          </h2>
+          <button class="close-modal-btn" id="closeModalBtn">&times;</button>
+        </div>
+        <form class="submission-form" id="submissionForm">
+          <input type="hidden" id="submissionAssignmentId" />
+
+          <div class="form-group">
+            <label class="form-label" for="submissionText"
+              >Assignment Response</label
+            >
+            <textarea
+              class="form-textarea"
+              id="submissionText"
+              placeholder="Type your assignment response here..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Attach Files</label>
+            <div class="file-upload-area" id="fileUploadArea">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <div class="file-upload-text">
+                Click to upload files or drag and drop
+              </div>
+              <div class="file-upload-hint">PDF, DOC, DOCX, ZIP up to 10MB</div>
+              <input
+                type="file"
+                class="file-input"
+                id="fileInput"
+                multiple
+                accept=".pdf,.doc,.docx,.zip"
+              />
+            </div>
+            <div class="file-preview" id="filePreview">
+              <!-- File previews will be added here -->
+            </div>
+          </div>
+
+          <div class="submission-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              id="cancelSubmissionBtn"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              id="submitAssignmentBtn"
+            >
+              <i class="fas fa-paper-plane"></i> Submit Assignment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="confirmation-modal" id="logoutConfirmationModal">
+      <div class="confirmation-content">
+        <div class="confirmation-icon">
+          <i class="fas fa-sign-out-alt"></i>
+        </div>
+        <h3 class="confirmation-title">Confirm Logout</h3>
+        <p class="confirmation-message">
+          Are you sure you want to logout? You will need to sign in again to
+          access the dashboard.
+        </p>
+        <div class="confirmation-actions">
+          <button class="confirm-no" id="confirmNo">No, Cancel</button>
+          <button class="confirm-yes" id="confirmYes">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mobile Sidebar Toggle Functionality
+      const sidebar = document.getElementById("sidebar");
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const hamburgerMenu = document.getElementById("hamburgerMenu");
+      const overlay = document.getElementById("overlay");
+
+      function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        overlay.classList.toggle("active");
+        document.body.style.overflow = sidebar.classList.contains("active")
+          ? "hidden"
+          : "";
+      }
+
+      mobileMenuBtn.addEventListener("click", toggleSidebar);
+      hamburgerMenu.addEventListener("click", toggleSidebar);
+      overlay.addEventListener("click", toggleSidebar);
+
+      // Theme Management
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const htmlElement = document.documentElement;
+
+      // Function to set theme
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+
+        // Update icon
+        if (theme === "dark") {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      // Function to toggle theme
+      function toggleTheme() {
+        const currentTheme = htmlElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+      }
+
+      // Initialize theme
+      function initTheme() {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // Check system preference
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          setTheme(prefersDark ? "dark" : "light");
+        }
+      }
+
+      // Listen for system theme changes
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          // Only change if user hasn't set a preference
+          if (!localStorage.getItem("theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        });
+
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      const getApiBaseUrl = () => {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
+        }
+        // For production (Render), use relative path (same domain)
+        return "";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
+      // Logout Confirmation Elements
+      const logoutBtn = document.getElementById("logoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Modal Elements
+      const submissionModal = document.getElementById("submissionModal");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const cancelSubmissionBtn = document.getElementById(
+        "cancelSubmissionBtn"
+      );
+      const submissionForm = document.getElementById("submissionForm");
+
+      // Filter Elements
+      const filterBtn = document.getElementById("filterBtn");
+      const assignmentFilters = document.getElementById("assignmentFilters");
+
+      // Tab Elements
+      const tabButtons = document.querySelectorAll(".tab-btn");
+      let currentTab = "all";
+
+      // File Upload Elements
+      const fileUploadArea = document.getElementById("fileUploadArea");
+      const fileInput = document.getElementById("fileInput");
+      const filePreview = document.getElementById("filePreview");
+      let uploadedFiles = [];
+
+      // Current assignment for submission
+      let currentAssignment = null;
+
+      // Function to load and display current user info
+      function loadCurrentUserInfo() {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+          try {
+            // Decode the JWT token to get user information
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            // Get email from token (adjust the property name based on your token structure)
+            const userEmail = payload.email || payload.sub || "User";
+
+            // Update the UI with user's email
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = userEmail;
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = getInitials(userEmail);
+            }
+          } catch (e) {
+            console.error("Error parsing token:", e);
+            // Fallback to default
+            const userNameElement = document.getElementById("currentUserName");
+            const userAvatarElement =
+              document.getElementById("currentUserAvatar");
+
+            if (userNameElement) {
+              userNameElement.textContent = "Student";
+            }
+
+            if (userAvatarElement) {
+              userAvatarElement.textContent = "S";
+            }
+          }
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view assignments",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // Function to fetch data from API with proper authentication
+      async function fetchData(endpoint) {
+        try {
+          const token = localStorage.getItem("access_token");
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
+
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "GET",
+            headers: headers,
+          });
+
+          console.log(
+            `📊 Response status: ${response.status} ${response.statusText}`
+          );
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              `❌ HTTP error! status: ${response.status}`,
+              errorText
+            );
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log(`✅ Fetched data from ${endpoint}:`, data);
+          return data;
+        } catch (error) {
+          console.error(`❌ Error fetching data from ${endpoint}:`, error);
+          return null;
+        }
+      }
+
+      // Function to fetch student assignments
+      async function fetchStudentAssignments() {
+        console.log("🔄 Fetching student assignments...");
+
+        // Check authentication first
+        if (!checkAuthentication()) {
+          return;
+        }
+
+        try {
+          // Show loading state
+          showLoadingState();
+
+          // Fetch assignments from API
+          const assignments = await fetchData("/students/assignments");
+
+          console.log("📦 Student assignments data:", {
+            assignments: assignments?.length || 0,
+          });
+
+          if (assignments && assignments.length > 0) {
+            updateAssignmentStats(assignments);
+            renderAssignments(assignments);
+          } else {
+            showEmptyState();
+          }
+        } catch (error) {
+          console.error("❌ Error in fetchStudentAssignments:", error);
+          showErrorState("Failed to load assignments. Please try again.");
+
+          // Load mock data for demonstration
+          loadMockData();
+        }
+      }
+
+      // Function to update assignment statistics
+      function updateAssignmentStats(assignments) {
+        const pending = assignments.filter(
+          (a) => a.status === "pending"
+        ).length;
+        const submitted = assignments.filter(
+          (a) => a.status === "submitted"
+        ).length;
+        const graded = assignments.filter((a) => a.status === "graded").length;
+        const overdue = assignments.filter(
+          (a) => a.status === "overdue"
+        ).length;
+        const total = assignments.length;
+
+        // Update stat cards
+        updateStatElement("pending-count", pending);
+        updateStatElement("submitted-count", submitted);
+        updateStatElement("graded-count", graded);
+        updateStatElement("overdue-count", overdue);
+
+        // Update tab badges
+        updateStatElement("all-count", total);
+        updateStatElement("pending-tab-count", pending);
+        updateStatElement("submitted-tab-count", submitted);
+        updateStatElement("graded-tab-count", graded);
+        updateStatElement("overdue-tab-count", overdue);
+      }
+
+      // Function to render assignments
+      function renderAssignments(assignments) {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (!assignmentList) return;
+
+        // Filter assignments based on current tab
+        let filteredAssignments = assignments;
+        if (currentTab !== "all") {
+          filteredAssignments = assignments.filter(
+            (assignment) => assignment.status === currentTab
+          );
+        }
+
+        if (filteredAssignments.length === 0) {
+          showEmptyState(`No ${currentTab} assignments found.`);
+          return;
+        }
+
+        // Sort assignments by due date (soonest first)
+        filteredAssignments.sort(
+          (a, b) => new Date(a.due_date) - new Date(b.due_date)
+        );
+
+        assignmentList.innerHTML = filteredAssignments
+          .map((assignment) => {
+            const dueDate = new Date(assignment.due_date);
+            const now = new Date();
+            const timeDiff = dueDate - now;
+            const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+            let urgencyClass = "";
+            let statusText = assignment.status;
+            let statusClass = assignment.status;
+
+            if (assignment.status === "pending" && daysDiff <= 2) {
+              urgencyClass = "urgent";
+            }
+
+            if (assignment.status === "pending" && daysDiff < 0) {
+              statusText = "overdue";
+              statusClass = "overdue";
+            }
+
+            const isSubmitted =
+              assignment.status === "submitted" ||
+              assignment.status === "graded";
+            const canSubmit =
+              assignment.status === "pending" ||
+              assignment.status === "overdue";
+
+            return `
+            <div class="assignment-card ${urgencyClass} ${statusClass}" data-assignment-id="${
+              assignment.id
+            }">
+              <div class="assignment-header">
+                <div>
+                  <div class="assignment-title">${assignment.title}</div>
+                  <div class="assignment-course">
+                    <i class="fas fa-book"></i>
+                    ${assignment.course_name}
+                    <span class="course-badge">${assignment.course_code}</span>
+                  </div>
+                </div>
+                <div class="assignment-meta">
+                  <div class="meta-item">
+                    <i class="fas fa-calendar"></i>
+                    <span>Due: ${formatDate(dueDate)}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span>${getTimeRemaining(dueDate)}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="fas fa-percentage"></i>
+                    <span>Weight: ${assignment.weight || 0}%</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="assignment-description">
+                ${assignment.description || "No description provided."}
+              </div>
+
+              ${
+                assignment.instructions
+                  ? `
+                <div class="assignment-description" style="font-style: italic; color: var(--text-muted);">
+                  <strong>Instructions:</strong> ${assignment.instructions}
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                assignment.submission && assignment.submission.feedback
+                  ? `
+                <div class="assignment-description" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 6px; border-left: 3px solid var(--success-green);">
+                  <strong>Instructor Feedback:</strong> ${assignment.submission.feedback}
+                </div>
+              `
+                  : ""
+              }
+
+              <div class="assignment-footer">
+                <div class="assignment-status">
+                  <span class="status-badge ${statusClass}">${
+              statusText.charAt(0).toUpperCase() + statusText.slice(1)
+            }</span>
+                  ${
+                    assignment.grade
+                      ? `<span style="color: var(--text-primary); font-weight: 600;">Grade: ${assignment.grade}%</span>`
+                      : ""
+                  }
+                  ${
+                    assignment.submission && assignment.submission.submitted_at
+                      ? `
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">
+                      Submitted: ${formatDate(
+                        new Date(assignment.submission.submitted_at)
+                      )}
+                    </span>
+                  `
+                      : ""
+                  }
+                </div>
+                <div class="assignment-actions">
+                  ${
+                    canSubmit
+                      ? `
+                    <button class="btn btn-primary" onclick="openSubmissionModal('${assignment.id}')">
+                      <i class="fas fa-paper-plane"></i> Submit
+                    </button>
+                  `
+                      : ""
+                  }
+                  
+                  ${
+                    isSubmitted
+                      ? `
+                    <button class="btn btn-outline" onclick="viewSubmission('${assignment.id}')">
+                      <i class="fas fa-eye"></i> View
+                    </button>
+                  `
+                      : ""
+                  }
+                  
+                  <button class="btn btn-outline" onclick="downloadAssignment('${
+                    assignment.id
+                  }')">
+                    <i class="fas fa-download"></i> Download
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+      }
+
+      // Function to format date
+      function formatDate(date) {
+        return new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      // Function to get time remaining
+      function getTimeRemaining(dueDate) {
+        const now = new Date();
+        const timeDiff = dueDate - now;
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+        if (daysDiff < 0) {
+          return `${Math.abs(daysDiff)} days overdue`;
+        } else if (daysDiff === 0) {
+          return "Due today";
+        } else if (daysDiff === 1) {
+          return "Due tomorrow";
+        } else if (daysDiff <= 7) {
+          return `Due in ${daysDiff} days`;
+        } else {
+          return `Due in ${Math.ceil(daysDiff / 7)} weeks`;
+        }
+      }
+
+      // Function to open submission modal
+      function openSubmissionModal(assignmentId) {
+        // Find the assignment in the current data
+        const assignmentList = document.getElementById("assignmentList");
+        const assignmentCard = assignmentList.querySelector(
+          `[data-assignment-id="${assignmentId}"]`
+        );
+
+        if (!assignmentCard) {
+          showToast("error", "Error", "Assignment not found", 3000);
+          return;
+        }
+
+        // For now, we'll use mock data. In a real implementation, you'd fetch assignment details
+        const mockAssignment = {
+          id: assignmentId,
+          title: "Web Development Final Project",
+          course_name: "Advanced Web Development",
+        };
+
+        // Populate modal with assignment details
+        document.getElementById(
+          "submissionTitle"
+        ).textContent = `Submit: ${mockAssignment.title}`;
+        document.getElementById("submissionAssignmentId").value = assignmentId;
+
+        // Reset form
+        document.getElementById("submissionText").value = "";
+        filePreview.innerHTML = "";
+        filePreview.style.display = "none";
+        uploadedFiles = [];
+
+        // Show the modal
+        submissionModal.style.display = "block";
+        currentAssignment = assignmentId;
+      }
+
+      // Function to handle file upload
+      function setupFileUpload() {
+        // Click on upload area to trigger file input
+        fileUploadArea.addEventListener("click", () => {
+          fileInput.click();
+        });
+
+        // Handle file selection
+        fileInput.addEventListener("change", (e) => {
+          const files = Array.from(e.target.files);
+          if (files.length > 0) {
+            handleFiles(files);
+          }
+        });
+
+        // Drag and drop support
+        fileUploadArea.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          fileUploadArea.style.borderColor = "var(--primary-indigo)";
+          fileUploadArea.style.background = "rgba(99, 102, 241, 0.05)";
+        });
+
+        fileUploadArea.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          fileUploadArea.style.borderColor = "var(--border-color)";
+          fileUploadArea.style.background = "";
+        });
+
+        fileUploadArea.addEventListener("drop", (e) => {
+          e.preventDefault();
+          fileUploadArea.style.borderColor = "var(--border-color)";
+          fileUploadArea.style.background = "";
+
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length > 0) {
+            handleFiles(files);
+          }
+        });
+      }
+
+      // Function to handle selected files
+      function handleFiles(files) {
+        files.forEach((file) => {
+          // Validate file type and size
+          const validTypes = [".pdf", ".doc", ".docx", ".zip"];
+          const maxSize = 10 * 1024 * 1024; // 10MB
+
+          const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+
+          if (!validTypes.includes(fileExtension)) {
+            showToast(
+              "error",
+              "Invalid File",
+              "Please select PDF, DOC, DOCX, or ZIP files only",
+              4000
+            );
+            return;
+          }
+
+          if (file.size > maxSize) {
+            showToast(
+              "error",
+              "File Too Large",
+              "File size must be less than 10MB",
+              4000
+            );
+            return;
+          }
+
+          // Add to uploaded files
+          uploadedFiles.push(file);
+          addFilePreview(file);
+        });
+
+        // Show file preview area
+        filePreview.style.display = "block";
+      }
+
+      // Function to add file preview
+      function addFilePreview(file) {
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        const fileItem = document.createElement("div");
+        fileItem.className = "file-preview-item";
+        fileItem.innerHTML = `
+          <div class="file-info">
+            <i class="fas fa-file file-icon"></i>
+            <div>
+              <div class="file-name">${file.name}</div>
+              <div class="file-size">${fileSize} MB</div>
+            </div>
+          </div>
+          <button type="button" class="remove-file" onclick="removeFile('${file.name}')">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        filePreview.appendChild(fileItem);
+      }
+
+      // Function to remove file
+      function removeFile(fileName) {
+        uploadedFiles = uploadedFiles.filter((file) => file.name !== fileName);
+        const fileItems = filePreview.querySelectorAll(".file-preview-item");
+        fileItems.forEach((item) => {
+          if (item.querySelector(".file-name").textContent === fileName) {
+            item.remove();
+          }
+        });
+
+        // Hide file preview if no files
+        if (uploadedFiles.length === 0) {
+          filePreview.style.display = "none";
+        }
+      }
+
+      // Function to submit assignment
+      async function submitAssignment(formData) {
+        try {
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            showToast(
+              "error",
+              "Authentication Required",
+              "Please log in to submit assignments",
+              4000
+            );
+            return false;
+          }
+
+          // Show loading state
+          const submitBtn = document.getElementById("submitAssignmentBtn");
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+          submitBtn.disabled = true;
+
+          // In a real implementation, you would send this to your backend
+          // For now, we'll simulate a successful submission
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          showToast(
+            "success",
+            "Assignment Submitted",
+            "Your assignment has been submitted successfully!",
+            5000
+          );
+
+          // Reset form and close modal
+          submissionForm.reset();
+          filePreview.innerHTML = "";
+          filePreview.style.display = "none";
+          uploadedFiles = [];
+          submissionModal.style.display = "none";
+
+          // Refresh assignments list
+          fetchStudentAssignments();
+
+          return true;
+        } catch (error) {
+          console.error("Error submitting assignment:", error);
+          showToast(
+            "error",
+            "Submission Failed",
+            "Could not submit assignment. Please try again.",
+            5000
+          );
+          return false;
+        }
+      }
+
+      // Function to view submission
+      function viewSubmission(assignmentId) {
+        showToast(
+          "info",
+          "View Submission",
+          "Opening submission details...",
+          2000
+        );
+        // In a real implementation, you would open a modal or navigate to a submission details page
+      }
+
+      // Function to download assignment
+      function downloadAssignment(assignmentId) {
+        showToast("info", "Download", "Preparing assignment download...", 2000);
+        // In a real implementation, you would trigger a file download
+      }
+
+      // Function to show loading state
+      function showLoadingState() {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (assignmentList) {
+          assignmentList.innerHTML = `
+            <div class="loading-state">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span class="loading-text">Loading assignments...</span>
+            </div>
+          `;
+        }
+      }
+
+      // Function to show empty state
+      function showEmptyState(message = "No assignments found.") {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (assignmentList) {
+          assignmentList.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-tasks"></i>
+              <h3>No Assignments</h3>
+              <p>${message}</p>
+              <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
+                <i class="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+          `;
+        }
+      }
+
+      // Function to show error state
+      function showErrorState(message) {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (assignmentList) {
+          assignmentList.innerHTML = `
+            <div class="error-state">
+              <i class="fas fa-exclamation-triangle"></i>
+              <h3>Unable to Load Assignments</h3>
+              <p>${message}</p>
+              <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
+                <i class="fas fa-sync-alt"></i> Try Again
+              </button>
+            </div>
+          `;
+        }
+      }
+
+      // Helper function to update stat elements and remove loading state
+      function updateStatElement(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.innerHTML = "";
+          element.textContent = value;
+          element.classList.remove("skeleton-loading");
+        }
+      }
+
+      // Load mock data for demonstration
+      function loadMockData() {
+        console.log("📋 Loading mock assignments data for demonstration");
+
+        const mockAssignments = [
+          {
+            id: "1",
+            title: "Final Project Submission",
+            course_name: "Web Development",
+            course_code: "WD101",
+            description:
+              "Build a complete full-stack web application using React, Node.js, and MongoDB.",
+            instructions:
+              "Submit your source code, documentation, and a live demo link.",
+            due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+            status: "pending",
+            weight: 30,
+            grade: null,
+          },
+          {
+            id: "2",
+            title: "UI Design Prototype",
+            course_name: "UI/UX Design",
+            course_code: "UX201",
+            description:
+              "Create a high-fidelity prototype for a mobile banking application.",
+            due_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+            status: "overdue",
+            weight: 15,
+            grade: null,
+          },
+          {
+            id: "3",
+            title: "Blockchain Research Paper",
+            course_name: "Blockchain Fundamentals",
+            course_code: "BC301",
+            description:
+              "Write a research paper on the impact of blockchain technology on financial systems.",
+            due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            status: "pending",
+            weight: 20,
+            grade: null,
+          },
+          {
+            id: "4",
+            title: "Security Assessment Report",
+            course_name: "Cyber Security",
+            course_code: "CS401",
+            description:
+              "Conduct a security assessment of a web application and submit a detailed report.",
+            instructions:
+              "Include vulnerability analysis and recommended mitigation strategies.",
+            due_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+            status: "submitted",
+            weight: 25,
+            grade: null,
+            submission: {
+              submitted_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+              feedback: null,
+            },
+          },
+          {
+            id: "5",
+            title: "Data Analysis Assignment",
+            course_name: "Data Science",
+            course_code: "DS501",
+            description:
+              "Analyze the provided dataset and create visualizations using Python and matplotlib.",
+            due_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
+            status: "pending",
+            weight: 10,
+            grade: null,
+          },
+          {
+            id: "6",
+            title: "Midterm Exam",
+            course_name: "Web Development",
+            course_code: "WD101",
+            description:
+              "Multiple choice and coding questions covering HTML, CSS, and JavaScript fundamentals.",
+            due_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+            status: "graded",
+            weight: 25,
+            grade: 88,
+            submission: {
+              submitted_at: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000),
+              feedback:
+                "Excellent work! Your code is well-structured and follows best practices.",
+            },
+          },
+        ];
+
+        updateAssignmentStats(mockAssignments);
+        renderAssignments(mockAssignments);
+
+        showToast(
+          "info",
+          "Demo Mode",
+          "Using mock data for demonstration. Connect to backend for real assignments.",
+          5000
+        );
+      }
+
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
+          `;
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.style.cssText = `
+          background: var(--card-bg);
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          padding: 16px;
+          margin-bottom: 10px;
+          border-left: 4px solid;
+          display: flex;
+          align-items: center;
+          opacity: 0;
+          transform: translateX(100%);
+          transition: all 0.3s ease;
+          pointer-events: all;
+          max-width: 350px;
+          backdrop-filter: blur(10px);
+        `;
+
+        // Set border color based on type
+        const colors = {
+          success: "var(--success-green)",
+          info: "var(--primary-indigo)",
+          warning: "var(--warning-orange)",
+          error: "var(--error-red)",
+        };
+        toast.style.borderLeftColor = colors[type] || colors.info;
+
+        const icons = {
+          success: "fas fa-check",
+          info: "fas fa-info-circle",
+          warning: "fas fa-exclamation-triangle",
+          error: "fas fa-exclamation-circle",
+        };
+
+        toast.innerHTML = `
+          <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+            colors[type] || colors.info
+          }">
+            <i class="${icons[type]}"></i>
+          </div>
+          <div class="toast-content" style="flex: 1;">
+            <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+            <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+          </div>
+          <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.style.opacity = "1";
+          toast.style.transform = "translateX(0)";
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        logoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 500);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
+      }
+
+      // Setup modal functionality
+      function setupModalFunctionality() {
+        // Close modal buttons
+        closeModalBtn.addEventListener("click", function () {
+          submissionModal.style.display = "none";
+          currentAssignment = null;
+        });
+
+        cancelSubmissionBtn.addEventListener("click", function () {
+          submissionModal.style.display = "none";
+          currentAssignment = null;
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === submissionModal) {
+            submissionModal.style.display = "none";
+            currentAssignment = null;
+          }
+        });
+
+        // Form submission
+        submissionForm.addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const assignmentId = document.getElementById(
+            "submissionAssignmentId"
+          ).value;
+          const submissionText =
+            document.getElementById("submissionText").value;
+
+          if (!submissionText.trim()) {
+            showToast(
+              "error",
+              "Validation Error",
+              "Please provide an assignment response",
+              4000
+            );
+            return;
+          }
+
+          // Create form data (in a real implementation, you'd use FormData for file uploads)
+          const formData = {
+            assignmentId: assignmentId,
+            response: submissionText,
+            files: uploadedFiles,
+          };
+
+          await submitAssignment(formData);
+        });
+      }
+
+      // Setup filter functionality
+      function setupFilterFunctionality() {
+        // Toggle filter visibility
+        filterBtn.addEventListener("click", function () {
+          const isVisible = assignmentFilters.style.display === "block";
+          assignmentFilters.style.display = isVisible ? "none" : "block";
+        });
+      }
+
+      // Setup tab functionality
+      function setupTabFunctionality() {
+        tabButtons.forEach((button) => {
+          button.addEventListener("click", function () {
+            // Remove active class from all buttons
+            tabButtons.forEach((btn) => btn.classList.remove("active"));
+            // Add active class to clicked button
+            this.classList.add("active");
+            // Update current tab
+            currentTab = this.getAttribute("data-tab");
+            // Refresh assignments list
+            fetchStudentAssignments();
+          });
+        });
+      }
+
+      // Initialize dashboard
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("Student Assignments Dashboard initializing...");
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        themeToggle.addEventListener("click", toggleTheme);
+
+        // Load current user info first
+        loadCurrentUserInfo();
+
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+
+        // Setup modal functionality
+        setupModalFunctionality();
+
+        // Setup file upload functionality
+        setupFileUpload();
+
+        // Setup filter functionality
+        setupFilterFunctionality();
+
+        // Setup tab functionality
+        setupTabFunctionality();
+
+        // Load assignments data
+        fetchStudentAssignments();
+
+        // Add active class to clicked sidebar items
+        const sidebarItems = document.querySelectorAll(".sidebar-menu a");
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            // Close sidebar on mobile after clicking a link
+            if (window.innerWidth <= 992) {
+              toggleSidebar();
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
