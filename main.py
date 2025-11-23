@@ -19,20 +19,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Include routers
-app.include_router(courses.router)
-app.include_router(users.router)
-app.include_router(auth.router)
-app.include_router(lesson.router)
-app.include_router(assignment.router)
-app.include_router(quiz.router)
-
-# CORS middleware - UPDATED FOR COOKIE AUTHENTICATION
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://curralms.onrender.com",
+# Enhanced CORS configuration
+def get_allowed_origins():
+    """Get allowed origins based on environment"""
+    env_origins = os.getenv("ALLOWED_ORIGINS", "")
+    if env_origins:
+        return [origin.strip() for origin in env_origins.split(",") if origin.strip()]
+    
+    # Default origins
+    return [
         "https://curralms-frontend.onrender.com",
+        "https://curralms-backend.onrender.com",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8000",
@@ -41,17 +38,28 @@ app.add_middleware(
         "http://127.0.0.1:5500",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
-        "http://localhost:63342",
-        "http://127.0.0.1:63342",
-        "http://localhost:5173",  # Vite dev server
+        "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "null"  # For file protocol
-    ],
+        "null"
+    ]
+
+# CORS middleware - ENHANCED FOR RENDER DEPLOYMENT
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_allowed_origins(),
     allow_credentials=True,  # CRITICAL FOR COOKIES
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]  # IMPORTANT FOR COOKIES
 )
+
+# Include routers
+app.include_router(courses.router)
+app.include_router(users.router)
+app.include_router(auth.router)
+app.include_router(lesson.router)
+app.include_router(assignment.router)
+app.include_router(quiz.router)
 
 # Serve static files (for avatars)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -64,7 +72,7 @@ async def read_root():
 async def health_check():
     return {"status": "healthy", "message": "API is running smoothly"}
 
-# CORS Debug Endpoint - ADD THIS
+# Enhanced CORS Debug Endpoint
 @app.get("/debug/cors-test")
 async def cors_test(request: Request, response: Response):
     """Test CORS and cookie functionality"""
@@ -72,37 +80,28 @@ async def cors_test(request: Request, response: Response):
     cookies = request.cookies
     headers = dict(request.headers)
     
-    # Set test cookies
+    # Set test cookies with proper settings
+    cookie_settings = {
+        "httponly": False,  # Make accessible to JS for testing
+        "secure": origin and origin.startswith('https'),
+        "samesite": "none" if origin and origin != 'null' else "lax",
+        "path": "/"
+    }
+    
     response.set_cookie(
         key="test_cookie",
         value="cors_works",
-        httponly=False,  # Make accessible to JS for testing
-        secure=False,
-        samesite="lax",
-        path="/"
-    )
-    
-    response.set_cookie(
-        key="http_only_test",
-        value="http_only_works", 
-        httponly=True,
-        secure=False,
-        samesite="lax",
-        path="/"
+        **cookie_settings
     )
     
     return {
         "message": "CORS Test Endpoint",
         "request_origin": origin,
         "cookies_received": cookies,
-        "headers": {
-            "origin": headers.get("origin"),
-            "cookie": headers.get("cookie"),
-            "authorization": headers.get("authorization")
-        },
+        "environment": os.getenv("ENVIRONMENT", "development"),
         "cors_configuration": {
             "allow_credentials": True,
-            "allow_origins": "See CORS middleware",
+            "allow_origins": get_allowed_origins(),
             "expose_headers": True
         }
     }
@@ -121,7 +120,26 @@ async def debug_cookies(request: Request):
             "cookie": headers.get("cookie"),
             "authorization": headers.get("authorization")
         },
+        "environment": os.getenv("ENVIRONMENT", "development"),
         "message": "Check if access_token cookie exists in 'cookies_received'"
+    }
+
+# Session Debug Endpoint
+@app.get("/debug/session")
+async def debug_session(request: Request):
+    """Debug session and authentication"""
+    cookies = request.cookies
+    headers = dict(request.headers)
+    
+    # Check if access_token cookie exists
+    has_access_token = "access_token" in cookies
+    
+    return {
+        "has_access_token": has_access_token,
+        "cookies_present": list(cookies.keys()),
+        "origin": headers.get("origin"),
+        "user_agent": headers.get("user-agent"),
+        "environment": os.getenv("ENVIRONMENT", "development")
     }
 
 # Serve frontend files for production
@@ -146,7 +164,6 @@ async def serve_frontend(full_path: str):
     
     # Return 404 for API routes that don't exist
     return {"error": "Endpoint not found"}
-
 
 def custom_openapi():
     if app.openapi_schema:
@@ -200,6 +217,9 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
         ("/auth/google/setup", "GET"),
         ("/auth/google/test", "GET"),
         ("/auth/google", "POST"),
+        ("/debug/cors-test", "GET"),
+        ("/debug/cookies", "GET"),
+        ("/debug/session", "GET"),
     ]
     
     if (path, method) in public_endpoints:
@@ -219,43 +239,3 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
     return True  # Default to requiring auth for security
 
 app.openapi = custom_openapi
-
-# Add CORS debug endpoint
-@app.get("/debug/cors")
-async def debug_cors_info(request: Request):
-    """
-    Debug endpoint to check CORS configuration
-    """
-    return {
-        "allowed_origins": [
-            "https://curralms.onrender.com",
-            "https://curralms-frontend.onrender.com",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:8000", 
-            "http://127.0.0.1:8000",
-            "http://localhost:5500",
-            "http://127.0.0.1:5500",
-            "http://localhost:8080",
-            "http://127.0.0.1:8080"
-        ],
-        "request_origin": request.headers.get("origin"),
-        "allow_credentials": True,
-        "cors_enabled": True
-    }
-
-@app.get("/debug/cookies")
-async def debug_cookies(request: Request):
-    """Debug endpoint to check if cookies are being sent"""
-    cookies = request.cookies
-    headers = dict(request.headers)
-    
-    return {
-        "cookies_received": cookies,
-        "headers_received": {
-            "origin": headers.get("origin"),
-            "cookie": headers.get("cookie"),
-            "authorization": headers.get("authorization")
-        },
-        "message": "Check if access_token cookie exists in 'cookies_received'"
-    }

@@ -1,22 +1,60 @@
-// config.js
+// config.js - ENHANCED FOR RENDER DEPLOYMENT
 const CONFIG = {
-    // Use your actual backend URL
-    API_BASE_URL: 'https://curralms-backend.onrender.com',
+    // Production URLs
+    PRODUCTION: {
+        API_BASE_URL: 'https://curralms-backend.onrender.com',
+        FRONTEND_URL: 'https://curralms.onrender.com'
+    },
     
-    // Fallback for local development
-    LOCAL_API_URL: 'http://localhost:8000'
+    // Development URLs
+    DEVELOPMENT: {
+        API_BASE_URL: 'http://localhost:8000',
+        FRONTEND_URL: 'http://localhost:3000'
+    }
 };
 
-// Determine which URL to use
-function getApiBaseUrl() {
-    // If we're on the frontend domain, use the deployed backend
-    if (window.location.hostname === 'curralms-frontend.onrender.com') {
-        return CONFIG.API_BASE_URL;
+// Environment detection
+function getEnvironment() {
+    const hostname = window.location.hostname;
+    
+    if (hostname.includes('onrender.com')) {
+        return 'production';
     }
-    // For local development
-    return CONFIG.LOCAL_API_URL;
+    return 'development';
+}
+
+// Get API base URL
+function getApiBaseUrl() {
+    const env = getEnvironment();
+    return CONFIG[env.toUpperCase()].API_BASE_URL;
+}
+
+// Get frontend base URL
+function getFrontendBaseUrl() {
+    const env = getEnvironment();
+    return CONFIG[env.toUpperCase()].FRONTEND_URL;
+}
+
+// Get environment name
+function getEnvironmentName() {
+    return getEnvironment();
 }
 
 // Make it globally available
 window.API_BASE_URL = getApiBaseUrl();
-console.log('API Base URL:', window.API_BASE_URL);
+window.FRONTEND_BASE_URL = getFrontendBaseUrl();
+window.ENVIRONMENT = getEnvironmentName();
+
+console.log('🌐 Environment:', window.ENVIRONMENT);
+console.log('🔌 API Base URL:', window.API_BASE_URL);
+console.log('🏠 Frontend URL:', window.FRONTEND_BASE_URL);
+
+// Export for module use
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        getApiBaseUrl,
+        getFrontendBaseUrl,
+        getEnvironmentName,
+        CONFIG
+    };
+}

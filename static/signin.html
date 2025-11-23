@@ -570,21 +570,29 @@
           }
         });
 
-      // ⚙️ API Configuration - FIXED
+      // ⚙️ ENHANCED API Configuration - FIXED FOR RENDER
       const getApiBaseUrl = () => {
-        // CRITICAL: Always use port 8000 for backend API
+        // Check if we're on Render production
+        if (window.location.hostname.includes("onrender.com")) {
+          return "https://curralms-backend.onrender.com";
+        }
+        // Local development
         return "http://localhost:8000";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // URL helper functions for frontend navigation only
+      // Enhanced environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
+      }
+
+      // Enhanced URL helper functions for frontend navigation
       function getBasePath() {
         // Check if we're on localhost
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
+        if (getEnvironment() === "development") {
           return "/static"; // Localhost needs /static prefix for frontend files
         }
         // For production (Render), no prefix
@@ -596,21 +604,74 @@
         return `${basePath}${path}`;
       }
 
-      // Debug function to verify URLs
+      // Enhanced debug function to verify URLs
+      console.log("🚀 ENVIRONMENT:", getEnvironment());
       console.log("🌐 Frontend URL:", window.location.origin);
       console.log("🔌 Backend API URL:", API_BASE_URL);
       console.log("📞 Login endpoint:", `${API_BASE_URL}/users/login`);
+      console.log(
+        "🍪 Cookie settings:",
+        getEnvironment() === "production"
+          ? "secure=true, samesite=none"
+          : "secure=false, samesite=lax"
+      );
 
-      // Test backend connection
+      // Enhanced backend connection test
       async function verifyBackend() {
         try {
-          const response = await fetch(`${API_BASE_URL}/health`);
+          console.log("🔍 Testing backend connectivity...");
+          const response = await fetch(`${API_BASE_URL}/health`, {
+            credentials: "include",
+          });
           const data = await response.json();
           console.log("✅ Backend is accessible:", data);
           return true;
         } catch (error) {
           console.error("❌ Cannot reach backend:", error);
+
+          // Show user-friendly error
+          if (getEnvironment() === "production") {
+            showToast(
+              "Cannot connect to server. Please check if the backend service is running.",
+              "error",
+              "Connection Error"
+            );
+          }
           return false;
+        }
+      }
+
+      // Enhanced fetch wrapper with debugging
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include", // ALWAYS include cookies
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        console.log(`📡 API Call: ${url}`, config);
+
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+            }
+          );
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
         }
       }
 
@@ -658,15 +719,15 @@
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.innerHTML = `
-        <div class="toast-icon">${icon}</div>
-        <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            <div class="toast-message">${message}</div>
-        </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
-        `;
+      <div class="toast-icon">${icon}</div>
+      <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()">
+          <i class="fas fa-times"></i>
+      </button>
+    `;
 
         container.appendChild(toast);
 
@@ -677,18 +738,15 @@
         }, duration);
       }
 
-      // Enhanced authentication state management with cookie support
+      // ENHANCED authentication state management with comprehensive debugging
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🍪 Current cookies:", document.cookie);
 
-          // Check session with credentials (cookies will be sent automatically)
-          const response = await fetch(`${API_BASE_URL}/users/session`, {
+          const response = await apiFetch("/users/session", {
             method: "GET",
-            credentials: "include", // CRITICAL: This sends cookies
-            headers: {
-              Accept: "application/json",
-            },
           });
 
           console.log("📨 Session check response:", response.status);
@@ -710,6 +768,16 @@
               "❌ Session check failed with status:",
               response.status
             );
+
+            // Try to get more debug info
+            try {
+              const debugResponse = await apiFetch("/debug/session");
+              const debugData = await debugResponse.json();
+              console.log("🔍 Session debug info:", debugData);
+            } catch (debugError) {
+              console.log("🔍 No debug endpoint available");
+            }
+
             clearAuthData();
             return null;
           }
@@ -725,6 +793,7 @@
         localStorage.removeItem("user");
         localStorage.removeItem("auth_error");
         localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
       }
 
       // Redirect authenticated users away from auth pages
@@ -863,9 +932,7 @@
           console.log("🔐 Starting Google Sign-In...");
 
           // Get Google OAuth URL for signin
-          const response = await fetch(`${API_BASE_URL}/auth/google/url`, {
-            credentials: "include",
-          });
+          const response = await apiFetch("/auth/google/url");
           const data = await response.json();
 
           if (!response.ok) {
@@ -910,12 +977,11 @@
           try {
             showLoadingState(true);
 
-            const response = await fetch(`${API_BASE_URL}/auth/google`, {
+            const response = await apiFetch("/auth/google", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              credentials: "include", // Include cookies for session
               body: JSON.stringify({ code: code }),
             });
 
@@ -972,31 +1038,36 @@
         }
       }
 
-      // Function to test cookie session - ENHANCED
+      // ENHANCED Function to test cookie session
       async function testCookieSession() {
         try {
           console.log("🧪 Testing cookie session...");
 
-          const sessionResponse = await fetch(`${API_BASE_URL}/users/session`, {
-            method: "GET",
-            credentials: "include", // MUST be include for cookies
-            headers: {
-              Accept: "application/json",
-            },
-          });
+          const sessionResponse = await apiFetch("/debug/session");
+          const sessionData = await sessionResponse.json();
 
-          console.log("🎯 Session test status:", sessionResponse.status);
-          console.log("🔍 Response OK:", sessionResponse.ok);
+          console.log("🎯 Session test result:", sessionData);
 
-          if (sessionResponse.ok) {
-            const sessionData = await sessionResponse.json();
-            console.log("✅ Session test successful - cookies working!");
-            console.log("👤 User:", sessionData.user.email);
+          if (sessionData.has_access_token) {
+            console.log("✅ Cookie session is working!");
+            console.log(
+              "🍪 Cookies received by backend:",
+              sessionData.cookies_received
+            );
             return true;
           } else {
-            console.log("❌ Session test failed - cookies not being sent");
-            console.log("🔍 Testing CORS configuration...");
-            await testCorsConfiguration();
+            console.log("❌ No access_token cookie found");
+            console.log("🔍 Available cookies:", sessionData.cookies_received);
+
+            // Additional debug for production
+            if (getEnvironment() === "production") {
+              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
+              console.log("   - Check if backend has ENVIRONMENT=production");
+              console.log("   - Verify CORS allows your frontend origin");
+              console.log(
+                "   - Check cookie settings (secure=true, samesite=none)"
+              );
+            }
             return false;
           }
         } catch (error) {
@@ -1005,43 +1076,13 @@
         }
       }
 
-      // Test CORS configuration
-      async function testCorsConfiguration() {
-        try {
-          console.log("🧪 Testing CORS configuration...");
-
-          const corsTest = await fetch(`${API_BASE_URL}/debug/cors-test`, {
-            method: "GET",
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-            },
-          });
-
-          if (corsTest.ok) {
-            const corsData = await corsTest.json();
-            console.log("✅ CORS test successful:", corsData);
-            console.log("🔍 Request origin:", corsData.request_origin);
-            console.log(
-              "🍪 Cookies received by backend:",
-              corsData.cookies_received
-            );
-          } else {
-            console.log(
-              "❌ CORS test failed - check backend CORS configuration"
-            );
-          }
-        } catch (error) {
-          console.error("💥 CORS test error:", error);
-        }
-      }
-
-      // Enhanced login function with detailed cookie debugging
+      // ENHANCED login function with detailed debugging for both environments
       async function handleLogin(identifier, password) {
         try {
           console.log("🔐 STEP 1: Starting login process...");
-          console.log("📍 Frontend origin:", window.location.origin);
-          console.log("🌐 API Base URL:", API_BASE_URL);
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🌐 Frontend origin:", window.location.origin);
+          console.log("🔌 API Base URL:", API_BASE_URL);
 
           // Prepare form data for OAuth2PasswordRequestForm
           const formData = new URLSearchParams();
@@ -1053,13 +1094,11 @@
           console.log("🍪 Credentials mode: include");
 
           // Send login request to backend WITH credentials
-          const response = await fetch(`${API_BASE_URL}/users/login`, {
+          const response = await apiFetch("/users/login", {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
-              Accept: "application/json",
             },
-            credentials: "include", // This should send/receive cookies
             body: formData,
           });
 
@@ -1098,12 +1137,23 @@
               console.warn(
                 "⚠️ Cookie authentication failed, but login was successful"
               );
-              showToast(
-                "Login successful! If sessions don't persist, try using the same origin.",
-                "warning",
-                "Login Successful",
-                3000
-              );
+
+              // Environment-specific guidance
+              if (getEnvironment() === "production") {
+                showToast(
+                  "Login successful! If sessions don't persist, please ensure you're using the same domain.",
+                  "warning",
+                  "Login Successful",
+                  4000
+                );
+              } else {
+                showToast(
+                  "Login successful! Cookie session test failed - check console for details.",
+                  "warning",
+                  "Login Successful",
+                  4000
+                );
+              }
             }
 
             // Show success message
@@ -1149,6 +1199,12 @@
           ) {
             userMessage =
               "Cannot connect to the server. Please check your internet connection or try again later.";
+
+            // Additional guidance for production
+            if (getEnvironment() === "production") {
+              userMessage +=
+                " If this persists, the backend service might be restarting.";
+            }
           }
 
           showToast(userMessage, "error", "Login Failed");
@@ -1172,11 +1228,55 @@
         }
       }
 
+      // Enhanced diagnostic function
+      async function runDiagnostics() {
+        console.group("🔍 AUTHENTICATION DIAGNOSTICS");
+        console.log("📍 Environment:", getEnvironment());
+        console.log("🌐 Frontend URL:", window.location.origin);
+        console.log("🔌 Backend URL:", API_BASE_URL);
+        console.log("🍪 Cookies present:", document.cookie);
+
+        // Test backend connectivity
+        await verifyBackend();
+
+        // Test cookie functionality
+        await testCookieSession();
+
+        console.groupEnd();
+      }
+
+      // Enhanced redirect prevention
+      function shouldRedirect() {
+        const lastRedirect = sessionStorage.getItem("lastRedirect");
+        const now = Date.now();
+
+        // Only redirect if we haven't redirected in the last 3 seconds
+        if (!lastRedirect || now - parseInt(lastRedirect) > 3000) {
+          sessionStorage.setItem("lastRedirect", now.toString());
+          return true;
+        }
+        return false;
+      }
+
+      // Enhanced redirect functions
+      async function redirectIfAuthenticated() {
+        if (!shouldRedirect()) return;
+
+        const user = await checkAuthState();
+        if (user) {
+          console.log("🔄 User is authenticated, redirecting to dashboard...");
+          setTimeout(() => {
+            redirectToDashboard(user);
+          }, 1000);
+        }
+      }
+
       // Main initialization
       document.addEventListener("DOMContentLoaded", function () {
         console.log("🚀 Page loaded - Initializing authentication...");
-        console.log("📍 Current environment:", window.location.hostname);
-        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+
+        // Run comprehensive diagnostics
+        runDiagnostics();
 
         // Initialize theme first
         initTheme();
@@ -1185,9 +1285,6 @@
         if (themeToggle) {
           themeToggle.addEventListener("click", toggleTheme);
         }
-
-        // Test backend connection
-        verifyBackend();
 
         // Check for authentication errors
         checkAuthErrors();
@@ -1212,49 +1309,12 @@
                 .value.trim();
               const password = document.getElementById("password").value;
 
-              // Use the new enhanced login function
+              // Use the enhanced login function
               await handleLogin(identifier, password);
 
               showLoadingState(false);
             }
           });
-        }
-        // Prevent redirect loops
-        function shouldRedirect() {
-          const lastRedirect = sessionStorage.getItem("lastRedirect");
-          const now = Date.now();
-
-          // Only redirect if we haven't redirected in the last 3 seconds
-          if (!lastRedirect || now - parseInt(lastRedirect) > 3000) {
-            sessionStorage.setItem("lastRedirect", now.toString());
-            return true;
-          }
-          return false;
-        }
-
-        // Update redirect functions:
-        async function redirectIfAuthenticated() {
-          if (!shouldRedirect()) return;
-
-          const user = await checkAuthState();
-          if (user) {
-            console.log("🔄 Redirecting to dashboard...");
-            setTimeout(() => {
-              window.location.href = dashboardPath;
-            }, 1000);
-          }
-        }
-
-        async function redirectIfUnauthenticated() {
-          if (!shouldRedirect()) return;
-
-          const user = await checkAuthState();
-          if (!user) {
-            console.log("🔄 Redirecting to signin...");
-            setTimeout(() => {
-              window.location.href = getUrl("/signin.html");
-            }, 1000);
-          }
         }
 
         // Welcome message
