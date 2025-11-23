@@ -570,7 +570,7 @@
           }
         });
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ API Configuration - Updated for Render deployment
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -579,8 +579,8 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        // For production (Render), use the actual backend URL
+        return "https://curralms-backend.onrender.com";
       };
 
       const API_BASE_URL = getApiBaseUrl();
@@ -660,7 +660,7 @@
 
         try {
           // Verify token is still valid with backend
-          const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          const response = await fetch(`${API_BASE_URL}/users/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -959,7 +959,9 @@
         initTheme();
 
         // Set up theme toggle
-        themeToggle.addEventListener("click", toggleTheme);
+        if (themeToggle) {
+          themeToggle.addEventListener("click", toggleTheme);
+        }
 
         // Check for authentication errors
         checkAuthErrors();
@@ -968,9 +970,9 @@
         handleGoogleCallback();
 
         // Form submission
-        document
-          .getElementById("signin-form")
-          .addEventListener("submit", async function (e) {
+        const signinForm = document.getElementById("signin-form");
+        if (signinForm) {
+          signinForm.addEventListener("submit", async function (e) {
             e.preventDefault();
 
             if (validateForm()) {
@@ -1066,7 +1068,7 @@
                   error.message.includes("Failed to fetch")
                 ) {
                   userMessage =
-                    "Cannot connect to the server. Please check your internet connection.";
+                    "Cannot connect to the server. Please check your internet connection or try again later.";
                 }
 
                 showToast(userMessage, "error", "Login Failed");
@@ -1075,6 +1077,7 @@
               }
             }
           });
+        }
 
         // Welcome message
         setTimeout(() => {
