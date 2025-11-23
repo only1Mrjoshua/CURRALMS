@@ -1739,44 +1739,35 @@
           : "";
       }
 
-      mobileMenuBtn.addEventListener("click", toggleSidebar);
-      hamburgerMenu.addEventListener("click", toggleSidebar);
-      overlay.addEventListener("click", toggleSidebar);
+      if (mobileMenuBtn) mobileMenuBtn.addEventListener("click", toggleSidebar);
+      if (hamburgerMenu) hamburgerMenu.addEventListener("click", toggleSidebar);
+      if (overlay) overlay.addEventListener("click", toggleSidebar);
 
       // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
 
-      // Function to set theme
       function setTheme(theme) {
         htmlElement.setAttribute("data-theme", theme);
         localStorage.setItem("theme", theme);
 
-        // Update toggle switch
-        if (theme === "dark") {
-          themeToggleInput.checked = true;
-        } else {
-          themeToggleInput.checked = false;
+        if (themeToggleInput) {
+          themeToggleInput.checked = theme === "dark";
         }
       }
 
-      // Function to toggle theme
       function toggleTheme() {
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
       }
 
-      // Initialize theme
       function initTheme() {
-        // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
-
         if (savedTheme) {
           setTheme(savedTheme);
         } else {
-          // Check system preference
           const prefersDark = window.matchMedia(
             "(prefers-color-scheme: dark)"
           ).matches;
@@ -1784,150 +1775,34 @@
         }
       }
 
-      // Listen for system theme changes
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          // Only change if user hasn't set a preference
-          if (!localStorage.getItem("theme")) {
-            setTheme(e.matches ? "dark" : "light");
-          }
-        });
-
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // API Configuration
       const getApiBaseUrl = () => {
-        // Check if we're on localhost
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "http://localhost:8000";
+        if (window.location.hostname.includes("onrender.com")) {
+          return "https://curralms-backend.onrender.com";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        return "http://localhost:8000";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // Logout Confirmation Elements
-      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
-      const logoutConfirmationModal = document.getElementById(
-        "logoutConfirmationModal"
-      );
-      const confirmYes = document.getElementById("confirmYes");
-      const confirmNo = document.getElementById("confirmNo");
-
-      // Course Modal Elements
-      const courseModal = document.getElementById("courseModal");
-      const closeModalBtn = document.getElementById("closeModalBtn");
-      const enrollCourseBtn = document.getElementById("enrollCourseBtn");
-
-      // Filter Elements
-      const filterBtn = document.getElementById("filterBtn");
-      const courseFilters = document.getElementById("courseFilters");
-      const categoryFilter = document.getElementById("categoryFilter");
-      const statusFilter = document.getElementById("statusFilter");
-      const levelFilter = document.getElementById("levelFilter");
-      const progressFilter = document.getElementById("progressFilter");
-
-      // Current selected course for modal
-      let currentSelectedCourse = null;
-
-      // Function to load and display current user info
-      function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
-
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = userEmail;
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
-            }
-          } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = "Student";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "S";
-            }
-          }
-        }
-      }
-
-      // Helper function to get initials from email or name
-      function getInitials(text) {
-        if (!text) return "?";
-
-        // If it's an email, use the part before @
-        if (text.includes("@")) {
-          const username = text.split("@")[0];
-          return username.charAt(0).toUpperCase();
-        }
-
-        // If it's a name, use the first character
-        return text.charAt(0).toUpperCase();
-      }
-
-      // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view courses",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 2000);
-          return false;
-        }
-        return true;
-      }
-
-      // Function to fetch data from API with proper authentication
-      async function fetchData(endpoint) {
-        try {
-          const token = localStorage.getItem("access_token");
-          const headers = {
+      // Enhanced fetch wrapper
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include",
+          headers: {
             "Content-Type": "application/json",
-          };
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
 
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
+        console.log(`📡 API Call: ${url}`);
 
-          console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
-
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: "GET",
-            headers: headers,
-          });
-
-          console.log(
-            `📊 Response status: ${response.status} ${response.statusText}`
-          );
+        try {
+          const response = await fetch(url, config);
+          console.log(`📨 Response: ${response.status} ${response.statusText}`);
 
           if (response.status === 401) {
             showToast(
@@ -1942,17 +1817,118 @@
             return null;
           }
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(
-              `❌ HTTP error! status: ${response.status}`,
-              errorText
-            );
-            throw new Error(`HTTP error! status: ${response.status}`);
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
+        }
+      }
+
+      // Authentication Management
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
+          const response = await apiFetch("/users/session", { method: "GET" });
+
+          if (response && response.ok) {
+            const data = await response.json();
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          }
+
+          clearAuthData();
+          return null;
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        console.log("🧹 Auth data cleared");
+      }
+
+      // User Info Management
+      function loadCurrentUserInfo() {
+        const userData = localStorage.getItem("user");
+
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            updateUserUI(user);
+            return;
+          } catch (e) {
+            console.error("Error parsing user data:", e);
+          }
+        }
+
+        checkAuthState().then((user) => {
+          if (user) {
+            updateUserUI(user);
+          } else {
+            updateUserUI({ email: "Student", username: "Student" });
+          }
+        });
+      }
+
+      function updateUserUI(user) {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+
+        if (userNameElement) {
+          userNameElement.textContent =
+            user.email || user.username || "Student";
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = getInitials(
+            user.email || user.username || "Student"
+          );
+        }
+      }
+
+      function getInitials(text) {
+        if (!text) return "?";
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+        return text.charAt(0).toUpperCase();
+      }
+
+      // Authentication Check
+      async function checkAuthentication() {
+        const user = await checkAuthState();
+        if (!user) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view courses",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = "/static/signin.html";
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
+      // Data Fetching
+      async function fetchData(endpoint) {
+        try {
+          console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
+          const response = await apiFetch(endpoint, { method: "GET" });
+
+          if (!response || !response.ok) {
+            throw new Error(`HTTP error! status: ${response?.status}`);
           }
 
           const data = await response.json();
-          console.log(`✅ Fetched data from ${endpoint}:`, data);
+          console.log(`✅ Fetched data from ${endpoint}`);
           return data;
         } catch (error) {
           console.error(`❌ Error fetching data from ${endpoint}:`, error);
@@ -1960,20 +1936,18 @@
         }
       }
 
-      // Function to fetch student courses
+      // Course Management
       async function fetchStudentCourses() {
         console.log("🔄 Fetching student courses...");
 
-        // Check authentication first
-        if (!checkAuthentication()) {
+        if (!(await checkAuthentication())) {
           return;
         }
 
         try {
-          // Show loading state
           showLoadingState();
 
-          // Fetch student courses and available courses
+          // Try to fetch real data first
           const [enrolledCourses, availableCourses, categories] =
             await Promise.all([
               fetchData("/students/courses"),
@@ -1981,42 +1955,32 @@
               fetchData("/courses/categories"),
             ]);
 
-          console.log("📦 Student courses data:", {
-            enrolled: enrolledCourses?.length || 0,
-            available: availableCourses?.length || 0,
-            categories: categories?.length || 0,
-          });
-
-          // Combine enrolled courses with progress data
-          const allCourses = await combineCourseData(
-            enrolledCourses,
-            availableCourses
-          );
-
-          renderCategories(categories);
-          renderCourses(allCourses);
+          if (enrolledCourses && availableCourses) {
+            const allCourses = combineCourseData(
+              enrolledCourses,
+              availableCourses
+            );
+            renderCategories(categories);
+            renderCourses(allCourses);
+          } else {
+            // Fall back to mock data if API fails
+            loadMockData();
+          }
         } catch (error) {
           console.error("❌ Error in fetchStudentCourses:", error);
           showErrorState("Failed to load courses. Please try again.");
-
-          // Load mock data for demonstration
           loadMockData();
         }
       }
 
-      // Function to combine enrolled courses with available courses
-      async function combineCourseData(enrolledCourses, availableCourses) {
-        if (!enrolledCourses || !availableCourses) {
-          return [];
-        }
+      function combineCourseData(enrolledCourses, availableCourses) {
+        if (!enrolledCourses || !availableCourses) return [];
 
-        // Create a map of enrolled courses for quick lookup
         const enrolledMap = new Map();
         enrolledCourses.forEach((course) => {
           enrolledMap.set(course.course_id, course);
         });
 
-        // Combine data
         return availableCourses.map((course) => {
           const enrolledData = enrolledMap.get(course.id || course._id);
           return {
@@ -2029,46 +1993,35 @@
         });
       }
 
-      // Function to render categories
       function renderCategories(categories) {
         const categoriesGrid = document.getElementById("categoriesGrid");
-
         if (!categoriesGrid) return;
 
-        if (!categories || categories.length === 0) {
-          categoriesGrid.innerHTML = `
-            <div class="category-card" style="grid-column: 1 / -1; text-align: center;">
-              <div class="category-icon bg-design">
-                <i class="fas fa-folder"></i>
-              </div>
-              <div class="category-name">All Courses</div>
-              <div class="category-count">Browse all available courses</div>
-            </div>
-          `;
-          return;
-        }
-
-        // Take only the first 6 categories for display
-        const displayCategories = categories.slice(0, 6);
+        const displayCategories =
+          categories && categories.length > 0
+            ? categories.slice(0, 6)
+            : getDefaultCategories();
 
         categoriesGrid.innerHTML = displayCategories
           .map((category) => {
-            const categoryInfo = getCategoryInfo(category.name);
+            const categoryInfo = getCategoryInfo(category.name || category);
             return `
-            <div class="category-card" data-category="${category.name}">
-              <div class="category-icon ${categoryInfo.color}">
-                <i class="${categoryInfo.icon}"></i>
-              </div>
-              <div class="category-name">${category.name}</div>
-              <div class="category-count">${
-                category.course_count || 0
-              } courses</div>
+          <div class="category-card" data-category="${
+            category.name || category
+          }">
+            <div class="category-icon ${categoryInfo.color}">
+              <i class="${categoryInfo.icon}"></i>
             </div>
-          `;
+            <div class="category-name">${category.name || category}</div>
+            <div class="category-count">${
+              category.course_count || 0
+            } courses</div>
+          </div>
+        `;
           })
           .join("");
 
-        // Add click event listeners to category cards
+        // Add click handlers
         document.querySelectorAll(".category-card").forEach((card) => {
           card.addEventListener("click", function () {
             const category = this.getAttribute("data-category");
@@ -2077,23 +2030,23 @@
         });
       }
 
-      // Function to render courses
+      function getDefaultCategories() {
+        return [
+          { name: "Design", course_count: 12 },
+          { name: "Development", course_count: 24 },
+          { name: "Blockchain", course_count: 8 },
+          { name: "Cyber Security", course_count: 15 },
+          { name: "Data Science", course_count: 18 },
+          { name: "Business", course_count: 10 },
+        ];
+      }
+
       function renderCourses(courses) {
         const courseGrid = document.getElementById("courseGrid");
-
         if (!courseGrid) return;
 
         if (!courses || courses.length === 0) {
-          courseGrid.innerHTML = `
-            <div class="empty-state">
-              <i class="fas fa-book-open"></i>
-              <h3>No Courses Available</h3>
-              <p>There are no courses available at the moment. Please check back later or contact your administrator.</p>
-              <button class="btn btn-primary btn-large" onclick="window.location.reload()">
-                <i class="fas fa-sync-alt"></i> Refresh
-              </button>
-            </div>
-          `;
+          showEmptyState();
           return;
         }
 
@@ -2105,89 +2058,93 @@
             const badge = getCourseBadge(course);
 
             return `
-            <div class="course-card ${
-              course.featured ? "featured" : ""
-            }" data-course-id="${course.id || course._id}">
+          <div class="course-card ${
+            course.featured ? "featured" : ""
+          }" data-course-id="${course.id || course._id}">
+            ${
+              badge
+                ? `<div class="course-badge ${badge.type}">${badge.text}</div>`
+                : ""
+            }
+            <div class="course-image" style="background: ${
+              categoryInfo.gradient || categoryInfo.color
+            };">
+              <i class="${categoryInfo.icon}"></i>
+            </div>
+            <div class="course-content">
+              <div class="course-header">
+                <div>
+                  <div class="course-title">${
+                    course.title || "Untitled Course"
+                  }</div>
+                  <div class="course-instructor">${
+                    course.instructor_name || "Instructor"
+                  }</div>
+                </div>
+                <div class="course-category">${
+                  course.category || "General"
+                }</div>
+              </div>
+              <div class="course-description">
+                ${
+                  course.short_description ||
+                  course.description ||
+                  "No description available."
+                }
+              </div>
+              <div class="course-meta">
+                <div class="meta-item">
+                  <i class="fas fa-clock"></i>
+                  <span>${course.duration_hours || 0}h</span>
+                </div>
+                <div class="meta-item">
+                  <i class="fas fa-signal"></i>
+                  <span>${course.level || "Beginner"}</span>
+                </div>
+                <div class="meta-item">
+                  <i class="fas fa-users"></i>
+                  <span>${course.enrollment_count || 0}</span>
+                </div>
+              </div>
               ${
-                badge
-                  ? `<div class="course-badge ${badge.type}">${badge.text}</div>`
+                isEnrolled
+                  ? `
+                <div class="course-progress">
+                  <div class="progress-header">
+                    <span class="progress-label">Your Progress</span>
+                    <span class="progress-percentage">${progress}%</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progress}%"></div>
+                  </div>
+                </div>
+              `
                   : ""
               }
-              <div class="course-image" style="background: ${
-                categoryInfo.gradient || categoryInfo.color
-              };">
-                <i class="${categoryInfo.icon}"></i>
-              </div>
-              <div class="course-content">
-                <div class="course-header">
-                  <div>
-                    <div class="course-title">${course.title}</div>
-                    <div class="course-instructor">${
-                      course.instructor_name || "Instructor"
-                    }</div>
-                  </div>
-                  <div class="course-category">${course.category}</div>
-                </div>
-                <div class="course-description">
-                  ${
-                    course.short_description ||
-                    course.description ||
-                    "No description available."
-                  }
-                </div>
-                <div class="course-meta">
-                  <div class="meta-item">
-                    <i class="fas fa-clock"></i>
-                    <span>${course.duration_hours || 0}h</span>
-                  </div>
-                  <div class="meta-item">
-                    <i class="fas fa-signal"></i>
-                    <span>${course.level || "Beginner"}</span>
-                  </div>
-                  <div class="meta-item">
-                    <i class="fas fa-users"></i>
-                    <span>${course.enrollment_count || 0}</span>
-                  </div>
-                </div>
-                ${
-                  isEnrolled
-                    ? `
-                  <div class="course-progress">
-                    <div class="progress-header">
-                      <span class="progress-label">Your Progress</span>
-                      <span class="progress-percentage">${progress}%</span>
-                    </div>
-                    <div class="progress-bar">
-                      <div class="progress-fill" style="width: ${progress}%"></div>
-                    </div>
-                  </div>
-                `
-                    : ""
-                }
-                <div class="course-actions">
-                  <button class="btn ${
-                    isEnrolled ? "btn-primary" : "btn-outline"
-                  }" onclick="handleCourseAction('${
-              course.id || course._id
-            }', ${isEnrolled})">
-                    <i class="fas ${isEnrolled ? "fa-play" : "fa-plus"}"></i>
-                    ${isEnrolled ? "Continue" : "Enroll"}
-                  </button>
-                  <button class="btn btn-outline" onclick="viewCourseDetails('${
-                    course.id || course._id
-                  }')">
-                    <i class="fas fa-info-circle"></i>
-                    Details
-                  </button>
-                </div>
+              <div class="course-actions">
+                <button class="btn ${
+                  isEnrolled ? "btn-primary" : "btn-outline"
+                }" 
+                        onclick="handleCourseAction('${
+                          course.id || course._id
+                        }', ${isEnrolled})">
+                  <i class="fas ${isEnrolled ? "fa-play" : "fa-plus"}"></i>
+                  ${isEnrolled ? "Continue" : "Enroll"}
+                </button>
+                <button class="btn btn-outline" onclick="viewCourseDetails('${
+                  course.id || course._id
+                }')">
+                  <i class="fas fa-info-circle"></i>
+                  Details
+                </button>
               </div>
             </div>
-          `;
+          </div>
+        `;
           })
           .join("");
       }
 
-      // Function to get category info
       function getCategoryInfo(category) {
         const categoryMap = {
           Design: {
@@ -2231,24 +2188,17 @@
         );
       }
 
-      // Function to get course badge
       function getCourseBadge(course) {
-        if (course.featured) {
-          return { type: "popular", text: "Featured" };
-        }
-        if (course.is_new) {
-          return { type: "new", text: "New" };
-        }
-        if (course.enrollment_count > 1000) {
+        if (course.featured) return { type: "popular", text: "Featured" };
+        if (course.is_new) return { type: "new", text: "New" };
+        if (course.enrollment_count > 1000)
           return { type: "popular", text: "Popular" };
-        }
         return null;
       }
 
-      // Function to handle course actions (enroll/continue)
+      // Course Actions
       function handleCourseAction(courseId, isEnrolled) {
         if (isEnrolled) {
-          // Continue learning - redirect to course content
           showToast(
             "info",
             "Continue Learning",
@@ -2259,78 +2209,45 @@
             window.location.href = `student-course-content.html?course=${courseId}`;
           }, 1000);
         } else {
-          // Enroll in course
           enrollInCourse(courseId);
         }
       }
 
-      // Function to enroll in a course
       async function enrollInCourse(courseId) {
         try {
-          const token = localStorage.getItem("access_token");
-          if (!token) {
-            showToast(
-              "error",
-              "Authentication Required",
-              "Please log in to enroll in courses",
-              4000
-            );
-            return;
-          }
-
           showToast("info", "Enrolling", "Processing your enrollment...", 2000);
 
-          const response = await fetch(`${API_BASE_URL}/courses/enroll`, {
+          const response = await apiFetch("/courses/enroll", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              course_id: courseId,
-            }),
+            body: JSON.stringify({ course_id: courseId }),
           });
 
-          if (response.ok) {
+          if (response && response.ok) {
             showToast(
               "success",
               "Enrollment Successful",
               "You have been enrolled in the course!",
               4000
             );
-            // Refresh the courses list
             setTimeout(() => {
               fetchStudentCourses();
             }, 1000);
           } else {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || "Enrollment failed");
+            throw new Error("Enrollment failed");
           }
         } catch (error) {
           console.error("Error enrolling in course:", error);
           showToast(
             "error",
             "Enrollment Failed",
-            error.message || "Could not enroll in course",
+            "Could not enroll in course. Please try again.",
             5000
           );
         }
       }
 
-      // Function to view course details
       function viewCourseDetails(courseId) {
-        // Find the course in the current data
-        const courseGrid = document.getElementById("courseGrid");
-        const courseCard = courseGrid.querySelector(
-          `[data-course-id="${courseId}"]`
-        );
-
-        if (!courseCard) {
-          showToast("error", "Error", "Course details not available", 3000);
-          return;
-        }
-
-        // For now, we'll use mock data. In a real implementation, you'd fetch detailed course info
+        // For demo purposes - in real implementation, fetch course details from API
         const mockCourseDetails = {
           id: courseId,
           title: "Advanced Web Development",
@@ -2352,7 +2269,7 @@
           progress: 35,
         };
 
-        // Populate modal with course details
+        // Populate modal
         document.getElementById("modalCourseTitle").textContent =
           mockCourseDetails.title;
         document.getElementById(
@@ -2383,21 +2300,20 @@
           "modalProgressFill"
         ).style.width = `${mockCourseDetails.progress}%`;
 
-        // Update enroll button based on enrollment status
-        const isEnrolled = Math.random() > 0.5; // Mock enrollment status
+        // Update enroll button
         const enrollBtn = document.getElementById("enrollCourseBtn");
+        const isEnrolled = Math.random() > 0.5; // Mock enrollment status
         enrollBtn.textContent = isEnrolled
           ? "Continue Learning"
           : "Enroll in Course";
         enrollBtn.className = isEnrolled ? "enroll-btn enrolled" : "enroll-btn";
         enrollBtn.onclick = () => handleCourseAction(courseId, isEnrolled);
 
-        // Show the modal
-        courseModal.style.display = "block";
-        currentSelectedCourse = courseId;
+        // Show modal
+        const courseModal = document.getElementById("courseModal");
+        if (courseModal) courseModal.style.display = "block";
       }
 
-      // Function to filter by category
       function filterByCategory(category) {
         showToast(
           "info",
@@ -2405,76 +2321,75 @@
           `Showing ${category} courses`,
           2000
         );
-        // In a real implementation, you would filter the course list
-        // For now, we'll just show a toast
+        // Implementation would filter course list here
       }
 
-      // Function to show loading state
+      // UI States
       function showLoadingState() {
         const courseGrid = document.getElementById("courseGrid");
         const categoriesGrid = document.getElementById("categoriesGrid");
 
         if (courseGrid) {
           courseGrid.innerHTML = `
-            <div class="loading-state">
-              <i class="fas fa-spinner fa-spin"></i>
-              <span class="loading-text">Loading courses...</span>
-            </div>
-          `;
+        <div class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span class="loading-text">Loading courses...</span>
+        </div>
+      `;
         }
 
         if (categoriesGrid) {
-          categoriesGrid.innerHTML = `
-            <div class="category-card skeleton-loading">
-              <div class="skeleton-circle" style="margin: 0 auto 15px; width: 60px; height: 60px;"></div>
-              <div class="skeleton-card medium" style="margin: 0 auto 5px;"></div>
-              <div class="skeleton-card small" style="margin: 0 auto;"></div>
-            </div>
-            <div class="category-card skeleton-loading">
-              <div class="skeleton-circle" style="margin: 0 auto 15px; width: 60px; height: 60px;"></div>
-              <div class="skeleton-card medium" style="margin: 0 auto 5px;"></div>
-              <div class="skeleton-card small" style="margin: 0 auto;"></div>
-            </div>
-            <div class="category-card skeleton-loading">
-              <div class="skeleton-circle" style="margin: 0 auto 15px; width: 60px; height: 60px;"></div>
-              <div class="skeleton-card medium" style="margin: 0 auto 5px;"></div>
-              <div class="skeleton-card small" style="margin: 0 auto;"></div>
-            </div>
-          `;
+          categoriesGrid.innerHTML = Array(6)
+            .fill(
+              `
+        <div class="category-card skeleton-loading">
+          <div class="skeleton-circle" style="margin: 0 auto 15px; width: 60px; height: 60px;"></div>
+          <div class="skeleton-card medium" style="margin: 0 auto 5px;"></div>
+          <div class="skeleton-card small" style="margin: 0 auto;"></div>
+        </div>
+      `
+            )
+            .join("");
         }
       }
 
-      // Function to show error state
-      function showErrorState(message) {
+      function showEmptyState() {
         const courseGrid = document.getElementById("courseGrid");
-
         if (courseGrid) {
           courseGrid.innerHTML = `
-            <div class="error-state">
-              <i class="fas fa-exclamation-triangle"></i>
-              <h3>Unable to Load Courses</h3>
-              <p>${message}</p>
-              <button class="btn btn-primary btn-large" onclick="fetchStudentCourses()">
-                <i class="fas fa-sync-alt"></i> Try Again
-              </button>
-            </div>
-          `;
+        <div class="empty-state">
+          <i class="fas fa-book-open"></i>
+          <h3>No Courses Available</h3>
+          <p>There are no courses available at the moment. Please check back later.</p>
+          <button class="btn btn-primary btn-large" onclick="fetchStudentCourses()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      `;
         }
       }
 
-      // Load mock data for demonstration
+      function showErrorState(message) {
+        const courseGrid = document.getElementById("courseGrid");
+        if (courseGrid) {
+          courseGrid.innerHTML = `
+        <div class="error-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Unable to Load Courses</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary btn-large" onclick="fetchStudentCourses()">
+            <i class="fas fa-sync-alt"></i> Try Again
+          </button>
+        </div>
+      `;
+        }
+      }
+
+      // Mock Data for Demo
       function loadMockData() {
         console.log("📋 Loading mock courses data for demonstration");
 
-        const mockCategories = [
-          { name: "Design", course_count: 12 },
-          { name: "Development", course_count: 24 },
-          { name: "Blockchain", course_count: 8 },
-          { name: "Cyber Security", course_count: 15 },
-          { name: "Data Science", course_count: 18 },
-          { name: "Business", course_count: 10 },
-        ];
-
+        const mockCategories = getDefaultCategories();
         const mockCourses = [
           {
             id: "1",
@@ -2562,57 +2477,28 @@
         renderCategories(mockCategories);
         renderCourses(mockCourses);
 
-        showToast(
-          "info",
-          "Demo Mode",
-          "Using mock data for demonstration. Connect to backend for real courses.",
-          5000
-        );
+        showToast("info", "Demo Mode", "Using demonstration data", 5000);
       }
 
-      // Toast Notification System
+      // Toast System
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
         if (!toastContainer) {
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            max-width: 400px;
-          `;
+          toastContainer.className = "toast-container";
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
-        toast.style.cssText = `
-          background: var(--card-bg);
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          padding: 16px;
-          margin-bottom: 10px;
-          border-left: 4px solid;
-          display: flex;
-          align-items: center;
-          opacity: 0;
-          transform: translateX(100%);
-          transition: all 0.3s ease;
-          pointer-events: all;
-          max-width: 350px;
-          backdrop-filter: blur(10px);
-        `;
 
-        // Set border color based on type
         const colors = {
           success: "var(--success-green)",
           info: "var(--primary-indigo)",
           warning: "var(--warning-orange)",
           error: "var(--error-red)",
         };
-        toast.style.borderLeftColor = colors[type] || colors.info;
 
         const icons = {
           success: "fas fa-check",
@@ -2622,47 +2508,37 @@
         };
 
         toast.innerHTML = `
-          <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-            colors[type] || colors.info
-          }">
-            <i class="${icons[type]}"></i>
-          </div>
-          <div class="toast-content" style="flex: 1;">
-            <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-            <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-          </div>
-          <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon" style="color: ${colors[type] || colors.info}">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         toastContainer.appendChild(toast);
 
-        // Show toast with animation
-        setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
-        }, 100);
+        // Show animation
+        setTimeout(() => toast.classList.add("show"), 100);
 
-        // Close button functionality
+        // Close button
         const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
+        closeBtn.addEventListener("click", () => hideToast(toast));
 
-        // Auto-hide after duration
+        // Auto hide
         if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
+          setTimeout(() => hideToast(toast), duration);
         }
 
         return toast;
       }
 
       function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
+        toast.classList.remove("show");
         setTimeout(() => {
           if (toast.parentNode) {
             toast.parentNode.removeChild(toast);
@@ -2670,35 +2546,46 @@
         }, 300);
       }
 
-      // Setup logout confirmation functionality
+      // Setup Functions
       function setupLogoutConfirmation() {
-        sidebarLogoutBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          logoutConfirmationModal.style.display = "block";
-        });
+        const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+        const logoutConfirmationModal = document.getElementById(
+          "logoutConfirmationModal"
+        );
+        const confirmYes = document.getElementById("confirmYes");
+        const confirmNo = document.getElementById("confirmNo");
 
-        confirmNo.addEventListener("click", function () {
-          logoutConfirmationModal.style.display = "none";
-        });
+        if (sidebarLogoutBtn) {
+          sidebarLogoutBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (logoutConfirmationModal)
+              logoutConfirmationModal.style.display = "block";
+          });
+        }
 
-        confirmYes.addEventListener("click", function () {
-          showToast(
-            "info",
-            "Logging Out",
-            "You have been logged out successfully",
-            500
-          );
+        if (confirmNo) {
+          confirmNo.addEventListener("click", function () {
+            if (logoutConfirmationModal)
+              logoutConfirmationModal.style.display = "none";
+          });
+        }
 
-          // Clear authentication tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+        if (confirmYes) {
+          confirmYes.addEventListener("click", function () {
+            showToast(
+              "info",
+              "Logging Out",
+              "You have been logged out successfully",
+              500
+            );
+            clearAuthData();
+            setTimeout(() => {
+              window.location.href = "/static/signin.html";
+            }, 500);
+          });
+        }
 
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 500);
-        });
-
-        // Close logout confirmation modal when clicking outside
+        // Close modal when clicking outside
         window.addEventListener("click", function (event) {
           if (event.target === logoutConfirmationModal) {
             logoutConfirmationModal.style.display = "none";
@@ -2706,64 +2593,37 @@
         });
       }
 
-      // Setup modal functionality
       function setupModalFunctionality() {
-        // Close modal button
-        closeModalBtn.addEventListener("click", function () {
-          courseModal.style.display = "none";
-          currentSelectedCourse = null;
-        });
+        const courseModal = document.getElementById("courseModal");
+        const closeModalBtn = document.getElementById("closeModalBtn");
+
+        if (closeModalBtn) {
+          closeModalBtn.addEventListener("click", function () {
+            if (courseModal) courseModal.style.display = "none";
+          });
+        }
 
         // Close modal when clicking outside
         window.addEventListener("click", function (event) {
           if (event.target === courseModal) {
             courseModal.style.display = "none";
-            currentSelectedCourse = null;
           }
         });
       }
 
-      // Setup filter functionality
       function setupFilterFunctionality() {
-        // Toggle filter visibility
-        filterBtn.addEventListener("click", function () {
-          const isVisible = courseFilters.style.display === "block";
-          courseFilters.style.display = isVisible ? "none" : "block";
-        });
+        const filterBtn = document.getElementById("filterBtn");
+        const courseFilters = document.getElementById("courseFilters");
 
-        // Filter change events
-        [categoryFilter, statusFilter, levelFilter, progressFilter].forEach(
-          (filter) => {
-            filter.addEventListener("change", function () {
-              applyFilters();
-            });
-          }
-        );
+        if (filterBtn && courseFilters) {
+          filterBtn.addEventListener("click", function () {
+            const isVisible = courseFilters.style.display === "block";
+            courseFilters.style.display = isVisible ? "none" : "block";
+          });
+        }
       }
 
-      // Function to apply filters
-      function applyFilters() {
-        const category = categoryFilter.value;
-        const status = statusFilter.value;
-        const level = levelFilter.value;
-        const progress = progressFilter.value;
-
-        let filterText = "Applied filters:";
-        if (category) filterText += ` Category: ${category},`;
-        if (status) filterText += ` Status: ${status},`;
-        if (level) filterText += ` Level: ${level},`;
-        if (progress) filterText += ` Progress: ${progress},`;
-
-        // Remove trailing comma
-        filterText = filterText.replace(/,$/, "");
-
-        showToast("info", "Filters Applied", filterText, 3000);
-        // In a real implementation, you would filter the course list here
-      }
-
-      // Setup event listeners for buttons
       function setupEventListeners() {
-        // View All Categories button
         const viewAllCategories = document.getElementById("viewAllCategories");
         if (viewAllCategories) {
           viewAllCategories.addEventListener("click", function () {
@@ -2773,51 +2633,50 @@
               "Showing all available categories",
               2000
             );
-            // In a real implementation, you might show a categories modal or page
           });
         }
       }
 
-      // Initialize dashboard
+      // Initialize the application
       document.addEventListener("DOMContentLoaded", function () {
         console.log("Student Courses Dashboard initializing...");
 
-        // Initialize theme first
+        // Initialize theme
         initTheme();
 
         // Set up theme toggle
-        themeToggleInput.addEventListener("change", toggleTheme);
-        sidebarThemeToggle.addEventListener("click", function () {
-          themeToggleInput.checked = !themeToggleInput.checked;
-          toggleTheme();
-        });
+        if (themeToggleInput) {
+          themeToggleInput.addEventListener("change", toggleTheme);
+        }
 
-        // Load current user info first
+        if (sidebarThemeToggle) {
+          sidebarThemeToggle.addEventListener("click", function () {
+            if (themeToggleInput) {
+              themeToggleInput.checked = !themeToggleInput.checked;
+              toggleTheme();
+            }
+          });
+        }
+
+        // Load user info
         loadCurrentUserInfo();
 
-        // Setup logout confirmation
+        // Setup functionality
         setupLogoutConfirmation();
-
-        // Setup modal functionality
         setupModalFunctionality();
-
-        // Setup filter functionality
         setupFilterFunctionality();
-
-        // Setup button event listeners
         setupEventListeners();
 
-        // Load courses data
+        // Load courses
         fetchStudentCourses();
 
-        // Add active class to clicked sidebar items
+        // Setup sidebar navigation
         const sidebarItems = document.querySelectorAll(".sidebar-menu a");
         sidebarItems.forEach((item) => {
           item.addEventListener("click", function () {
             sidebarItems.forEach((i) => i.classList.remove("active"));
             this.classList.add("active");
 
-            // Close sidebar on mobile after clicking a link
             if (window.innerWidth <= 992) {
               toggleSidebar();
             }

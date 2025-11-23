@@ -289,7 +289,7 @@
         right: 0;
         bottom: 0;
         background-color: rgba(255, 255, 255, 0.2);
-        transition: .4s;
+        transition: 0.4s;
         border-radius: 24px;
       }
 
@@ -301,7 +301,7 @@
         left: 4px;
         bottom: 4px;
         background-color: white;
-        transition: .4s;
+        transition: 0.4s;
         border-radius: 50%;
       }
 
@@ -1567,7 +1567,7 @@
               <span>Theme</span>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="themeToggleInput">
+              <input type="checkbox" id="themeToggleInput" />
               <span class="toggle-slider"></span>
             </label>
           </li>
@@ -1840,7 +1840,7 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // Theme Management
+      // Theme Management - MATCHING LOGIN PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1891,92 +1891,249 @@
           }
         });
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ ENHANCED API Configuration - FIXED FOR RENDER (MATCHING LOGIN PAGE)
       const getApiBaseUrl = () => {
-        // Check if we're on localhost
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "http://localhost:8000";
+        // Check if we're on Render production
+        if (window.location.hostname.includes("onrender.com")) {
+          return "https://curralms-backend.onrender.com";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        // Local development
+        return "http://localhost:8000";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // Logout Confirmation Elements
-      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
-      const logoutConfirmationModal = document.getElementById(
-        "logoutConfirmationModal"
-      );
-      const confirmYes = document.getElementById("confirmYes");
-      const confirmNo = document.getElementById("confirmNo");
+      // Enhanced environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
+      }
 
-      // Modal Elements
-      const submissionModal = document.getElementById("submissionModal");
-      const closeModalBtn = document.getElementById("closeModalBtn");
-      const cancelSubmissionBtn = document.getElementById(
-        "cancelSubmissionBtn"
-      );
-      const submissionForm = document.getElementById("submissionForm");
+      // Enhanced URL helper functions for frontend navigation
+      function getBasePath() {
+        // Check if we're on localhost
+        if (getEnvironment() === "development") {
+          return "/static"; // Localhost needs /static prefix for frontend files
+        }
+        // For production (Render), no prefix
+        return "";
+      }
 
-      // Filter Elements
-      const filterBtn = document.getElementById("filterBtn");
-      const assignmentFilters = document.getElementById("assignmentFilters");
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
 
-      // Tab Elements
-      const tabButtons = document.querySelectorAll(".tab-btn");
-      let currentTab = "all";
+      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include", // ALWAYS include cookies - CRITICAL
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
 
-      // File Upload Elements
-      const fileUploadArea = document.getElementById("fileUploadArea");
-      const fileInput = document.getElementById("fileInput");
-      const filePreview = document.getElementById("filePreview");
-      let uploadedFiles = [];
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          credentials: config.credentials,
+          environment: getEnvironment(),
+        });
 
-      // Current assignment for submission
-      let currentAssignment = null;
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+              environment: getEnvironment(),
+            }
+          );
+
+          // Debug cookie info for auth endpoints
+          if (
+            endpoint.includes("/session") ||
+            endpoint.includes("/assignments")
+          ) {
+            console.log("🍪 Cookie debug for auth endpoint");
+            console.log("📍 Current domain:", window.location.hostname);
+            console.log("🔗 API base URL:", API_BASE_URL);
+          }
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
+        }
+      }
+
+      // ENHANCED authentication state management with comprehensive debugging
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🍪 Current cookies:", document.cookie);
+
+          const response = await apiFetch("/users/session", {
+            method: "GET",
+          });
+
+          console.log("📨 Session check response:", response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
+          } else {
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
+
+            // Try to get more debug info
+            try {
+              const debugResponse = await apiFetch("/debug/session");
+              const debugData = await debugResponse.json();
+              console.log("🔍 Session debug info:", debugData);
+            } catch (debugError) {
+              console.log("🔍 No debug endpoint available");
+            }
+
+            clearAuthData();
+            return null;
+          }
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
+      }
+
+      // Enhanced redirect functions
+      async function redirectIfAuthenticated() {
+        const user = await checkAuthState();
+        if (user) {
+          console.log("🔄 User is authenticated, redirecting to dashboard...");
+          setTimeout(() => {
+            redirectToDashboard(user);
+          }, 1000);
+        }
+      }
+
+      function redirectToDashboard(user) {
+        let dashboardPath;
+        if (user.role === "admin") {
+          dashboardPath = getUrl("/dashboards/Admin-Dashboard-Overview.html");
+        } else {
+          dashboardPath = getUrl("/dashboards/student-dashboard-overview.html");
+        }
+
+        console.log("🔄 Redirecting to:", dashboardPath);
+        window.location.href = dashboardPath;
+      }
+
+      // Enhanced backend connection test
+      async function verifyBackend() {
+        try {
+          console.log("🔍 Testing backend connectivity...");
+          const response = await fetch(`${API_BASE_URL}/health`, {
+            credentials: "include",
+          });
+          const data = await response.json();
+          console.log("✅ Backend is accessible:", data);
+          return true;
+        } catch (error) {
+          console.error("❌ Cannot reach backend:", error);
+
+          // Show user-friendly error
+          if (getEnvironment() === "production") {
+            showToast(
+              "error",
+              "Connection Error",
+              "Cannot connect to server. Please check if the backend service is running.",
+              5000
+            );
+          }
+          return false;
+        }
+      }
+
+      // Enhanced diagnostic function
+      async function runDiagnostics() {
+        console.group("🔍 AUTHENTICATION DIAGNOSTICS");
+        console.log("📍 Environment:", getEnvironment());
+        console.log("🌐 Frontend URL:", window.location.origin);
+        console.log("🔌 Backend URL:", API_BASE_URL);
+        console.log("🍪 Cookies present:", document.cookie);
+
+        // Test backend connectivity
+        await verifyBackend();
+
+        console.groupEnd();
+      }
 
       // Function to load and display current user info
       function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
+        // First try to get user from localStorage
+        const userData = localStorage.getItem("user");
+
+        if (userData) {
           try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
-
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = userEmail;
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
-            }
+            const user = JSON.parse(userData);
+            updateUserUI(user);
+            return;
           } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = "Student";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "S";
-            }
+            console.error("Error parsing user data:", e);
           }
+        }
+
+        // If no user data in localStorage, check auth state
+        checkAuthState().then((user) => {
+          if (user) {
+            updateUserUI(user);
+          } else {
+            // Fallback to default
+            updateUserUI({ email: "Student", username: "Student" });
+          }
+        });
+      }
+
+      function updateUserUI(user) {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+
+        if (userNameElement) {
+          userNameElement.textContent =
+            user.email || user.username || "Student";
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = getInitials(
+            user.email || user.username || "Student"
+          );
         }
       }
 
@@ -1995,9 +2152,9 @@
       }
 
       // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
+      async function checkAuthentication() {
+        const user = await checkAuthState();
+        if (!user) {
           showToast(
             "warning",
             "Authentication Required",
@@ -2005,7 +2162,7 @@
             4000
           );
           setTimeout(() => {
-            window.location.href = "/static/signin.html";
+            window.location.href = getUrl("/signin.html");
           }, 2000);
           return false;
         }
@@ -2015,20 +2172,10 @@
       // Function to fetch data from API with proper authentication
       async function fetchData(endpoint) {
         try {
-          const token = localStorage.getItem("access_token");
-          const headers = {
-            "Content-Type": "application/json",
-          };
-
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
-
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
 
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          const response = await apiFetch(endpoint, {
             method: "GET",
-            headers: headers,
           });
 
           console.log(
@@ -2043,7 +2190,7 @@
               3000
             );
             setTimeout(() => {
-              window.location.href = "/static/signin.html";
+              window.location.href = getUrl("/signin.html");
             }, 2000);
             return null;
           }
@@ -2071,7 +2218,7 @@
         console.log("🔄 Fetching student assignments...");
 
         // Check authentication first
-        if (!checkAuthentication()) {
+        if (!(await checkAuthentication())) {
           return;
         }
 
@@ -2181,110 +2328,110 @@
               assignment.status === "overdue";
 
             return `
-            <div class="assignment-card ${urgencyClass} ${statusClass}" data-assignment-id="${
+        <div class="assignment-card ${urgencyClass} ${statusClass}" data-assignment-id="${
               assignment.id
             }">
-              <div class="assignment-header">
-                <div>
-                  <div class="assignment-title">${assignment.title}</div>
-                  <div class="assignment-course">
-                    <i class="fas fa-book"></i>
-                    ${assignment.course_name}
-                    <span class="course-badge">${assignment.course_code}</span>
-                  </div>
-                </div>
-                <div class="assignment-meta">
-                  <div class="meta-item">
-                    <i class="fas fa-calendar"></i>
-                    <span>Due: ${formatDate(dueDate)}</span>
-                  </div>
-                  <div class="meta-item">
-                    <i class="fas fa-clock"></i>
-                    <span>${getTimeRemaining(dueDate)}</span>
-                  </div>
-                  <div class="meta-item">
-                    <i class="fas fa-percentage"></i>
-                    <span>Weight: ${assignment.weight || 0}%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="assignment-description">
-                ${assignment.description || "No description provided."}
-              </div>
-
-              ${
-                assignment.instructions
-                  ? `
-                <div class="assignment-description" style="font-style: italic; color: var(--text-muted);">
-                  <strong>Instructions:</strong> ${assignment.instructions}
-                </div>
-              `
-                  : ""
-              }
-
-              ${
-                assignment.submission && assignment.submission.feedback
-                  ? `
-                <div class="assignment-description" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 6px; border-left: 3px solid var(--success-green);">
-                  <strong>Instructor Feedback:</strong> ${assignment.submission.feedback}
-                </div>
-              `
-                  : ""
-              }
-
-              <div class="assignment-footer">
-                <div class="assignment-status">
-                  <span class="status-badge ${statusClass}">${
-              statusText.charAt(0).toUpperCase() + statusText.slice(1)
-            }</span>
-                  ${
-                    assignment.grade
-                      ? `<span style="color: var(--text-primary); font-weight: 600;">Grade: ${assignment.grade}%</span>`
-                      : ""
-                  }
-                  ${
-                    assignment.submission && assignment.submission.submitted_at
-                      ? `
-                    <span style="color: var(--text-muted); font-size: 0.8rem;">
-                      Submitted: ${formatDate(
-                        new Date(assignment.submission.submitted_at)
-                      )}
-                    </span>
-                  `
-                      : ""
-                  }
-                </div>
-                <div class="assignment-actions">
-                  ${
-                    canSubmit
-                      ? `
-                    <button class="btn btn-primary" onclick="openSubmissionModal('${assignment.id}')">
-                      <i class="fas fa-paper-plane"></i> Submit
-                    </button>
-                  `
-                      : ""
-                  }
-                  
-                  ${
-                    isSubmitted
-                      ? `
-                    <button class="btn btn-outline" onclick="viewSubmission('${assignment.id}')">
-                      <i class="fas fa-eye"></i> View
-                    </button>
-                  `
-                      : ""
-                  }
-                  
-                  <button class="btn btn-outline" onclick="downloadAssignment('${
-                    assignment.id
-                  }')">
-                    <i class="fas fa-download"></i> Download
-                  </button>
-                </div>
+          <div class="assignment-header">
+            <div>
+              <div class="assignment-title">${assignment.title}</div>
+              <div class="assignment-course">
+                <i class="fas fa-book"></i>
+                ${assignment.course_name}
+                <span class="course-badge">${assignment.course_code}</span>
               </div>
             </div>
-          `;
+            <div class="assignment-meta">
+              <div class="meta-item">
+                <i class="fas fa-calendar"></i>
+                <span>Due: ${formatDate(dueDate)}</span>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-clock"></i>
+                <span>${getTimeRemaining(dueDate)}</span>
+              </div>
+              <div class="meta-item">
+                <i class="fas fa-percentage"></i>
+                <span>Weight: ${assignment.weight || 0}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="assignment-description">
+            ${assignment.description || "No description provided."}
+          </div>
+
+          ${
+            assignment.instructions
+              ? `
+            <div class="assignment-description" style="font-style: italic; color: var(--text-muted);">
+              <strong>Instructions:</strong> ${assignment.instructions}
+            </div>
+          `
+              : ""
+          }
+
+          ${
+            assignment.submission && assignment.submission.feedback
+              ? `
+            <div class="assignment-description" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 6px; border-left: 3px solid var(--success-green);">
+              <strong>Instructor Feedback:</strong> ${assignment.submission.feedback}
+            </div>
+          `
+              : ""
+          }
+
+          <div class="assignment-footer">
+            <div class="assignment-status">
+              <span class="status-badge ${statusClass}">${
+              statusText.charAt(0).toUpperCase() + statusText.slice(1)
+            }</span>
+              ${
+                assignment.grade
+                  ? `<span style="color: var(--text-primary); font-weight: 600;">Grade: ${assignment.grade}%</span>`
+                  : ""
+              }
+              ${
+                assignment.submission && assignment.submission.submitted_at
+                  ? `
+                <span style="color: var(--text-muted); font-size: 0.8rem;">
+                  Submitted: ${formatDate(
+                    new Date(assignment.submission.submitted_at)
+                  )}
+                </span>
+              `
+                  : ""
+              }
+            </div>
+            <div class="assignment-actions">
+              ${
+                canSubmit
+                  ? `
+                <button class="btn btn-primary" onclick="openSubmissionModal('${assignment.id}')">
+                  <i class="fas fa-paper-plane"></i> Submit
+                </button>
+              `
+                  : ""
+              }
+              
+              ${
+                isSubmitted
+                  ? `
+                <button class="btn btn-outline" onclick="viewSubmission('${assignment.id}')">
+                  <i class="fas fa-eye"></i> View
+                </button>
+              `
+                  : ""
+              }
+              
+              <button class="btn btn-outline" onclick="downloadAssignment('${
+                assignment.id
+              }')">
+                <i class="fas fa-download"></i> Download
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
           })
           .join("");
       }
@@ -2438,17 +2585,17 @@
         const fileItem = document.createElement("div");
         fileItem.className = "file-preview-item";
         fileItem.innerHTML = `
-          <div class="file-info">
-            <i class="fas fa-file file-icon"></i>
-            <div>
-              <div class="file-name">${file.name}</div>
-              <div class="file-size">${fileSize} MB</div>
-            </div>
-          </div>
-          <button type="button" class="remove-file" onclick="removeFile('${file.name}')">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="file-info">
+        <i class="fas fa-file file-icon"></i>
+        <div>
+          <div class="file-name">${file.name}</div>
+          <div class="file-size">${fileSize} MB</div>
+        </div>
+      </div>
+      <button type="button" class="remove-file" onclick="removeFile('${file.name}')">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
         filePreview.appendChild(fileItem);
       }
 
@@ -2471,17 +2618,6 @@
       // Function to submit assignment
       async function submitAssignment(formData) {
         try {
-          const token = localStorage.getItem("access_token");
-          if (!token) {
-            showToast(
-              "error",
-              "Authentication Required",
-              "Please log in to submit assignments",
-              4000
-            );
-            return false;
-          }
-
           // Show loading state
           const submitBtn = document.getElementById("submitAssignmentBtn");
           const originalText = submitBtn.innerHTML;
@@ -2489,7 +2625,7 @@
             '<i class="fas fa-spinner fa-spin"></i> Submitting...';
           submitBtn.disabled = true;
 
-          // In a real implementation, you would send this to your backend
+          // In a real implementation, you would send this to your backend using apiFetch
           // For now, we'll simulate a successful submission
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -2546,11 +2682,11 @@
 
         if (assignmentList) {
           assignmentList.innerHTML = `
-            <div class="loading-state">
-              <i class="fas fa-spinner fa-spin"></i>
-              <span class="loading-text">Loading assignments...</span>
-            </div>
-          `;
+        <div class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span class="loading-text">Loading assignments...</span>
+        </div>
+      `;
         }
       }
 
@@ -2560,15 +2696,15 @@
 
         if (assignmentList) {
           assignmentList.innerHTML = `
-            <div class="empty-state">
-              <i class="fas fa-tasks"></i>
-              <h3>No Assignments</h3>
-              <p>${message}</p>
-              <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
-                <i class="fas fa-sync-alt"></i> Refresh
-              </button>
-            </div>
-          `;
+        <div class="empty-state">
+          <i class="fas fa-tasks"></i>
+          <h3>No Assignments</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      `;
         }
       }
 
@@ -2578,15 +2714,15 @@
 
         if (assignmentList) {
           assignmentList.innerHTML = `
-            <div class="error-state">
-              <i class="fas fa-exclamation-triangle"></i>
-              <h3>Unable to Load Assignments</h3>
-              <p>${message}</p>
-              <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
-                <i class="fas fa-sync-alt"></i> Try Again
-              </button>
-            </div>
-          `;
+        <div class="error-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Unable to Load Assignments</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
+            <i class="fas fa-sync-alt"></i> Try Again
+          </button>
+        </div>
+      `;
         }
       }
 
@@ -2710,33 +2846,33 @@
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
           toastContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            max-width: 400px;
-          `;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.style.cssText = `
-          background: var(--card-bg);
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          padding: 16px;
-          margin-bottom: 10px;
-          border-left: 4px solid;
-          display: flex;
-          align-items: center;
-          opacity: 0;
-          transform: translateX(100%);
-          transition: all 0.3s ease;
-          pointer-events: all;
-          max-width: 350px;
-          backdrop-filter: blur(10px);
-        `;
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      pointer-events: all;
+      max-width: 350px;
+      backdrop-filter: blur(10px);
+    `;
 
         // Set border color based on type
         const colors = {
@@ -2755,19 +2891,19 @@
         };
 
         toast.innerHTML = `
-          <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-            colors[type] || colors.info
-          }">
-            <i class="${icons[type]}"></i>
-          </div>
-          <div class="toast-content" style="flex: 1;">
-            <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-            <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-          </div>
-          <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         toastContainer.appendChild(toast);
 
@@ -2822,12 +2958,11 @@
             500
           );
 
-          // Clear authentication tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+          // Clear authentication data
+          clearAuthData();
 
           setTimeout(() => {
-            window.location.href = "/static/signin.html";
+            window.location.href = getUrl("/signin.html");
           }, 500);
         });
 
@@ -2916,16 +3051,52 @@
         });
       }
 
+      // Global variables
+      let currentTab = "all";
+      let uploadedFiles = [];
+      let currentAssignment = null;
+
+      // Modal Elements
+      const submissionModal = document.getElementById("submissionModal");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const cancelSubmissionBtn = document.getElementById(
+        "cancelSubmissionBtn"
+      );
+      const submissionForm = document.getElementById("submissionForm");
+
+      // Filter Elements
+      const filterBtn = document.getElementById("filterBtn");
+      const assignmentFilters = document.getElementById("assignmentFilters");
+
+      // Tab Elements
+      const tabButtons = document.querySelectorAll(".tab-btn");
+
+      // File Upload Elements
+      const fileUploadArea = document.getElementById("fileUploadArea");
+      const fileInput = document.getElementById("fileInput");
+      const filePreview = document.getElementById("filePreview");
+
+      // Logout Confirmation Elements
+      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
       // Initialize dashboard
       document.addEventListener("DOMContentLoaded", function () {
         console.log("Student Assignments Dashboard initializing...");
+
+        // Run comprehensive diagnostics
+        runDiagnostics();
 
         // Initialize theme first
         initTheme();
 
         // Set up theme toggle
         themeToggleInput.addEventListener("change", toggleTheme);
-        sidebarThemeToggle.addEventListener("click", function() {
+        sidebarThemeToggle.addEventListener("click", function () {
           themeToggleInput.checked = !themeToggleInput.checked;
           toggleTheme();
         });
@@ -2948,8 +3119,12 @@
         // Setup tab functionality
         setupTabFunctionality();
 
-        // Load assignments data
-        fetchStudentAssignments();
+        // Check if user is authenticated and load assignments
+        checkAuthentication().then((isAuthenticated) => {
+          if (isAuthenticated) {
+            fetchStudentAssignments();
+          }
+        });
 
         // Add active class to clicked sidebar items
         const sidebarItems = document.querySelectorAll(".sidebar-menu a");
