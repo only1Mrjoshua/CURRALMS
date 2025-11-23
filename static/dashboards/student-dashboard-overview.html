@@ -9,16 +9,22 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <script>
-      // In head: set theme class immediately
+      // Immediately apply theme based on device preference or saved setting
       (function () {
         const savedTheme = localStorage.getItem("theme");
         const systemPrefersDark = window.matchMedia(
           "(prefers-color-scheme: dark)"
         ).matches;
 
-        if (savedTheme === "dark" || (!savedTheme && systemPrefersDark)) {
-          document.documentElement.classList.add("theme-loading-dark");
-        }
+        // Priority: saved theme > device preference > light (default)
+        const theme = savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Apply immediately to prevent flash
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.classList.add(
+          "theme-loading",
+          `theme-loading-${theme}`
+        );
       })();
     </script>
     <style>
@@ -66,13 +72,43 @@
         --skeleton-bg: rgba(255, 255, 255, 0.1);
       }
 
+      /* Immediate theme styles to prevent flash */
       .theme-loading-dark {
         --bg-primary: #0f172a;
         --bg-secondary: #1e293b;
         --bg-tertiary: #334155;
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        --navbar-bg: rgba(30, 41, 59, 0.8);
         --text-primary: #f8fafc;
-        background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
-        color: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      .theme-loading-light {
+        --bg-primary: #f8fafc;
+        --bg-secondary: #e0e7ff;
+        --bg-tertiary: #f3e8ff;
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        --navbar-bg: rgba(255, 255, 255, 0.8);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6b7280;
+        --border-color: rgba(0, 0, 0, 0.1);
+        --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      .theme-loading {
+        background: linear-gradient(
+          135deg,
+          var(--bg-primary),
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        color: var(--text-primary);
       }
 
       * {
@@ -333,6 +369,47 @@
 
       input:checked + .toggle-slider:before {
         transform: translateX(26px);
+      }
+
+      /* Reset to Device Theme Button */
+      .reset-theme-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+
+      .reset-theme-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .reset-theme-item:hover::before {
+        left: 0;
+      }
+
+      .reset-theme-item:hover {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .reset-theme-item i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
       }
 
       /* Hamburger Menu Button */
@@ -1368,21 +1445,16 @@
   </head>
   <body>
     <script>
-      // In body: set data-theme attribute immediately
-      (function () {
-        const savedTheme = localStorage.getItem("theme");
-        const systemPrefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
-        if (savedTheme === "dark" || (!savedTheme && systemPrefersDark)) {
-          document.documentElement.setAttribute("data-theme", "dark");
-        } else {
-          document.documentElement.setAttribute("data-theme", "light");
-        }
-        document.documentElement.classList.remove("theme-loading-dark");
-      })();
+      // Clean up loading classes once proper CSS is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        document.documentElement.classList.remove(
+          "theme-loading",
+          "theme-loading-dark",
+          "theme-loading-light"
+        );
+      });
     </script>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1458,6 +1530,11 @@
               <input type="checkbox" id="themeToggleInput" />
               <span class="toggle-slider"></span>
             </label>
+          </li>
+          <!-- Reset to Device Theme -->
+          <li class="reset-theme-item" id="resetThemeBtn">
+            <i class="fas fa-sync-alt"></i>
+            <span>Reset to Device Theme</span>
           </li>
         </ul>
       </div>
@@ -1745,6 +1822,7 @@
       // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
+      const resetThemeBtn = document.getElementById("resetThemeBtn");
       const htmlElement = document.documentElement;
 
       // Function to set theme
@@ -1765,33 +1843,67 @@
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
+        showToast(
+          "info",
+          "Theme Changed",
+          `Switched to ${newTheme} mode`,
+          2000
+        );
       }
 
-      // Initialize theme
+      // Initialize theme with device preference as default
       function initTheme() {
-        // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
 
-        if (savedTheme) {
-          setTheme(savedTheme);
-        } else {
-          // Check system preference
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
-          setTheme(prefersDark ? "dark" : "light");
-        }
+        // If no theme is saved, use device preference
+        const currentTheme =
+          savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Update toggle switch to reflect current theme
+        themeToggleInput.checked = currentTheme === "dark";
+
+        console.log(
+          `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
+        );
       }
 
-      // Listen for system theme changes
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          // Only change if user hasn't set a preference
-          if (!localStorage.getItem("theme")) {
-            setTheme(e.matches ? "dark" : "light");
-          }
-        });
+      // Reset to device theme
+      function resetToDeviceTheme() {
+        localStorage.removeItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const deviceTheme = systemPrefersDark ? "dark" : "light";
+        setTheme(deviceTheme);
+        showToast(
+          "success",
+          "Theme Reset",
+          `Now using device theme (${deviceTheme})`,
+          3000
+        );
+      }
+
+      // Listen for system theme changes and update if no manual preference is set
+      function setupSystemThemeListener() {
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            // Only change if user hasn't set a manual preference
+            if (!localStorage.getItem("theme")) {
+              const newTheme = e.matches ? "dark" : "light";
+              setTheme(newTheme);
+              showToast(
+                "info",
+                "Theme Updated",
+                `Changed to system theme (${newTheme})`,
+                3000
+              );
+            }
+          });
+      }
 
       // ⚙️ API Configuration - Dynamic URL for localhost and Render
       const getApiBaseUrl = () => {
@@ -2665,6 +2777,11 @@
             }, 1000);
           });
         }
+
+        // Reset theme button
+        if (resetThemeBtn) {
+          resetThemeBtn.addEventListener("click", resetToDeviceTheme);
+        }
       }
 
       // Initialize dashboard
@@ -2680,6 +2797,9 @@
           themeToggleInput.checked = !themeToggleInput.checked;
           toggleTheme();
         });
+
+        // Set up system theme listener
+        setupSystemThemeListener();
 
         // Load current user info first
         loadCurrentUserInfo();
