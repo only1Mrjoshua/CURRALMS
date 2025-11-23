@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await close_mongo_connection()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Include routers
 app.include_router(courses.router)
@@ -26,17 +26,26 @@ app.include_router(lesson.router)
 app.include_router(assignment.router)
 app.include_router(quiz.router)
 
-# CORS middleware
+# CORS middleware - UPDATED FOR COOKIES
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=True,  # CRITICAL FOR COOKIES
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]  # IMPORTANT FOR COOKIES
 )
 
 # Serve static files (for avatars)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+async def read_root():
+    return {"message": "Curra LMS API is running", "version": "1.0.0"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "API is running smoothly"}
 
 def custom_openapi():
     if app.openapi_schema:
@@ -83,6 +92,10 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
         ("/health", "GET"),
         ("/users/signup", "POST"),
         ("/users/login", "POST"),
+        ("/auth/google/url", "GET"),
+        ("/auth/google/callback", "GET"),
+        ("/auth/google/setup", "GET"),
+        ("/auth/google/test", "GET"),
     ]
     
     if (path, method) in public_endpoints:
@@ -102,4 +115,3 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
     return True  # Default to requiring auth for security
 
 app.openapi = custom_openapi
-

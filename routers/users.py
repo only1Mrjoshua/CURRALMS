@@ -1,5 +1,5 @@
 # routers/users.py
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Optional
 from datetime import datetime
@@ -10,6 +10,7 @@ from database import get_database
 from models.user import User, RoleEnum
 from schemas.user import UserOut, UserCreate, AdminUserCreate
 from utils.security import hash_password, verify_password, create_access_token
+from utils.cookies import set_auth_cookie, delete_auth_cookie
 from dependencies import get_current_user, require_admin, oauth2_scheme
 
 # Create directory if not exists
@@ -89,6 +90,7 @@ async def signup(
 @router.post("/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
+    response: Response = None,
     crud = Depends(get_user_crud)
 ):
     identifier = form_data.username.strip()
@@ -162,8 +164,12 @@ async def login(
         data={"sub": user.email, "role": user.role}
     )
 
+    # Set HTTP-only cookie for session persistence
+    set_auth_cookie(response, access_token)
+    print(f"🍪 HTTP-only cookie set for user: {user.email}")
+
     return {
-        "access_token": access_token,
+        "access_token": access_token,  # Still return for flexibility
         "token_type": "bearer",
         "user": {
             "id": str(user.id),
@@ -172,6 +178,40 @@ async def login(
             "username": user.username,
             "avatar_url": user.avatar_url,
             "is_active": user.is_active
+        }
+    }
+
+# Logout endpoint
+@router.post("/logout")
+async def logout(response: Response):
+    """
+    Logout user by clearing the HTTP-only cookie
+    """
+    delete_auth_cookie(response)
+    print("🍪 HTTP-only cookie cleared - user logged out")
+    
+    return {
+        "message": "Successfully logged out",
+        "success": True
+    }
+
+# Session check endpoint
+@router.get("/session")
+async def check_session(current_user: User = Depends(get_current_user)):
+    """
+    Check if user session is valid
+    """
+    return {
+        "authenticated": True,
+        "user": {
+            "id": str(current_user.id),
+            "email": current_user.email,
+            "role": current_user.role,
+            "username": current_user.username,
+            "full_name": current_user.full_name,
+            "avatar_url": current_user.avatar_url,
+            "is_active": current_user.is_active,
+            "last_login": current_user.last_login
         }
     }
 

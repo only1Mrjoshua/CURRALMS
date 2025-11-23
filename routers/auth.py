@@ -1,29 +1,27 @@
 import httpx
-from fastapi import Request
-from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.responses import JSONResponse
+from fastapi import Request, APIRouter, HTTPException, Depends, status, Response
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 import os
 from typing import Optional
-from fastapi.responses import HTMLResponse, RedirectResponse
 import json
 from database import get_database
 from crud.user import UserCRUD
 from models.user import User, RoleEnum, GenderEnum
 from schemas.user import UserCreate
-from utils.security import create_access_token, hash_password
+from utils.security import create_access_token
+from utils.cookies import set_auth_cookie
 import secrets
 import string
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-# Google OAuth Configuration - UPDATED FOR BOTH LOCALHOST AND RENDER
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")  # Default to localhost
+# Google OAuth Configuration
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "1035631189611-ou2ig6bn8d1uqkljcimbsogth9p67kh8.apps.googleusercontent.com")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "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")
 GOOGLE_REDIRECT_URI = f"{BASE_URL}/auth/google/callback"
 
-# Debug output
 print(f"🔧 OAuth Configuration Loaded:")
 print(f"   BASE_URL: {BASE_URL}")
 print(f"   REDIRECT_URI: {GOOGLE_REDIRECT_URI}")
@@ -43,7 +41,6 @@ def generate_random_password(length=16):
     """Generate a random password for Google OAuth users"""
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     password = ''.join(secrets.choice(alphabet) for _ in range(length))
-    # Ensure password meets strength requirements
     if not any(c.isupper() for c in password):
         password += 'A'
     if not any(c.islower() for c in password):
@@ -103,8 +100,8 @@ async def get_google_user_info(access_token: str):
         return GoogleUserInfo(**user_data)
 
 @router.post("/google")
-async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
-    """Handle Google OAuth callback"""
+async def google_auth(request: GoogleTokenRequest, response: Response, db=Depends(get_database)):
+    """Handle Google OAuth callback with HTTP-only cookie"""
     try:
         print(f"🔍 Starting Google OAuth POST processing...")
         
@@ -184,6 +181,10 @@ async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
         )
         print(f"✅ JWT token created for user: {user.email}")
 
+        # Set HTTP-only cookie
+        set_auth_cookie(response, jwt_token)
+        print(f"🍪 HTTP-only cookie set for Google OAuth user: {user.email}")
+
         return {
             "access_token": jwt_token,
             "token_type": "bearer",
@@ -228,33 +229,6 @@ async def get_google_auth_url(request: Request):
     print(f"🔗 Generated Google auth URL: {auth_url}")
     return {"auth_url": auth_url}
 
-@router.get("/google/setup")
-async def google_setup_info():
-    """Endpoint to check Google OAuth setup"""
-    return {
-        "client_id": GOOGLE_CLIENT_ID,
-        "has_secret": bool(GOOGLE_CLIENT_SECRET and GOOGLE_CLIENT_SECRET != "YOUR_CLIENT_SECRET_HERE"),
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "message": "Please set GOOGLE_CLIENT_SECRET in the code"
-    }
-
-@router.get("/google/test")
-async def test_google_config():
-    """Test Google OAuth configuration"""
-    if GOOGLE_CLIENT_SECRET == "YOUR_CLIENT_SECRET_HERE":
-        return {
-            "status": "error",
-            "message": "Client secret not configured. Please generate it in Google Cloud Console and update the code."
-        }
-    
-    return {
-        "status": "success", 
-        "message": "Google OAuth is properly configured"
-    }
-
-from fastapi.responses import RedirectResponse
-import urllib.parse
-
 @router.get("/google/callback")
 async def google_callback(
     code: str = None, 
@@ -263,7 +237,7 @@ async def google_callback(
     state: str = None,
     db=Depends(get_database)
 ):
-    """Handle Google OAuth callback and return proper HTML response for mobile"""
+    """Handle Google OAuth callback and set HTTP-only cookie"""
     print(f"🔍 Google callback received - code: {code is not None}, error: {error}, state: {state}")
     
     # Determine if this is signup or signin from state parameter
@@ -277,7 +251,6 @@ async def google_callback(
         if error_description:
             error_msg += f" - {error_description}"
         print(f"❌ Google OAuth error: {error_msg}")
-        # Return HTML that will handle the error
         return HTMLResponse(f"""
         <!DOCTYPE html>
         <html>
@@ -345,7 +318,7 @@ async def google_callback(
         # Check if user already exists
         existing_user = await crud.get_user_by_email(google_user.email)
         user_was_created = False
-        action_type = "signin"  # Default to signin
+        action_type = "signin"
         
         if existing_user:
             user = existing_user
@@ -443,16 +416,14 @@ async def google_callback(
             success_message = f"Welcome back, {user.full_name}!"
             toast_type = "success"
         
-        # Return HTML that will store tokens and redirect
-        return HTMLResponse(f"""
+        # Create HTML response and set cookie
+        html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Authentication Successful</title>
             <script>
-                // Store authentication data
-                localStorage.setItem('access_token', '{jwt_token}');
-                localStorage.setItem('token_type', 'bearer');
+                // Store user data in localStorage (but NOT the token)
                 localStorage.setItem('user', '{user_json}');
                 
                 // Store custom success messaging
@@ -479,7 +450,14 @@ async def google_callback(
             <p>Authentication successful! Redirecting...</p>
         </body>
         </html>
-        """)
+        """
+        
+        # Create response and set cookie
+        response = HTMLResponse(html_content)
+        set_auth_cookie(response, jwt_token)
+        print(f"🍪 HTTP-only cookie set for Google OAuth user: {user.email}")
+        
+        return response
             
     except Exception as e:
         print(f"❌ Google callback error: {str(e)}")
@@ -505,3 +483,27 @@ async def google_callback(
         </body>
         </html>
         """)
+
+@router.get("/google/setup")
+async def google_setup_info():
+    """Endpoint to check Google OAuth setup"""
+    return {
+        "client_id": GOOGLE_CLIENT_ID,
+        "has_secret": bool(GOOGLE_CLIENT_SECRET and GOOGLE_CLIENT_SECRET != "YOUR_CLIENT_SECRET_HERE"),
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "message": "Please set GOOGLE_CLIENT_SECRET in the code"
+    }
+
+@router.get("/google/test")
+async def test_google_config():
+    """Test Google OAuth configuration"""
+    if GOOGLE_CLIENT_SECRET == "YOUR_CLIENT_SECRET_HERE":
+        return {
+            "status": "error",
+            "message": "Client secret not configured. Please generate it in Google Cloud Console and update the code."
+        }
+    
+    return {
+        "status": "success", 
+        "message": "Google OAuth is properly configured"
+    }

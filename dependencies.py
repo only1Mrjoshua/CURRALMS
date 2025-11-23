@@ -1,23 +1,38 @@
-# dependencies.py
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
 
 from database import get_database
 from utils.security import verify_token
+from utils.cookies import get_token_from_cookie
 from models.user import User, RoleEnum
 
 # OAuth2 scheme for token endpoint - use this consistently
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login", auto_error=False)
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
     db=Depends(get_database)
 ):
     from crud.user import UserCRUD
     crud = UserCRUD(db)
     
-    payload = verify_token(token)
+    # Try to get token from Authorization header first
+    auth_token = token
+    
+    # If no header token, try to get from cookie
+    if not auth_token:
+        auth_token = get_token_from_cookie(request)
+    
+    if not auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No authentication token provided",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    payload = verify_token(auth_token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -21,10 +21,20 @@
 
         // Apply immediately to prevent flash
         document.documentElement.setAttribute("data-theme", theme);
+
+        // Set loading classes for immediate styling
         document.documentElement.classList.add(
           "theme-loading",
           `theme-loading-${theme}`
         );
+
+        // Update toggle state immediately
+        document.addEventListener("DOMContentLoaded", function () {
+          const toggleInput = document.getElementById("themeToggleInput");
+          if (toggleInput) {
+            toggleInput.checked = theme === "dark";
+          }
+        });
       })();
     </script>
     <style>
@@ -55,6 +65,23 @@
         --text-muted: #6b7280;
         --border-color: rgba(0, 0, 0, 0.1);
         --skeleton-bg: rgba(0, 0, 0, 0.1);
+      }
+
+      /* System preference detection */
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg-primary: #0f172a;
+          --bg-secondary: #1e293b;
+          --bg-tertiary: #334155;
+          --card-bg: rgba(30, 41, 59, 0.8);
+          --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+          --navbar-bg: rgba(30, 41, 59, 0.8);
+          --text-primary: #f8fafc;
+          --text-secondary: #cbd5e1;
+          --text-muted: #94a3b8;
+          --border-color: rgba(255, 255, 255, 0.1);
+          --skeleton-bg: rgba(255, 255, 255, 0.1);
+        }
       }
 
       /* Dark mode colors */
@@ -1798,26 +1825,37 @@
 
       // Function to set theme
       function setTheme(theme, isSystemChange = false) {
-        htmlElement.setAttribute("data-theme", theme);
+        // Remove any existing theme first
+        htmlElement.removeAttribute("data-theme");
 
-        // Only save to localStorage if the user manually changed the theme
-        if (!isSystemChange) {
-          localStorage.setItem("theme", theme);
-        }
+        // Small delay to ensure clean state
+        setTimeout(() => {
+          htmlElement.setAttribute("data-theme", theme);
 
-        // Update toggle switch
-        if (theme === "dark") {
-          themeToggleInput.checked = true;
-        } else {
-          themeToggleInput.checked = false;
-        }
+          // Only save to localStorage if the user manually changed the theme
+          if (!isSystemChange) {
+            localStorage.setItem("theme", theme);
+          }
+
+          // Update toggle switch
+          const toggleInput = document.getElementById("themeToggleInput");
+          if (toggleInput) {
+            toggleInput.checked = theme === "dark";
+          }
+        }, 10);
       }
 
       // Function to toggle theme
       function toggleTheme() {
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
+
+        // Remove any existing theme attributes first
+        htmlElement.removeAttribute("data-theme");
+
+        // Set new theme
         setTheme(newTheme, false);
+
         showToast(
           "info",
           "Theme Changed",
@@ -1838,7 +1876,10 @@
           savedTheme || (systemPrefersDark ? "dark" : "light");
 
         // Update toggle switch to reflect current theme
-        themeToggleInput.checked = currentTheme === "dark";
+        const toggleInput = document.getElementById("themeToggleInput");
+        if (toggleInput) {
+          toggleInput.checked = currentTheme === "dark";
+        }
 
         console.log(
           `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
