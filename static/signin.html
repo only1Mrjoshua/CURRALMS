@@ -712,10 +712,9 @@
           ) {
             let dashboardUrl;
             if (user.role === "admin") {
-              dashboardUrl = "/static/dashboards/Admin-Dashboard-Overview.html";
+              dashboardUrl = "/dashboards/Admin-Dashboard-Overview.html";
             } else {
-              dashboardUrl =
-                "/static/dashboards/student-dashboard-overview.html";
+              dashboardUrl = "/dashboards/student-dashboard-overview.html";
             }
 
             // Add a small delay to show any success messages
@@ -741,9 +740,9 @@
       function redirectToDashboard(user) {
         let dashboardUrl;
         if (user.role === "admin") {
-          dashboardUrl = "/static/dashboards/Admin-Dashboard-Overview.html";
+          dashboardUrl = "/dashboards/Admin-Dashboard-Overview.html";
         } else {
-          dashboardUrl = "/static/dashboards/student-dashboard-overview.html";
+          dashboardUrl = "/dashboards/student-dashboard-overview.html";
         }
         console.log("🔄 Redirecting to:", dashboardUrl);
         window.location.href = dashboardUrl;
