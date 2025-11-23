@@ -10,18 +10,24 @@ import json
 from database import get_database
 from crud.user import UserCRUD
 from models.user import User, RoleEnum, GenderEnum
-from schemas.user import UserCreate  # Import from schemas instead of models
+from schemas.user import UserCreate
 from utils.security import create_access_token, hash_password
 import secrets
 import string
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-# Google OAuth Configuration - UPDATED FOR PRODUCTION
-GOOGLE_CLIENT_ID = "1035631189611-ou2ig6bn8d1uqkljcimbsogth9p67kh8.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-BASE_URL = os.getenv("BASE_URL", "https://curralms.onrender.com")
-GOOGLE_REDIRECT_URI = "https://curralms.onrender.com/auth/google/callback"
+# Google OAuth Configuration - UPDATED FOR BOTH LOCALHOST AND RENDER
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")  # Default to localhost
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "1035631189611-ou2ig6bn8d1uqkljcimbsogth9p67kh8.apps.googleusercontent.com")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "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")
+GOOGLE_REDIRECT_URI = f"{BASE_URL}/auth/google/callback"
+
+# Debug output
+print(f"🔧 OAuth Configuration Loaded:")
+print(f"   BASE_URL: {BASE_URL}")
+print(f"   REDIRECT_URI: {GOOGLE_REDIRECT_URI}")
+print(f"   CLIENT_ID: {GOOGLE_CLIENT_ID}")
 
 class GoogleTokenRequest(BaseModel):
     code: str
