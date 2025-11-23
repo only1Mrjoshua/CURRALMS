@@ -666,43 +666,44 @@
         }, duration);
       }
 
-      // Authentication state management
+      // NEW: Enhanced authentication state management with cookie support
       async function checkAuthState() {
-        const token = localStorage.getItem("access_token");
-        const userData = localStorage.getItem("user");
-
-        if (!token || !userData) {
-          console.log("🔐 No authentication data found");
-          return null;
-        }
-
         try {
-          // Verify token is still valid with backend
-          const response = await fetch(`${API_BASE_URL}/users/me`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+          // Check session with credentials (cookies will be sent automatically)
+          const response = await fetch(`${API_BASE_URL}/users/session`, {
+            method: "GET",
+            credentials: "include", // CRITICAL: This sends cookies
           });
 
           if (response.ok) {
-            const user = JSON.parse(userData);
-            console.log("✅ User is authenticated:", user.email);
-            return user;
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
           } else {
-            // Token is invalid, clear storage
-            console.log("❌ Token invalid, clearing storage");
+            // Session invalid, clear storage
+            console.log("❌ Session invalid, clearing storage");
             clearAuthData();
             return null;
           }
         } catch (error) {
           console.error("❌ Auth check failed:", error);
-          // If backend check fails, still try to use stored data
-          try {
-            return JSON.parse(userData);
-          } catch {
-            clearAuthData();
-            return null;
+          // If session check fails, try the old token method as fallback
+          const token = localStorage.getItem("access_token");
+          const userData = localStorage.getItem("user");
+
+          if (token && userData) {
+            console.log("🔄 Falling back to token authentication");
+            try {
+              return JSON.parse(userData);
+            } catch {
+              clearAuthData();
+              return null;
+            }
           }
+          return null;
         }
       }
 
@@ -900,6 +901,7 @@
               headers: {
                 "Content-Type": "application/json",
               },
+              credentials: "include", // NEW: Include cookies for session
               body: JSON.stringify({ code: code }),
             });
 
@@ -914,10 +916,8 @@
 
             const data = await response.json();
 
-            if (data.access_token && data.user) {
-              // Store authentication data
-              localStorage.setItem("access_token", data.access_token);
-              localStorage.setItem("token_type", data.token_type);
+            if (data.user) {
+              // Store user data (token is now in HTTP-only cookie)
               localStorage.setItem("user", JSON.stringify(data.user));
 
               console.log("✅ Google authentication successful");
@@ -971,6 +971,103 @@
         }
       }
 
+      // NEW: Enhanced login function with cookie support
+      async function handleLogin(identifier, password) {
+        try {
+          console.log("🔐 Login attempt with identifier:", identifier);
+
+          // Prepare form data for OAuth2PasswordRequestForm
+          const formData = new URLSearchParams();
+          formData.append("username", identifier);
+          formData.append("password", password);
+
+          console.log(
+            "📡 Sending login request to:",
+            `${API_BASE_URL}/users/login`
+          );
+
+          // Send login request to backend WITH credentials
+          const response = await fetch(`${API_BASE_URL}/users/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            credentials: "include", // CRITICAL: This sends/receives cookies
+            body: formData,
+          });
+
+          console.log("📨 Response status:", response.status);
+
+          let data;
+          try {
+            data = await response.json();
+            console.log("📊 Response data:", data);
+          } catch (jsonError) {
+            console.error("❌ JSON parse error:", jsonError);
+            throw new Error("Invalid server response");
+          }
+
+          if (response.ok) {
+            // Success! HTTP-only cookie is automatically set by browser
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+
+            console.log("✅ Login successful, user data:", data.user);
+            console.log("🍪 HTTP-only cookie set automatically by browser");
+
+            // Show success message with toast
+            showToast(
+              `Welcome back, ${
+                data.user.username || data.user.email
+              }! Redirecting...`,
+              "success",
+              "Login Successful!",
+              3000
+            );
+
+            // Redirect to dashboard based on role after a short delay
+            setTimeout(() => {
+              redirectToDashboard(data.user);
+            }, 1500);
+
+            return { success: true, data };
+          } else {
+            // Error from server - handle specific error messages
+            const errorMessage = data.detail || "Login failed";
+            console.error("❌ Login error:", errorMessage);
+
+            // More user-friendly error messages
+            let userFriendlyMessage = errorMessage;
+            if (errorMessage.includes("User not found")) {
+              userFriendlyMessage =
+                "No account found with this email/username. Please check your credentials or sign up.";
+            } else if (errorMessage.includes("Invalid password")) {
+              userFriendlyMessage = "Incorrect password. Please try again.";
+            } else if (errorMessage.includes("deactivated")) {
+              userFriendlyMessage =
+                "Your account has been deactivated. Please contact support.";
+            }
+
+            throw new Error(userFriendlyMessage);
+          }
+        } catch (error) {
+          console.error("💥 Login error:", error);
+
+          // Handle connection errors specifically
+          let userMessage = error.message;
+          if (
+            error.name === "TypeError" &&
+            error.message.includes("Failed to fetch")
+          ) {
+            userMessage =
+              "Cannot connect to the server. Please check your internet connection or try again later.";
+          }
+
+          showToast(userMessage, "error", "Login Failed");
+          return { success: false, error: userMessage };
+        }
+      }
+
       // Main initialization
       document.addEventListener("DOMContentLoaded", function () {
         console.log("🚀 Page loaded - Initializing authentication...");
@@ -1001,103 +1098,15 @@
             if (validateForm()) {
               showLoadingState(true);
 
-              try {
-                const identifier = document
-                  .getElementById("email-username")
-                  .value.trim();
-                const password = document.getElementById("password").value;
+              const identifier = document
+                .getElementById("email-username")
+                .value.trim();
+              const password = document.getElementById("password").value;
 
-                console.log("🔐 Login attempt with identifier:", identifier);
+              // Use the new enhanced login function
+              await handleLogin(identifier, password);
 
-                // Prepare form data for OAuth2PasswordRequestForm
-                const formData = new URLSearchParams();
-                formData.append("username", identifier);
-                formData.append("password", password);
-
-                console.log(
-                  "📡 Sending login request to:",
-                  `${API_BASE_URL}/users/login`
-                );
-
-                // Send login request to backend
-                const response = await fetch(`${API_BASE_URL}/users/login`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                  },
-                  body: formData,
-                });
-
-                console.log("📨 Response status:", response.status);
-
-                let data;
-                try {
-                  data = await response.json();
-                  console.log("📊 Response data:", data);
-                } catch (jsonError) {
-                  console.error("❌ JSON parse error:", jsonError);
-                  throw new Error("Invalid server response");
-                }
-
-                if (response.ok) {
-                  // Success! Store the token and user data
-                  localStorage.setItem("access_token", data.access_token);
-                  localStorage.setItem("token_type", data.token_type);
-                  localStorage.setItem("user", JSON.stringify(data.user));
-
-                  console.log("✅ Login successful, user data:", data.user);
-
-                  // Show success message with toast
-                  showToast(
-                    `Welcome back, ${
-                      data.user.username || data.user.email
-                    }! Redirecting...`,
-                    "success",
-                    "Login Successful!",
-                    3000
-                  );
-
-                  // Redirect to dashboard based on role after a short delay
-                  setTimeout(() => {
-                    redirectToDashboard(data.user);
-                  }, 1500);
-                } else {
-                  // Error from server - handle specific error messages
-                  const errorMessage = data.detail || "Login failed";
-                  console.error("❌ Login error:", errorMessage);
-
-                  // More user-friendly error messages
-                  let userFriendlyMessage = errorMessage;
-                  if (errorMessage.includes("User not found")) {
-                    userFriendlyMessage =
-                      "No account found with this email/username. Please check your credentials or sign up.";
-                  } else if (errorMessage.includes("Invalid password")) {
-                    userFriendlyMessage =
-                      "Incorrect password. Please try again.";
-                  } else if (errorMessage.includes("deactivated")) {
-                    userFriendlyMessage =
-                      "Your account has been deactivated. Please contact support.";
-                  }
-
-                  throw new Error(userFriendlyMessage);
-                }
-              } catch (error) {
-                console.error("💥 Login error:", error);
-
-                // Handle connection errors specifically
-                let userMessage = error.message;
-                if (
-                  error.name === "TypeError" &&
-                  error.message.includes("Failed to fetch")
-                ) {
-                  userMessage =
-                    "Cannot connect to the server. Please check your internet connection or try again later.";
-                }
-
-                showToast(userMessage, "error", "Login Failed");
-              } finally {
-                showLoadingState(false);
-              }
+              showLoadingState(false);
             }
           });
         }
