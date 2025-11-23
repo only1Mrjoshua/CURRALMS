@@ -95,7 +95,7 @@ async def cors_test(request: Request, response: Response):
             "httponly": False,  # Make accessible to JS for testing
             "secure": True,
             "samesite": "none",
-            "domain": ".onrender.com",
+            "domain": None,
             "path": "/"
         }
     else:

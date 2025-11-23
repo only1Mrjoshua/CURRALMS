@@ -17,7 +17,7 @@ def get_cookie_settings():
             "httponly": True,
             "secure": True,           # True for HTTPS
             "samesite": "none",       # Critical for cross-domain
-            "domain": ".onrender.com", # Allow all subdomains
+            "domain": None, # Allow all subdomains
             "path": "/"
         }
         print("🍪 Using PRODUCTION cookie settings (secure=true, samesite=none)")
