@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from database import create_indexes, close_mongo_connection
 from routers import courses, users, auth, lesson, assignment, quiz
 from dependencies import oauth2_scheme
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,10 +27,21 @@ app.include_router(lesson.router)
 app.include_router(assignment.router)
 app.include_router(quiz.router)
 
-# CORS middleware - UPDATED FOR COOKIES
+# CORS middleware - FIXED FOR HTTP-ONLY COOKIES
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://curralms.onrender.com",      # Production frontend
+        "https://curralms-frontend.onrender.com", # Alternative production URL
+        "http://localhost:3000",              # React dev server
+        "http://127.0.0.1:3000",              # React dev server alternative
+        "http://localhost:8000",              # FastAPI direct access
+        "http://127.0.0.1:8000",              # FastAPI direct access alternative
+        "http://localhost:5500",              # VS Code Live Server
+        "http://127.0.0.1:5500",              # VS Code Live Server alternative
+        "http://localhost:8080",              # Alternative dev server
+        "http://127.0.0.1:8080"               # Alternative dev server
+    ],
     allow_credentials=True,  # CRITICAL FOR COOKIES
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +58,29 @@ async def read_root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "message": "API is running smoothly"}
+
+# Serve frontend files for production
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """
+    Serve frontend files for SPA routing in production
+    """
+    frontend_paths = [
+        "", "signin.html", "signup.html", "index.html",
+        "dashboards/", "courses/", "profile/"
+    ]
+    
+    # Check if this is a frontend route
+    if any(full_path.startswith(path) for path in frontend_paths) or '.' not in full_path:
+        try:
+            # Try to serve static files first
+            return FileResponse(f"static/{full_path}" if full_path else "static/index.html")
+        except:
+            # Fallback to index.html for SPA routing
+            return FileResponse("static/index.html")
+    
+    # Return 404 for API routes that don't exist
+    return {"error": "Endpoint not found"}
 
 def custom_openapi():
     if app.openapi_schema:
@@ -92,10 +127,13 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
         ("/health", "GET"),
         ("/users/signup", "POST"),
         ("/users/login", "POST"),
+        ("/users/logout", "POST"),
+        ("/users/session", "GET"),
         ("/auth/google/url", "GET"),
         ("/auth/google/callback", "GET"),
         ("/auth/google/setup", "GET"),
         ("/auth/google/test", "GET"),
+        ("/auth/google", "POST"),
     ]
     
     if (path, method) in public_endpoints:
@@ -115,3 +153,27 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
     return True  # Default to requiring auth for security
 
 app.openapi = custom_openapi
+
+# Add CORS debug endpoint
+@app.get("/debug/cors")
+async def debug_cors_info(request: Request):
+    """
+    Debug endpoint to check CORS configuration
+    """
+    return {
+        "allowed_origins": [
+            "https://curralms.onrender.com",
+            "https://curralms-frontend.onrender.com",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000", 
+            "http://127.0.0.1:8000",
+            "http://localhost:5500",
+            "http://127.0.0.1:5500",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080"
+        ],
+        "request_origin": request.headers.get("origin"),
+        "allow_credentials": True,
+        "cors_enabled": True
+    }
