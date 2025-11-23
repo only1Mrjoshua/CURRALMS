@@ -38,24 +38,6 @@ app.add_middleware(
 # Serve static files (for avatars)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve the main HTML files
-@app.get("/")
-async def read_index():
-    return FileResponse("static/index.html")  # ✅ Index page first
-
-@app.get("/signin.html")
-async def read_signin():
-    return FileResponse("static/signin.html")
-
-@app.get("/signup.html")
-async def read_signup():
-    return FileResponse("static/signup.html")
-
-# Add routes for your dashboard pages too
-@app.get("/dashboards/{dashboard_name}")
-async def read_dashboard(dashboard_name: str):
-    return FileResponse(f"static/dashboards/{dashboard_name}")
-
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
