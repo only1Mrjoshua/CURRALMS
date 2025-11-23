@@ -21,20 +21,10 @@
 
         // Apply immediately to prevent flash
         document.documentElement.setAttribute("data-theme", theme);
-
-        // Set loading classes for immediate styling
         document.documentElement.classList.add(
           "theme-loading",
           `theme-loading-${theme}`
         );
-
-        // Update toggle state immediately
-        document.addEventListener("DOMContentLoaded", function () {
-          const toggleInput = document.getElementById("themeToggleInput");
-          if (toggleInput) {
-            toggleInput.checked = theme === "dark";
-          }
-        });
       })();
     </script>
     <style>
@@ -65,23 +55,6 @@
         --text-muted: #6b7280;
         --border-color: rgba(0, 0, 0, 0.1);
         --skeleton-bg: rgba(0, 0, 0, 0.1);
-      }
-
-      /* System preference detection */
-      @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) {
-          --bg-primary: #0f172a;
-          --bg-secondary: #1e293b;
-          --bg-tertiary: #334155;
-          --card-bg: rgba(30, 41, 59, 0.8);
-          --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-          --navbar-bg: rgba(30, 41, 59, 0.8);
-          --text-primary: #f8fafc;
-          --text-secondary: #cbd5e1;
-          --text-muted: #94a3b8;
-          --border-color: rgba(255, 255, 255, 0.1);
-          --skeleton-bg: rgba(255, 255, 255, 0.1);
-        }
       }
 
       /* Dark mode colors */
@@ -396,6 +369,47 @@
 
       input:checked + .toggle-slider:before {
         transform: translateX(26px);
+      }
+
+      /* Reset to Device Theme Button */
+      .reset-theme-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+
+      .reset-theme-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .reset-theme-item:hover::before {
+        left: 0;
+      }
+
+      .reset-theme-item:hover {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .reset-theme-item i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
       }
 
       /* Hamburger Menu Button */
@@ -1517,6 +1531,11 @@
               <span class="toggle-slider"></span>
             </label>
           </li>
+          <!-- Reset to Device Theme -->
+          <li class="reset-theme-item" id="resetThemeBtn">
+            <i class="fas fa-sync-alt"></i>
+            <span>Reset to Device Theme</span>
+          </li>
         </ul>
       </div>
 
@@ -1821,41 +1840,27 @@
       // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
+      const resetThemeBtn = document.getElementById("resetThemeBtn");
       const htmlElement = document.documentElement;
 
       // Function to set theme
-      function setTheme(theme, isSystemChange = false) {
-        // Remove any existing theme first
-        htmlElement.removeAttribute("data-theme");
+      function setTheme(theme) {
+        htmlElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
 
-        // Small delay to ensure clean state
-        setTimeout(() => {
-          htmlElement.setAttribute("data-theme", theme);
-
-          // Only save to localStorage if the user manually changed the theme
-          if (!isSystemChange) {
-            localStorage.setItem("theme", theme);
-          }
-
-          // Update toggle switch
-          const toggleInput = document.getElementById("themeToggleInput");
-          if (toggleInput) {
-            toggleInput.checked = theme === "dark";
-          }
-        }, 10);
+        // Update toggle switch
+        if (theme === "dark") {
+          themeToggleInput.checked = true;
+        } else {
+          themeToggleInput.checked = false;
+        }
       }
 
       // Function to toggle theme
       function toggleTheme() {
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
-
-        // Remove any existing theme attributes first
-        htmlElement.removeAttribute("data-theme");
-
-        // Set new theme
-        setTheme(newTheme, false);
-
+        setTheme(newTheme);
         showToast(
           "info",
           "Theme Changed",
@@ -1876,13 +1881,26 @@
           savedTheme || (systemPrefersDark ? "dark" : "light");
 
         // Update toggle switch to reflect current theme
-        const toggleInput = document.getElementById("themeToggleInput");
-        if (toggleInput) {
-          toggleInput.checked = currentTheme === "dark";
-        }
+        themeToggleInput.checked = currentTheme === "dark";
 
         console.log(
           `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
+        );
+      }
+
+      // Reset to device theme
+      function resetToDeviceTheme() {
+        localStorage.removeItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const deviceTheme = systemPrefersDark ? "dark" : "light";
+        setTheme(deviceTheme);
+        showToast(
+          "success",
+          "Theme Reset",
+          `Now using device theme (${deviceTheme})`,
+          3000
         );
       }
 
@@ -1894,7 +1912,7 @@
             // Only change if user hasn't set a manual preference
             if (!localStorage.getItem("theme")) {
               const newTheme = e.matches ? "dark" : "light";
-              setTheme(newTheme, true);
+              setTheme(newTheme);
               showToast(
                 "info",
                 "Theme Updated",
@@ -2778,6 +2796,11 @@
               window.location.href = getUrl("/dashboards/student-grades.html");
             }, 1000);
           });
+        }
+
+        // Reset theme button
+        if (resetThemeBtn) {
+          resetThemeBtn.addEventListener("click", resetToDeviceTheme);
         }
 
         // Update sidebar navigation links
