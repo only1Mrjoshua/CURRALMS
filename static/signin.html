@@ -575,7 +575,7 @@
         // Check if we're on Render production
         if (window.location.hostname.includes("onrender.com")) {
           // Use relative path for same-origin requests - FIXED
-          return "";
+          return "https://curralms-backend.onrender.com";
         }
         // Local development
         return "http://localhost:8000";
