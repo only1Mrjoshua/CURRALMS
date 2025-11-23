@@ -1819,6 +1819,24 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
+      // URL helper functions
+      function getBasePath() {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "/static"; // Localhost needs /static prefix for everything
+        }
+        // For production (Render), no prefix
+        return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
       // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
@@ -2006,7 +2024,7 @@
             4000
           );
           setTimeout(() => {
-            window.location.href = "/signin.html";
+            window.location.href = getUrl("/signin.html");
           }, 2000);
           return false;
         }
@@ -2044,7 +2062,7 @@
               3000
             );
             setTimeout(() => {
-              window.location.href = "/signin.html";
+              window.location.href = getUrl("/signin.html");
             }, 2000);
             return null;
           }
@@ -2205,12 +2223,12 @@
 
         if (!deadlines || deadlines.length === 0) {
           deadlinesGrid.innerHTML = `
-            <div class="deadline-card" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
-              <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success-green); margin-bottom: 15px;"></i>
-              <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Upcoming Deadlines</h3>
-              <p style="color: var(--text-muted);">You're all caught up! Great work!</p>
-            </div>
-          `;
+        <div class="deadline-card" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+          <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success-green); margin-bottom: 15px;"></i>
+          <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Upcoming Deadlines</h3>
+          <p style="color: var(--text-muted);">You're all caught up! Great work!</p>
+        </div>
+      `;
           return;
         }
 
@@ -2256,25 +2274,25 @@
             }
 
             return `
-            <div class="deadline-card ${daysDiff <= 3 ? "urgent" : ""}">
-              <div class="deadline-header">
-                <div>
-                  <div class="deadline-title">${deadline.title}</div>
-                  <div class="deadline-course">${deadline.course_name}</div>
-                </div>
-                <div class="deadline-date ${dateClass}">${statusText}</div>
-              </div>
-              <div class="deadline-progress">
-                <div class="progress-bar">
-                  <div class="progress-fill ${progressClass}" style="width: ${progressWidth}"></div>
-                </div>
-                <div class="progress-text">
-                  <span>Progress</span>
-                  <span>${deadline.progress || 0}%</span>
-                </div>
-              </div>
+        <div class="deadline-card ${daysDiff <= 3 ? "urgent" : ""}">
+          <div class="deadline-header">
+            <div>
+              <div class="deadline-title">${deadline.title}</div>
+              <div class="deadline-course">${deadline.course_name}</div>
             </div>
-          `;
+            <div class="deadline-date ${dateClass}">${statusText}</div>
+          </div>
+          <div class="deadline-progress">
+            <div class="progress-bar">
+              <div class="progress-fill ${progressClass}" style="width: ${progressWidth}"></div>
+            </div>
+            <div class="progress-text">
+              <span>Progress</span>
+              <span>${deadline.progress || 0}%</span>
+            </div>
+          </div>
+        </div>
+      `;
           })
           .join("");
       }
@@ -2287,12 +2305,12 @@
 
         if (!activity || activity.length === 0) {
           activityList.innerHTML = `
-            <div class="activity-item" style="text-align: center; padding: 40px;">
-              <i class="fas fa-history" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 15px;"></i>
-              <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Recent Activity</h3>
-              <p style="color: var(--text-muted);">Your activity will appear here as you engage with courses.</p>
-            </div>
-          `;
+        <div class="activity-item" style="text-align: center; padding: 40px;">
+          <i class="fas fa-history" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 15px;"></i>
+          <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Recent Activity</h3>
+          <p style="color: var(--text-muted);">Your activity will appear here as you engage with courses.</p>
+        </div>
+      `;
           return;
         }
 
@@ -2330,17 +2348,17 @@
             const timeAgo = getTimeAgo(new Date(item.timestamp));
 
             return `
-            <div class="activity-item">
-              <div class="activity-icon ${iconClass}">
-                <i class="${icon}"></i>
-              </div>
-              <div class="activity-content">
-                <div class="activity-title">${item.title}</div>
-                <div class="activity-desc">${item.description}</div>
-              </div>
-              <div class="activity-time">${timeAgo}</div>
-            </div>
-          `;
+        <div class="activity-item">
+          <div class="activity-icon ${iconClass}">
+            <i class="${icon}"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">${item.title}</div>
+            <div class="activity-desc">${item.description}</div>
+          </div>
+          <div class="activity-time">${timeAgo}</div>
+        </div>
+      `;
           })
           .join("");
       }
@@ -2356,12 +2374,12 @@
 
         if (!grades || grades.length === 0) {
           chartContainer.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
-              <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 15px;"></i>
-              <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Performance Data Yet</h3>
-              <p style="color: var(--text-muted);">Complete some assignments to see your performance metrics.</p>
-            </div>
-          `;
+        <div style="text-align: center; padding: 40px;">
+          <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 15px;"></i>
+          <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Performance Data Yet</h3>
+          <p style="color: var(--text-muted);">Complete some assignments to see your performance metrics.</p>
+        </div>
+      `;
           return;
         }
 
@@ -2378,53 +2396,51 @@
             : 0;
 
         chartContainer.innerHTML = `
-          <div style="padding: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
-              <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--primary-indigo);">${Math.round(
-                  averageGrade
-                )}%</div>
-                <div style="color: var(--text-muted); font-size: 0.9rem;">Average Grade</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: ${
-                  improvement >= 0 ? "var(--success-green)" : "var(--error-red)"
-                };">${improvement >= 0 ? "+" : ""}${Math.round(
-          improvement
-        )}%</div>
-                <div style="color: var(--text-muted); font-size: 0.9rem;">Improvement</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 2rem; font-weight: bold; color: var(--info-blue);">${
-                  grades.length
-                }</div>
-                <div style="color: var(--text-muted); font-size: 0.9rem;">Assessments</div>
-              </div>
-            </div>
-            <div style="background: var(--skeleton-bg); height: 120px; border-radius: 8px; display: flex; align-items: end; padding: 10px; gap: 10px;">
-              ${gradeValues
-                .map((grade, index) => {
-                  const height = (grade / 100) * 100;
-                  const color =
-                    grade >= 80
-                      ? "var(--success-green)"
-                      : grade >= 70
-                      ? "var(--warning-orange)"
-                      : "var(--error-red)";
-                  return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                  <div style="width: 20px; height: ${height}px; background: ${color}; border-radius: 4px 4px 0 0;"></div>
-                  <div style="font-size: 0.7rem; margin-top: 5px; color: var(--text-muted);">${
-                    index + 1
-                  }</div>
-                </div>`;
-                })
-                .join("")}
-            </div>
-            <div style="text-align: center; margin-top: 15px; color: var(--text-muted); font-size: 0.9rem;">
-              Recent Assessment Performance
-            </div>
+      <div style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold; color: var(--primary-indigo);">${Math.round(
+              averageGrade
+            )}%</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Average Grade</div>
           </div>
-        `;
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold; color: ${
+              improvement >= 0 ? "var(--success-green)" : "var(--error-red)"
+            };">${improvement >= 0 ? "+" : ""}${Math.round(improvement)}%</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Improvement</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: bold; color: var(--info-blue);">${
+              grades.length
+            }</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Assessments</div>
+          </div>
+        </div>
+        <div style="background: var(--skeleton-bg); height: 120px; border-radius: 8px; display: flex; align-items: end; padding: 10px; gap: 10px;">
+          ${gradeValues
+            .map((grade, index) => {
+              const height = (grade / 100) * 100;
+              const color =
+                grade >= 80
+                  ? "var(--success-green)"
+                  : grade >= 70
+                  ? "var(--warning-orange)"
+                  : "var(--error-red)";
+              return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+              <div style="width: 20px; height: ${height}px; background: ${color}; border-radius: 4px 4px 0 0;"></div>
+              <div style="font-size: 0.7rem; margin-top: 5px; color: var(--text-muted);">${
+                index + 1
+              }</div>
+            </div>`;
+            })
+            .join("")}
+        </div>
+        <div style="text-align: center; margin-top: 15px; color: var(--text-muted); font-size: 0.9rem;">
+          Recent Assessment Performance
+        </div>
+      </div>
+    `;
       }
 
       // Helper function to get time ago string
@@ -2601,33 +2617,33 @@
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
           toastContainer.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            max-width: 400px;
-          `;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        max-width: 400px;
+      `;
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.style.cssText = `
-          background: var(--card-bg);
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          padding: 16px;
-          margin-bottom: 10px;
-          border-left: 4px solid;
-          display: flex;
-          align-items: center;
-          opacity: 0;
-          transform: translateX(100%);
-          transition: all 0.3s ease;
-          pointer-events: all;
-          max-width: 350px;
-          backdrop-filter: blur(10px);
-        `;
+      background: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      pointer-events: all;
+      max-width: 350px;
+      backdrop-filter: blur(10px);
+    `;
 
         // Set border color based on type
         const colors = {
@@ -2646,19 +2662,19 @@
         };
 
         toast.innerHTML = `
-          <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-            colors[type] || colors.info
-          }">
-            <i class="${icons[type]}"></i>
-          </div>
-          <div class="toast-content" style="flex: 1;">
-            <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-            <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-          </div>
-          <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
+        colors[type] || colors.info
+      }">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content" style="flex: 1;">
+        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
+        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      </div>
+      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         toastContainer.appendChild(toast);
 
@@ -2719,7 +2735,7 @@
           localStorage.removeItem("dashboard_previous_data");
 
           setTimeout(() => {
-            window.location.href = "/signin.html";
+            window.location.href = getUrl("/signin.html");
           }, 500);
         });
 
@@ -2744,7 +2760,9 @@
               2000
             );
             setTimeout(() => {
-              window.location.href = "student-assignments.html";
+              window.location.href = getUrl(
+                "/dashboards/student-assignments.html"
+              );
             }, 1000);
           });
         }
@@ -2760,7 +2778,9 @@
               2000
             );
             setTimeout(() => {
-              window.location.href = "student-progress.html";
+              window.location.href = getUrl(
+                "/dashboards/student-progress.html"
+              );
             }, 1000);
           });
         }
@@ -2773,7 +2793,7 @@
           viewPerformanceDetails.addEventListener("click", function () {
             showToast("info", "Navigation", "Redirecting to grades page", 2000);
             setTimeout(() => {
-              window.location.href = "student-grades.html";
+              window.location.href = getUrl("/dashboards/student-grades.html");
             }, 1000);
           });
         }
@@ -2782,11 +2802,23 @@
         if (resetThemeBtn) {
           resetThemeBtn.addEventListener("click", resetToDeviceTheme);
         }
+
+        // Update sidebar navigation links
+        const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
+        sidebarLinks.forEach((link) => {
+          const href = link.getAttribute("href");
+          if (href && !href.startsWith("http")) {
+            link.href = getUrl("/dashboards/" + href);
+          }
+        });
       }
 
       // Initialize dashboard
       document.addEventListener("DOMContentLoaded", function () {
         console.log("Student Dashboard initializing...");
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();

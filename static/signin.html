@@ -585,17 +585,22 @@
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // Dashboard URL helper function
-      function getDashboardBasePath() {
+      // URL helper functions
+      function getBasePath() {
         // Check if we're on localhost
         if (
           window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1"
         ) {
-          return "/static"; // Localhost has /static prefix
+          return "/static"; // Localhost needs /static prefix for everything
         }
         // For production (Render), no prefix
         return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
       }
 
       // Override default alert with toast
@@ -723,13 +728,15 @@
             window.location.pathname.includes("signin.html") ||
             window.location.pathname.includes("signup.html")
           ) {
-            const basePath = getDashboardBasePath();
             let dashboardPath;
-
             if (user.role === "admin") {
-              dashboardPath = `${basePath}/dashboards/Admin-Dashboard-Overview.html`;
+              dashboardPath = getUrl(
+                "/dashboards/Admin-Dashboard-Overview.html"
+              );
             } else {
-              dashboardPath = `${basePath}/dashboards/student-dashboard-overview.html`;
+              dashboardPath = getUrl(
+                "/dashboards/student-dashboard-overview.html"
+              );
             }
 
             // Add a small delay to show any success messages
@@ -753,13 +760,11 @@
       }
 
       function redirectToDashboard(user) {
-        const basePath = getDashboardBasePath();
         let dashboardPath;
-
         if (user.role === "admin") {
-          dashboardPath = `${basePath}/dashboards/Admin-Dashboard-Overview.html`;
+          dashboardPath = getUrl("/dashboards/Admin-Dashboard-Overview.html");
         } else {
-          dashboardPath = `${basePath}/dashboards/student-dashboard-overview.html`;
+          dashboardPath = getUrl("/dashboards/student-dashboard-overview.html");
         }
 
         console.log("🔄 Redirecting to:", dashboardPath);
@@ -971,6 +976,7 @@
         console.log("🚀 Page loaded - Initializing authentication...");
         console.log("📍 Current environment:", window.location.hostname);
         console.log("🌐 API_BASE_URL:", API_BASE_URL);
+        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();
