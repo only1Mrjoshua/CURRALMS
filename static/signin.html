@@ -585,6 +585,19 @@
 
       const API_BASE_URL = getApiBaseUrl();
 
+      // Dashboard URL helper function
+      function getDashboardBasePath() {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "/static"; // Localhost has /static prefix
+        }
+        // For production (Render), no prefix
+        return "";
+      }
+
       // Override default alert with toast
       window.alert = function (message) {
         showToast(message, "info", "Notice");
@@ -710,16 +723,18 @@
             window.location.pathname.includes("signin.html") ||
             window.location.pathname.includes("signup.html")
           ) {
-            let dashboardUrl;
+            const basePath = getDashboardBasePath();
+            let dashboardPath;
+
             if (user.role === "admin") {
-              dashboardUrl = "/dashboards/Admin-Dashboard-Overview.html";
+              dashboardPath = `${basePath}/dashboards/Admin-Dashboard-Overview.html`;
             } else {
-              dashboardUrl = "/dashboards/student-dashboard-overview.html";
+              dashboardPath = `${basePath}/dashboards/student-dashboard-overview.html`;
             }
 
             // Add a small delay to show any success messages
             setTimeout(() => {
-              window.location.href = dashboardUrl;
+              window.location.href = dashboardPath;
             }, 500);
           }
         }
@@ -738,14 +753,17 @@
       }
 
       function redirectToDashboard(user) {
-        let dashboardUrl;
+        const basePath = getDashboardBasePath();
+        let dashboardPath;
+
         if (user.role === "admin") {
-          dashboardUrl = "/dashboards/Admin-Dashboard-Overview.html";
+          dashboardPath = `${basePath}/dashboards/Admin-Dashboard-Overview.html`;
         } else {
-          dashboardUrl = "/dashboards/student-dashboard-overview.html";
+          dashboardPath = `${basePath}/dashboards/student-dashboard-overview.html`;
         }
-        console.log("🔄 Redirecting to:", dashboardUrl);
-        window.location.href = dashboardUrl;
+
+        console.log("🔄 Redirecting to:", dashboardPath);
+        window.location.href = dashboardPath;
       }
 
       function cleanUrl() {
