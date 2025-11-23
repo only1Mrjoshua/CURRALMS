@@ -1837,7 +1837,7 @@
         return `${basePath}${path}`;
       }
 
-      // Theme Management
+      // Theme Management - MATCHING SIGNIN PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const resetThemeBtn = document.getElementById("resetThemeBtn");
@@ -1923,7 +1923,7 @@
           });
       }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render (MATCHING SIGNIN)
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1938,6 +1938,112 @@
 
       const API_BASE_URL = getApiBaseUrl();
 
+      // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
+
+          // Check session with credentials (cookies will be sent automatically)
+          const response = await fetch(`${API_BASE_URL}/users/session`, {
+            method: "GET",
+            credentials: "include", // CRITICAL: This sends cookies
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          console.log("📨 Session check response:", response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
+          } else {
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
+            clearAuthData();
+            return null;
+          }
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+      }
+
+      // Redirect unauthenticated users to signin page
+      async function redirectIfUnauthenticated() {
+        const user = await checkAuthState();
+
+        if (!user) {
+          console.log("🔄 User is not authenticated, redirecting to signin...");
+
+          // If we're on a dashboard page, redirect to signin
+          if (window.location.pathname.includes("dashboard")) {
+            showToast(
+              "warning",
+              "Authentication Required",
+              "Please log in to access the dashboard",
+              3000
+            );
+
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Function to test cookie session - ENHANCED (MATCHING SIGNIN)
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
+
+          const sessionResponse = await fetch(`${API_BASE_URL}/users/session`, {
+            method: "GET",
+            credentials: "include", // MUST be include for cookies
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          console.log("🎯 Session test status:", sessionResponse.status);
+          console.log("🔍 Response OK:", sessionResponse.ok);
+
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            console.log("✅ Session test successful - cookies working!");
+            console.log("👤 User:", sessionData.user.email);
+            return true;
+          } else {
+            console.log("❌ Session test failed - cookies not being sent");
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
+          return false;
+        }
+      }
+
       // Logout Confirmation Elements
       const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
       const logoutConfirmationModal = document.getElementById(
@@ -1947,55 +2053,53 @@
       const confirmNo = document.getElementById("confirmNo");
 
       // Function to load and display current user info
-      function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
-
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-            const welcomeMessage = document.getElementById("welcomeMessage");
-
-            if (userNameElement) {
-              userNameElement.textContent = userEmail;
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
-            }
-
-            if (welcomeMessage) {
-              // Extract first name from email or use username
-              const firstName = userEmail.split("@")[0] || "Student";
-              welcomeMessage.textContent = `Welcome back, ${firstName}!`;
-            }
-          } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-            const welcomeMessage = document.getElementById("welcomeMessage");
-
-            if (userNameElement) {
-              userNameElement.textContent = "Student";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "S";
-            }
-
-            if (welcomeMessage) {
-              welcomeMessage.textContent = "Welcome back, Student!";
-            }
+      async function loadCurrentUserInfo() {
+        try {
+          // First try to get user from localStorage
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            updateUserUI(user);
+            return user;
           }
+
+          // If no stored user, check session
+          const user = await checkAuthState();
+          if (user) {
+            updateUserUI(user);
+            return user;
+          }
+
+          // Fallback to default
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        } catch (error) {
+          console.error("Error loading user info:", error);
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        }
+      }
+
+      function updateUserUI(user) {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+        const welcomeMessage = document.getElementById("welcomeMessage");
+
+        const displayName =
+          user.full_name || user.username || user.email || "Student";
+
+        if (userNameElement) {
+          userNameElement.textContent = displayName;
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = getInitials(displayName);
+        }
+
+        if (welcomeMessage) {
+          // Extract first name from display name
+          const firstName = displayName.split(" ")[0] || "Student";
+          welcomeMessage.textContent = `Welcome back, ${firstName}!`;
         }
       }
 
@@ -2009,45 +2113,30 @@
           return username.charAt(0).toUpperCase();
         }
 
-        // If it's a name, use the first character
-        return text.charAt(0).toUpperCase();
-      }
-
-      // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view dashboard data",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = getUrl("/signin.html");
-          }, 2000);
-          return false;
+        // If it's a name, use the first character of first and last name
+        const names = text.split(" ");
+        if (names.length > 1) {
+          return (
+            names[0].charAt(0) + names[names.length - 1].charAt(0)
+          ).toUpperCase();
         }
-        return true;
+
+        // If it's a single name, use the first character
+        return text.charAt(0).toUpperCase();
       }
 
       // Function to fetch data from API with proper authentication
       async function fetchData(endpoint) {
         try {
-          const token = localStorage.getItem("access_token");
-          const headers = {
-            "Content-Type": "application/json",
-          };
-
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
-
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
 
           const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: "GET",
-            headers: headers,
+            credentials: "include", // Include cookies for session
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
           });
 
           console.log(
@@ -2090,11 +2179,17 @@
         console.log("🔄 Fetching student dashboard data...");
 
         // Check authentication first
-        if (!checkAuthentication()) {
+        if (!(await redirectIfUnauthenticated())) {
           return;
         }
 
         try {
+          // Test cookie session first
+          const cookieTest = await testCookieSession();
+          if (!cookieTest) {
+            console.warn("⚠️ Cookie session test failed, but continuing...");
+          }
+
           // Fetch all student data in parallel
           const [courses, assignments, grades, progress, deadlines, activity] =
             await Promise.all([
@@ -2274,25 +2369,25 @@
             }
 
             return `
-        <div class="deadline-card ${daysDiff <= 3 ? "urgent" : ""}">
-          <div class="deadline-header">
-            <div>
-              <div class="deadline-title">${deadline.title}</div>
-              <div class="deadline-course">${deadline.course_name}</div>
+          <div class="deadline-card ${daysDiff <= 3 ? "urgent" : ""}">
+            <div class="deadline-header">
+              <div>
+                <div class="deadline-title">${deadline.title}</div>
+                <div class="deadline-course">${deadline.course_name}</div>
+              </div>
+              <div class="deadline-date ${dateClass}">${statusText}</div>
             </div>
-            <div class="deadline-date ${dateClass}">${statusText}</div>
+            <div class="deadline-progress">
+              <div class="progress-bar">
+                <div class="progress-fill ${progressClass}" style="width: ${progressWidth}"></div>
+              </div>
+              <div class="progress-text">
+                <span>Progress</span>
+                <span>${deadline.progress || 0}%</span>
+              </div>
+            </div>
           </div>
-          <div class="deadline-progress">
-            <div class="progress-bar">
-              <div class="progress-fill ${progressClass}" style="width: ${progressWidth}"></div>
-            </div>
-            <div class="progress-text">
-              <span>Progress</span>
-              <span>${deadline.progress || 0}%</span>
-            </div>
-          </div>
-        </div>
-      `;
+        `;
           })
           .join("");
       }
@@ -2348,17 +2443,17 @@
             const timeAgo = getTimeAgo(new Date(item.timestamp));
 
             return `
-        <div class="activity-item">
-          <div class="activity-icon ${iconClass}">
-            <i class="${icon}"></i>
+          <div class="activity-item">
+            <div class="activity-icon ${iconClass}">
+              <i class="${icon}"></i>
+            </div>
+            <div class="activity-content">
+              <div class="activity-title">${item.title}</div>
+              <div class="activity-desc">${item.description}</div>
+            </div>
+            <div class="activity-time">${timeAgo}</div>
           </div>
-          <div class="activity-content">
-            <div class="activity-title">${item.title}</div>
-            <div class="activity-desc">${item.description}</div>
-          </div>
-          <div class="activity-time">${timeAgo}</div>
-        </div>
-      `;
+        `;
           })
           .join("");
       }
@@ -2428,11 +2523,11 @@
                   ? "var(--warning-orange)"
                   : "var(--error-red)";
               return `<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-              <div style="width: 20px; height: ${height}px; background: ${color}; border-radius: 4px 4px 0 0;"></div>
-              <div style="font-size: 0.7rem; margin-top: 5px; color: var(--text-muted);">${
-                index + 1
-              }</div>
-            </div>`;
+                <div style="width: 20px; height: ${height}px; background: ${color}; border-radius: 4px 4px 0 0;"></div>
+                <div style="font-size: 0.7rem; margin-top: 5px; color: var(--text-muted);">${
+                  index + 1
+                }</div>
+              </div>`;
             })
             .join("")}
         </div>
@@ -2610,78 +2705,63 @@
         );
       }
 
-      // Toast Notification System
+      // Toast Notification System (MATCHING SIGNIN PAGE STYLE)
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
         if (!toastContainer) {
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        max-width: 400px;
-      `;
+          toastContainer.className = "toast-container";
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
-        toast.style.cssText = `
-      background: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 16px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-      pointer-events: all;
-      max-width: 350px;
-      backdrop-filter: blur(10px);
-    `;
 
-        // Set border color based on type
-        const colors = {
-          success: "var(--success-green)",
-          info: "var(--primary-indigo)",
-          warning: "var(--warning-orange)",
-          error: "var(--error-red)",
-        };
-        toast.style.borderLeftColor = colors[type] || colors.info;
-
-        const icons = {
-          success: "fas fa-check",
-          info: "fas fa-info-circle",
-          warning: "fas fa-exclamation-triangle",
-          error: "fas fa-exclamation-circle",
-        };
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
 
         toast.innerHTML = `
-      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-        colors[type] || colors.info
-      }">
-        <i class="${icons[type]}"></i>
+      <div class="toast-icon">
+        <i class="${icon}"></i>
       </div>
-      <div class="toast-content" style="flex: 1;">
-        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
       </div>
-      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+      <button class="toast-close">
         <i class="fas fa-times"></i>
       </button>
     `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
 
         toastContainer.appendChild(toast);
 
         // Show toast with animation
         setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
+          toast.classList.add("show");
         }, 100);
 
         // Close button functionality
@@ -2701,8 +2781,8 @@
       }
 
       function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
+        toast.classList.remove("show");
+        toast.classList.add("hide");
         setTimeout(() => {
           if (toast.parentNode) {
             toast.parentNode.removeChild(toast);
@@ -2721,22 +2801,30 @@
           logoutConfirmationModal.style.display = "none";
         });
 
-        confirmYes.addEventListener("click", function () {
+        confirmYes.addEventListener("click", async function () {
           showToast(
             "info",
             "Logging Out",
             "You have been logged out successfully",
-            500
+            2000
           );
 
-          // Clear authentication tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-          localStorage.removeItem("dashboard_previous_data");
+          try {
+            // Call backend logout endpoint to clear session
+            await fetch(`${API_BASE_URL}/users/logout`, {
+              method: "POST",
+              credentials: "include",
+            });
+          } catch (error) {
+            console.error("Logout API call failed:", error);
+          }
+
+          // Clear authentication data
+          clearAuthData();
 
           setTimeout(() => {
             window.location.href = getUrl("/signin.html");
-          }, 500);
+          }, 1000);
         });
 
         // Close logout confirmation modal when clicking outside
@@ -2844,12 +2932,43 @@
 
         // Load data immediately
         fetchStudentData();
+        // Prevent redirect loops
+        function shouldRedirect() {
+          const lastRedirect = sessionStorage.getItem("lastRedirect");
+          const now = Date.now();
 
-        // Set up periodic refresh (every 2 minutes)
-        setInterval(() => {
-          console.log("Refreshing student dashboard data...");
-          fetchStudentData();
-        }, 120000);
+          // Only redirect if we haven't redirected in the last 3 seconds
+          if (!lastRedirect || now - parseInt(lastRedirect) > 3000) {
+            sessionStorage.setItem("lastRedirect", now.toString());
+            return true;
+          }
+          return false;
+        }
+
+        // Update redirect functions:
+        async function redirectIfAuthenticated() {
+          if (!shouldRedirect()) return;
+
+          const user = await checkAuthState();
+          if (user) {
+            console.log("🔄 Redirecting to dashboard...");
+            setTimeout(() => {
+              window.location.href = dashboardPath;
+            }, 1000);
+          }
+        }
+
+        async function redirectIfUnauthenticated() {
+          if (!shouldRedirect()) return;
+
+          const user = await checkAuthState();
+          if (!user) {
+            console.log("🔄 Redirecting to signin...");
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 1000);
+          }
+        }
 
         // Add active class to clicked sidebar items
         const sidebarItems = document.querySelectorAll(".sidebar-menu a");

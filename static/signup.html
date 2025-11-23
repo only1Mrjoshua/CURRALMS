@@ -879,24 +879,53 @@
           }
         });
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ API Configuration - FIXED
       const getApiBaseUrl = () => {
+        // CRITICAL: Always use port 8000 for backend API
+        return "http://localhost:8000";
+      };
+
+      const API_BASE_URL = getApiBaseUrl();
+
+      // URL helper functions for frontend navigation only
+      function getBasePath() {
         // Check if we're on localhost
         if (
           window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1"
         ) {
-          return "http://localhost:8000";
+          return "/static"; // Localhost needs /static prefix for frontend files
         }
-        // For production (Render), use relative path (same domain)
+        // For production (Render), no prefix
         return "";
-      };
+      }
 
-      const API_BASE_URL = getApiBaseUrl();
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
+      // Debug function to verify URLs
+      console.log("🌐 Frontend URL:", window.location.origin);
+      console.log("🔌 Backend API URL:", API_BASE_URL);
+      console.log("📞 Signup endpoint:", `${API_BASE_URL}/users/signup`);
+
+      // Test backend connection
+      async function verifyBackend() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/health`);
+          const data = await response.json();
+          console.log("✅ Backend is accessible:", data);
+          return true;
+        } catch (error) {
+          console.error("❌ Cannot reach backend:", error);
+          return false;
+        }
+      }
 
       // Override default alert with toast
       window.alert = function (message) {
-        showToast(message, "warning", "Notice");
+        showToast(message, "info", "Notice");
       };
 
       // Toast Notification System
@@ -963,18 +992,733 @@
         }, duration);
       }
 
-      document.addEventListener("DOMContentLoaded", function () {
-        // Initialize theme first
-        initTheme();
+      // Enhanced authentication state management with cookie support
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
 
-        // Set up theme toggle
-        themeToggle.addEventListener("click", toggleTheme);
+          // Check session with credentials (cookies will be sent automatically)
+          const response = await fetch(`${API_BASE_URL}/users/session`, {
+            method: "GET",
+            credentials: "include", // CRITICAL: This sends cookies
+            headers: {
+              Accept: "application/json",
+            },
+          });
 
-        // Form navigation
+          console.log("📨 Session check response:", response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
+          } else {
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
+            clearAuthData();
+            return null;
+          }
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+      }
+
+      // Redirect authenticated users away from auth pages
+      async function redirectIfAuthenticated() {
+        const user = await checkAuthState();
+
+        if (user) {
+          console.log(
+            "🔄 User is already authenticated, redirecting to dashboard..."
+          );
+
+          // If we're on a sign-in/sign-up page, redirect to dashboard
+          if (
+            window.location.pathname.includes("signin.html") ||
+            window.location.pathname.includes("signup.html")
+          ) {
+            let dashboardPath;
+            if (user.role === "admin") {
+              dashboardPath = getUrl(
+                "/dashboards/Admin-Dashboard-Overview.html"
+              );
+            } else {
+              dashboardPath = getUrl(
+                "/dashboards/student-dashboard-overview.html"
+              );
+            }
+
+            // Add a small delay to show any success messages
+            setTimeout(() => {
+              window.location.href = dashboardPath;
+            }, 500);
+          }
+        }
+      }
+
+      function showLoadingState(show) {
+        const submitBtn = document.getElementById("submit-btn");
+        const submitBtnText = submitBtn.querySelector("span");
+        const submitLoading = submitBtn.querySelector(".loading-spinner");
+
+        if (submitBtn && submitBtnText && submitLoading) {
+          submitBtn.disabled = show;
+          submitBtnText.textContent = show
+            ? "Creating Account..."
+            : "Create Account";
+          submitLoading.classList.toggle("hidden", !show);
+        }
+      }
+
+      function redirectToDashboard(user) {
+        let dashboardPath;
+        if (user.role === "admin") {
+          dashboardPath = getUrl("/dashboards/Admin-Dashboard-Overview.html");
+        } else {
+          dashboardPath = getUrl("/dashboards/student-dashboard-overview.html");
+        }
+
+        console.log("🔄 Redirecting to:", dashboardPath);
+        window.location.href = dashboardPath;
+      }
+
+      function cleanUrl() {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      }
+
+      // Form validation helpers
+      function validateForm() {
+        let isValid = true;
+
+        const fullName = document.getElementById("full-name").value;
+        const username = document.getElementById("username").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword =
+          document.getElementById("confirm-password").value;
+
+        if (!fullName.trim()) {
+          showError("full-name", "Full name is required");
+          isValid = false;
+        } else if (fullName.trim().length < 3) {
+          showError("full-name", "Full name must be at least 3 characters");
+          isValid = false;
+        }
+
+        if (!username.trim()) {
+          showError("username", "Username is required");
+          isValid = false;
+        } else if (username.trim().length < 3) {
+          showError("username", "Username must be at least 3 characters");
+          isValid = false;
+        } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          showError(
+            "username",
+            "Username can only contain letters, numbers, and underscores"
+          );
+          isValid = false;
+        }
+
+        if (!email.trim()) {
+          showError("email", "Email is required");
+          isValid = false;
+        } else if (!isValidEmail(email)) {
+          showError("email", "Please enter a valid email address");
+          isValid = false;
+        }
+
+        if (!password) {
+          showError("password", "Password is required");
+          isValid = false;
+        } else if (password.length < 8) {
+          showError("password", "Password must be at least 8 characters");
+          isValid = false;
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+          showError(
+            "password",
+            "Password must contain uppercase, lowercase, and number"
+          );
+          isValid = false;
+        }
+
+        if (!confirmPassword) {
+          showError("confirm-password", "Please confirm your password");
+          isValid = false;
+        } else if (password !== confirmPassword) {
+          showError("confirm-password", "Passwords do not match");
+          isValid = false;
+        }
+
+        return isValid;
+      }
+
+      function showError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        field.style.borderColor = "#ef4444";
+
+        // Remove any existing error message
+        let existingError = field.parentNode.querySelector(".error-message");
+        if (existingError) {
+          existingError.remove();
+        }
+
+        // Add error message
+        const errorElement = document.createElement("p");
+        errorElement.className = "error-message text-red-500 text-xs mt-1";
+        errorElement.textContent = message;
+        field.parentNode.appendChild(errorElement);
+
+        // Remove error styling on input
+        field.addEventListener(
+          "input",
+          function () {
+            field.style.borderColor = "var(--border-color)";
+            const errorMsg = field.parentNode.querySelector(".error-message");
+            if (errorMsg) {
+              errorMsg.remove();
+            }
+          },
+          { once: true }
+        );
+      }
+
+      function clearError(fieldId) {
+        const field = document.getElementById(fieldId);
+        field.style.borderColor = "var(--border-color)";
+
+        // Remove error message
+        const errorElement = field.parentNode.querySelector(".error-message");
+        if (errorElement) {
+          errorElement.remove();
+        }
+      }
+
+      function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+      }
+
+      // Google Sign-Up handler
+      async function handleGoogleSignUp() {
+        try {
+          console.log("🔐 Starting Google Sign-Up...");
+
+          // Get Google OAuth URL for signup
+          const response = await fetch(`${API_BASE_URL}/auth/google/url`, {
+            credentials: "include",
+          });
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error("Failed to get Google auth URL");
+          }
+
+          console.log("🔄 Redirecting to Google OAuth for sign-up...");
+          window.location.href = data.auth_url;
+        } catch (error) {
+          console.error("❌ Google Sign-Up error:", error);
+          showToast(
+            "Failed to start Google Sign-Up. Please try again.",
+            "error",
+            "Google Sign-Up Failed"
+          );
+        }
+      }
+
+      // Enhanced Google callback handler
+      async function handleGoogleCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get("code");
+        const error = urlParams.get("error");
+
+        console.log("🔄 Checking Google callback...");
+
+        // Handle errors first
+        if (error) {
+          console.error("❌ Google OAuth error:", error);
+          showToast(
+            decodeURIComponent(error),
+            "error",
+            "Google Sign-Up Failed"
+          );
+          cleanUrl();
+          return;
+        }
+
+        if (code) {
+          console.log("🔄 Handling Google OAuth callback...");
+
+          try {
+            showLoadingState(true);
+
+            const response = await fetch(`${API_BASE_URL}/auth/google`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include", // Include cookies for session
+              body: JSON.stringify({ code: code }),
+            });
+
+            console.log("📨 Backend response status:", response.status);
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(
+                errorData.detail || `HTTP error! status: ${response.status}`
+              );
+            }
+
+            const data = await response.json();
+
+            if (data.user) {
+              // Store user data (token is now in HTTP-only cookie)
+              localStorage.setItem("user", JSON.stringify(data.user));
+
+              console.log("✅ Google authentication successful");
+
+              // Test cookie session immediately
+              await testCookieSession();
+
+              // Show success message
+              showToast(
+                `Welcome, ${data.user.full_name || data.user.username}!`,
+                "success",
+                "Google Sign-Up Successful!",
+                3000
+              );
+
+              cleanUrl();
+
+              // Redirect to dashboard after successful auth
+              setTimeout(() => {
+                redirectToDashboard(data.user);
+              }, 1000);
+            }
+          } catch (error) {
+            console.error("❌ Google callback error:", error);
+            showToast(
+              error.message ||
+                "Google authentication failed. Please try again.",
+              "error",
+              "Authentication Failed"
+            );
+            cleanUrl();
+          } finally {
+            showLoadingState(false);
+          }
+        } else {
+          // No callback code, check if user is already authenticated
+          await redirectIfAuthenticated();
+        }
+      }
+
+      // Function to test cookie session - ENHANCED
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
+
+          const sessionResponse = await fetch(`${API_BASE_URL}/users/session`, {
+            method: "GET",
+            credentials: "include", // MUST be include for cookies
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          console.log("🎯 Session test status:", sessionResponse.status);
+          console.log("🔍 Response OK:", sessionResponse.ok);
+
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            console.log("✅ Session test successful - cookies working!");
+            console.log("👤 User:", sessionData.user.email);
+            return true;
+          } else {
+            console.log("❌ Session test failed - cookies not being sent");
+            console.log("🔍 Testing CORS configuration...");
+            await testCorsConfiguration();
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
+          return false;
+        }
+      }
+
+      // Test CORS configuration
+      async function testCorsConfiguration() {
+        try {
+          console.log("🧪 Testing CORS configuration...");
+
+          const corsTest = await fetch(`${API_BASE_URL}/debug/cors-test`, {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          if (corsTest.ok) {
+            const corsData = await corsTest.json();
+            console.log("✅ CORS test successful:", corsData);
+            console.log("🔍 Request origin:", corsData.request_origin);
+            console.log(
+              "🍪 Cookies received by backend:",
+              corsData.cookies_received
+            );
+          } else {
+            console.log(
+              "❌ CORS test failed - check backend CORS configuration"
+            );
+          }
+        } catch (error) {
+          console.error("💥 CORS test error:", error);
+        }
+      }
+
+      // Enhanced signup function with detailed cookie debugging
+      async function handleSignup(formData) {
+        try {
+          console.log("🔐 STEP 1: Starting signup process...");
+          console.log("📍 Frontend origin:", window.location.origin);
+          console.log("🌐 API Base URL:", API_BASE_URL);
+
+          console.log("📡 STEP 2: Sending signup request...");
+          console.log("➡️ URL:", `${API_BASE_URL}/users/signup`);
+          console.log("🍪 Credentials mode: include");
+
+          // Send signup request to backend WITH credentials
+          const response = await fetch(`${API_BASE_URL}/users/signup`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            credentials: "include", // This should send/receive cookies
+            body: JSON.stringify(formData),
+          });
+
+          console.log("📨 STEP 3: Signup response received");
+          console.log("✅ Status:", response.status);
+
+          let data;
+          try {
+            data = await response.json();
+            console.log("📊 Response data received");
+          } catch (jsonError) {
+            console.error("❌ JSON parse error:", jsonError);
+            throw new Error("Invalid server response");
+          }
+
+          if (response.ok) {
+            console.log("🎉 STEP 4: Signup successful!");
+
+            // Store user data in localStorage
+            localStorage.setItem("user", JSON.stringify(data.user));
+            console.log("💾 User data stored in localStorage");
+
+            // Test if cookies are working
+            console.log("🧪 STEP 5: Testing cookie session...");
+            const cookieTest = await testCookieSession();
+
+            if (cookieTest) {
+              console.log("🎉 Cookie authentication is working!");
+              showToast(
+                "Account created and session established successfully!",
+                "success",
+                "Registration Complete",
+                2000
+              );
+            } else {
+              console.warn(
+                "⚠️ Cookie authentication failed, but signup was successful"
+              );
+              showToast(
+                "Account created! If sessions don't persist, try using the same origin.",
+                "warning",
+                "Registration Successful",
+                3000
+              );
+            }
+
+            // Show success message
+            showToast(
+              `Welcome, ${
+                data.user.full_name || data.user.email
+              }! Your account has been created.`,
+              "success",
+              "Registration Successful!",
+              3000
+            );
+
+            // Redirect to dashboard
+            setTimeout(() => {
+              redirectToDashboard(data.user);
+            }, 2000);
+
+            return { success: true, data };
+          } else {
+            const errorMessage = data.detail || "Signup failed";
+            console.error("❌ Signup error:", errorMessage);
+
+            // More user-friendly error messages
+            let userFriendlyMessage = errorMessage;
+            if (errorMessage.includes("already exists")) {
+              userFriendlyMessage =
+                "An account with this email or username already exists.";
+            } else if (errorMessage.includes("password")) {
+              userFriendlyMessage =
+                "Password requirements not met. Please check and try again.";
+            } else if (errorMessage.includes("email")) {
+              userFriendlyMessage = "Please provide a valid email address.";
+            }
+
+            throw new Error(userFriendlyMessage);
+          }
+        } catch (error) {
+          console.error("💥 Signup process failed:", error);
+
+          // Handle connection errors specifically
+          let userMessage = error.message;
+          if (
+            error.name === "TypeError" &&
+            error.message.includes("Failed to fetch")
+          ) {
+            userMessage =
+              "Cannot connect to the server. Please check your internet connection or try again later.";
+          }
+
+          showToast(userMessage, "error", "Registration Failed");
+          return { success: false, error: userMessage };
+        }
+      }
+
+      // Check for authentication errors on page load
+      function checkAuthErrors() {
+        const authError = localStorage.getItem("auth_error");
+        if (authError) {
+          showToast(authError, "error", "Authentication Failed");
+          localStorage.removeItem("auth_error");
+        }
+
+        // Also check for success messages
+        const successMessage = localStorage.getItem("success_message");
+        if (successMessage) {
+          showToast(successMessage, "success", "Success!");
+          localStorage.removeItem("success_message");
+        }
+      }
+
+      // Form navigation functions
+      function navigateToStep(step) {
         const steps = document.querySelectorAll(".form-step");
         const stepIndicators = document.querySelectorAll(".step-indicator");
         const progressLines = document.querySelectorAll('[id^="line-"]');
 
+        // Hide all steps
+        steps.forEach((s) => s.classList.remove("active"));
+
+        // Show current step
+        document.getElementById(`step-${step}`).classList.add("active");
+
+        // Update step indicators
+        stepIndicators.forEach((indicator, index) => {
+          indicator.classList.remove("active", "completed");
+
+          if (index + 1 < step) {
+            indicator.classList.add("completed");
+          } else if (index + 1 === step) {
+            indicator.classList.add("active");
+          }
+        });
+
+        // Update progress lines
+        if (step === 2) {
+          progressLines[0].style.width = "100%";
+          progressLines[1].style.width = "0%";
+        } else if (step === 3) {
+          progressLines[0].style.width = "100%";
+          progressLines[1].style.width = "100%";
+        } else {
+          progressLines[0].style.width = "0%";
+          progressLines[1].style.width = "0%";
+        }
+
+        // Scroll to top of form on mobile
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function validateStep(step) {
+        let isValid = true;
+
+        if (step === 1) {
+          const fullName = document.getElementById("full-name").value;
+          const username = document.getElementById("username").value;
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          const confirmPassword =
+            document.getElementById("confirm-password").value;
+
+          if (!fullName.trim()) {
+            showError("full-name", "Full name is required");
+            isValid = false;
+          } else if (fullName.trim().length < 3) {
+            showError("full-name", "Full name must be at least 3 characters");
+            isValid = false;
+          }
+
+          if (!username.trim()) {
+            showError("username", "Username is required");
+            isValid = false;
+          } else if (username.trim().length < 3) {
+            showError("username", "Username must be at least 3 characters");
+            isValid = false;
+          } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            showError(
+              "username",
+              "Username can only contain letters, numbers, and underscores"
+            );
+            isValid = false;
+          }
+
+          if (!email.trim()) {
+            showError("email", "Email is required");
+            isValid = false;
+          } else if (!isValidEmail(email)) {
+            showError("email", "Please enter a valid email address");
+            isValid = false;
+          }
+
+          if (!password) {
+            showError("password", "Password is required");
+            isValid = false;
+          } else if (password.length < 8) {
+            showError("password", "Password must be at least 8 characters");
+            isValid = false;
+          } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+            showError(
+              "password",
+              "Password must contain uppercase, lowercase, and number"
+            );
+            isValid = false;
+          }
+
+          if (!confirmPassword) {
+            showError("confirm-password", "Please confirm your password");
+            isValid = false;
+          } else if (password !== confirmPassword) {
+            showError("confirm-password", "Passwords do not match");
+            isValid = false;
+          }
+        } else if (step === 2) {
+          const dob = document.getElementById("date-of-birth").value;
+          const phone = document.getElementById("phone-number").value;
+          const gender = document.getElementById("gender").value;
+
+          if (!dob) {
+            showError("date-of-birth", "Date of birth is required");
+            isValid = false;
+          } else {
+            // Validate age (must be at least 13 years old)
+            const dobDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - dobDate.getFullYear();
+            const monthDiff = today.getMonth() - dobDate.getMonth();
+            if (
+              monthDiff < 0 ||
+              (monthDiff === 0 && today.getDate() < dobDate.getDate())
+            ) {
+              age--;
+            }
+            if (age < 13) {
+              showError("date-of-birth", "You must be at least 13 years old");
+              isValid = false;
+            }
+            if (age > 120) {
+              showError("date-of-birth", "Please enter a valid date of birth");
+              isValid = false;
+            }
+          }
+
+          if (!phone.trim()) {
+            showError("phone-number", "Phone number is required");
+            isValid = false;
+          } else if (!/^[\d\s\-\+\(\)]+$/.test(phone)) {
+            showError("phone-number", "Please enter a valid phone number");
+            isValid = false;
+          }
+
+          if (!gender) {
+            showError("gender", "Please select your gender");
+            isValid = false;
+          }
+        } else if (step === 3) {
+          const terms = document.getElementById("terms").checked;
+
+          if (!terms) {
+            showToast(
+              "You must agree to the Terms of Service and Privacy Policy to continue with the registration.",
+              "warning",
+              "Terms & Conditions Required"
+            );
+            isValid = false;
+          }
+        }
+
+        return isValid;
+      }
+
+      // Main initialization
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🚀 Page loaded - Initializing authentication...");
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+
+        // Initialize theme first
+        initTheme();
+
+        // Set up theme toggle
+        if (themeToggle) {
+          themeToggle.addEventListener("click", toggleTheme);
+        }
+
+        // Test backend connection
+        verifyBackend();
+
+        // Check for authentication errors
+        checkAuthErrors();
+
+        // Check Google callback and auth state
+        handleGoogleCallback();
+
+        // Check if user is already authenticated
+        redirectIfAuthenticated();
+
+        // Form navigation
         let currentStep = 1;
 
         // Next buttons
@@ -983,6 +1727,7 @@
           .addEventListener("click", function () {
             if (validateStep(1)) {
               navigateToStep(2);
+              currentStep = 2;
             }
           });
 
@@ -991,6 +1736,7 @@
           .addEventListener("click", function () {
             if (validateStep(2)) {
               navigateToStep(3);
+              currentStep = 3;
             }
           });
 
@@ -999,12 +1745,14 @@
           .getElementById("prev-2")
           .addEventListener("click", function () {
             navigateToStep(1);
+            currentStep = 1;
           });
 
         document
           .getElementById("prev-3")
           .addEventListener("click", function () {
             navigateToStep(2);
+            currentStep = 2;
           });
 
         // Avatar upload functionality
@@ -1065,375 +1813,35 @@
           }
         });
 
-        // Form submission - CONNECTED TO FASTAPI BACKEND
-        document
-          .getElementById("signup-form")
-          .addEventListener("submit", async function (e) {
-            // Prevent default immediately and completely
+        // Form submission
+        const signupForm = document.getElementById("signup-form");
+        if (signupForm) {
+          signupForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-            e.stopPropagation();
 
-            console.log(
-              "Form submission started - Connecting to FastAPI backend"
-            );
+            if (validateStep(3)) {
+              showLoadingState(true);
 
-            if (!validateStep(3)) {
-              console.log("Step 3 validation failed");
-              return false;
-            }
+              // Prepare form data
+              const formData = {
+                full_name: document.getElementById("full-name").value,
+                username: document.getElementById("username").value,
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value,
+                confirm_password:
+                  document.getElementById("confirm-password").value,
+                date_of_birth: document.getElementById("date-of-birth").value,
+                phone_number: document.getElementById("phone-number").value,
+                gender: document.getElementById("gender").value,
+                bio: document.getElementById("bio").value || "",
+              };
 
-            const submitBtn = document.getElementById("submit-btn");
-            const originalText = submitBtn.innerHTML;
+              // Use the new enhanced signup function
+              await handleSignup(formData);
 
-            // Show loading state
-            submitBtn.innerHTML =
-              'Creating Account... <div class="loading-spinner"></div>';
-            submitBtn.disabled = true;
-
-            // Use a regular async function inside
-            const handleSubmit = async () => {
-              try {
-                // Prepare FormData for multipart/form-data
-                const formData = new FormData();
-
-                // Add all required fields
-                formData.append(
-                  "full_name",
-                  document.getElementById("full-name").value
-                );
-                formData.append(
-                  "username",
-                  document.getElementById("username").value
-                );
-                formData.append(
-                  "email",
-                  document.getElementById("email").value
-                );
-                formData.append(
-                  "password",
-                  document.getElementById("password").value
-                );
-                formData.append(
-                  "confirm_password",
-                  document.getElementById("confirm-password").value
-                );
-                formData.append(
-                  "date_of_birth",
-                  document.getElementById("date-of-birth").value
-                );
-                formData.append(
-                  "phone_number",
-                  document.getElementById("phone-number").value
-                );
-                formData.append(
-                  "gender",
-                  document.getElementById("gender").value
-                );
-
-                // Add optional bio field
-                const bio = document.getElementById("bio").value;
-                if (bio) {
-                  formData.append("bio", bio);
-                }
-
-                // Add avatar file if selected
-                const avatarFile = document.getElementById("avatar").files[0];
-                if (avatarFile) {
-                  formData.append("file", avatarFile);
-                }
-
-                console.log(
-                  "Sending signup request to:",
-                  `${API_BASE_URL}/users/signup`
-                );
-
-                // Send request to FastAPI backend
-                const response = await fetch(`${API_BASE_URL}/users/signup`, {
-                  method: "POST",
-                  body: formData,
-                });
-
-                console.log("Response status:", response.status);
-
-                let data = {};
-                try {
-                  const responseText = await response.text();
-                  console.log("Raw response:", responseText);
-
-                  if (responseText) {
-                    data = JSON.parse(responseText);
-                  }
-                } catch (jsonError) {
-                  console.error("JSON parse error:", jsonError);
-                  if (!response.ok) {
-                    throw new Error("Server returned invalid JSON response");
-                  }
-                }
-
-                console.log("Parsed response data:", data);
-
-                if (response.ok) {
-                  // Success!
-                  console.log("Account created successfully!");
-
-                  showToast(
-                    "Your account has been created successfully! Redirecting to sign in page...",
-                    "success",
-                    "Welcome Aboard! 🎉",
-                    4000
-                  );
-
-                  // Keep button in success state
-                  submitBtn.innerHTML =
-                    '<i class="fas fa-check-circle mr-2"></i> Account Created!';
-                  submitBtn.classList.remove("from-green-500", "to-green-600");
-                  submitBtn.classList.add("from-green-600", "to-green-700");
-
-                  // Clear the form
-                  document.getElementById("signup-form").reset();
-
-                  // Reset avatar preview
-                  const avatarPreview =
-                    document.getElementById("avatar-preview");
-                  avatarPreview.style.display = "none";
-                  document.getElementById("upload-area").style.display =
-                    "block";
-
-                  // Redirect after success
-                  setTimeout(() => {
-                    console.log("Redirecting to /static/signin.html...");
-                    window.location.href = "/static/signin.html";
-                  }, 2000);
-                } else {
-                  // Error from server
-                  console.error("Server error:", data);
-                  const errorMessage =
-                    data.detail ||
-                    data.message ||
-                    "Unable to create account. Please try again.";
-                  throw new Error(errorMessage);
-                }
-              } catch (error) {
-                console.error("Signup error:", error);
-
-                // More specific error messages
-                let userMessage = error.message;
-                if (
-                  error.name === "TypeError" &&
-                  error.message.includes("Failed to fetch")
-                ) {
-                  userMessage =
-                    "Cannot connect to server. Please check if the backend is running.";
-                }
-
-                showToast(userMessage, "error", "Signup Failed");
-
-                // Reset button
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-              }
-            };
-
-            // Execute the async function
-            handleSubmit();
-          });
-
-        // Helper functions
-        function navigateToStep(step) {
-          // Hide all steps
-          steps.forEach((s) => s.classList.remove("active"));
-
-          // Show current step
-          document.getElementById(`step-${step}`).classList.add("active");
-
-          // Update step indicators
-          stepIndicators.forEach((indicator, index) => {
-            indicator.classList.remove("active", "completed");
-
-            if (index + 1 < step) {
-              indicator.classList.add("completed");
-            } else if (index + 1 === step) {
-              indicator.classList.add("active");
+              showLoadingState(false);
             }
           });
-
-          // Update progress lines
-          if (step === 2) {
-            progressLines[0].style.width = "100%";
-            progressLines[1].style.width = "0%";
-          } else if (step === 3) {
-            progressLines[0].style.width = "100%";
-            progressLines[1].style.width = "100%";
-          } else {
-            progressLines[0].style.width = "0%";
-            progressLines[1].style.width = "0%";
-          }
-
-          currentStep = step;
-
-          // Scroll to top of form on mobile
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-
-        function validateStep(step) {
-          let isValid = true;
-
-          if (step === 1) {
-            const fullName = document.getElementById("full-name").value;
-            const username = document.getElementById("username").value;
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            const confirmPassword =
-              document.getElementById("confirm-password").value;
-
-            if (!fullName.trim()) {
-              showError("full-name", "Full name is required");
-              isValid = false;
-            } else if (fullName.trim().length < 3) {
-              showError("full-name", "Full name must be at least 3 characters");
-              isValid = false;
-            }
-
-            if (!username.trim()) {
-              showError("username", "Username is required");
-              isValid = false;
-            } else if (username.trim().length < 3) {
-              showError("username", "Username must be at least 3 characters");
-              isValid = false;
-            } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-              showError(
-                "username",
-                "Username can only contain letters, numbers, and underscores"
-              );
-              isValid = false;
-            }
-
-            if (!email.trim()) {
-              showError("email", "Email is required");
-              isValid = false;
-            } else if (!isValidEmail(email)) {
-              showError("email", "Please enter a valid email address");
-              isValid = false;
-            }
-
-            if (!password) {
-              showError("password", "Password is required");
-              isValid = false;
-            } else if (password.length < 8) {
-              showError("password", "Password must be at least 8 characters");
-              isValid = false;
-            } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-              showError(
-                "password",
-                "Password must contain uppercase, lowercase, and number"
-              );
-              isValid = false;
-            }
-
-            if (!confirmPassword) {
-              showError("confirm-password", "Please confirm your password");
-              isValid = false;
-            } else if (password !== confirmPassword) {
-              showError("confirm-password", "Passwords do not match");
-              isValid = false;
-            }
-          } else if (step === 2) {
-            const dob = document.getElementById("date-of-birth").value;
-            const phone = document.getElementById("phone-number").value;
-            const gender = document.getElementById("gender").value;
-
-            if (!dob) {
-              showError("date-of-birth", "Date of birth is required");
-              isValid = false;
-            } else {
-              // Validate age (must be at least 13 years old)
-              const dobDate = new Date(dob);
-              const today = new Date();
-              let age = today.getFullYear() - dobDate.getFullYear();
-              const monthDiff = today.getMonth() - dobDate.getMonth();
-              if (
-                monthDiff < 0 ||
-                (monthDiff === 0 && today.getDate() < dobDate.getDate())
-              ) {
-                age--;
-              }
-              if (age < 13) {
-                showError("date-of-birth", "You must be at least 13 years old");
-                isValid = false;
-              }
-              if (age > 120) {
-                showError(
-                  "date-of-birth",
-                  "Please enter a valid date of birth"
-                );
-                isValid = false;
-              }
-            }
-
-            if (!phone.trim()) {
-              showError("phone-number", "Phone number is required");
-              isValid = false;
-            } else if (!/^[\d\s\-\+\(\)]+$/.test(phone)) {
-              showError("phone-number", "Please enter a valid phone number");
-              isValid = false;
-            }
-
-            if (!gender) {
-              showError("gender", "Please select your gender");
-              isValid = false;
-            }
-          } else if (step === 3) {
-            const terms = document.getElementById("terms").checked;
-
-            if (!terms) {
-              showToast(
-                "You must agree to the Terms of Service and Privacy Policy to continue with the registration.",
-                "warning",
-                "Terms & Conditions Required"
-              );
-              isValid = false;
-            }
-          }
-
-          return isValid;
-        }
-
-        function showError(fieldId, message) {
-          const field = document.getElementById(fieldId);
-          field.style.borderColor = "#ef4444";
-
-          // Show toast notification for the error
-          showToast(message, "error", "Validation Error");
-
-          // Remove any existing error message
-          let existingError = field.parentNode.querySelector(".error-message");
-          if (existingError) {
-            existingError.remove();
-          }
-
-          // Add error message
-          const errorElement = document.createElement("p");
-          errorElement.className = "error-message text-red-500 text-xs mt-1";
-          errorElement.textContent = message;
-          field.parentNode.appendChild(errorElement);
-
-          // Remove error styling on input
-          field.addEventListener(
-            "input",
-            function () {
-              field.style.borderColor = "var(--border-color)";
-              const errorMsg = field.parentNode.querySelector(".error-message");
-              if (errorMsg) {
-                errorMsg.remove();
-              }
-            },
-            { once: true }
-          );
-        }
-
-        function isValidEmail(email) {
-          const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          return re.test(email);
         }
 
         // Add real-time validation feedback
@@ -1483,7 +1891,7 @@
           }
         });
 
-        // Welcome toast on page load
+        // Welcome message
         setTimeout(() => {
           showToast(
             "Fill out the form to create your account and start your learning journey!",
@@ -1492,143 +1900,6 @@
             6000
           );
         }, 500);
-      });
-
-      // Google Sign-Up handler
-      async function handleGoogleSignUp() {
-        try {
-          console.log("🔐 Starting Google Sign-Up...");
-
-          // Get Google OAuth URL from backend
-          const response = await fetch(`${API_BASE_URL}/auth/google/url`);
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error("Failed to get Google auth URL");
-          }
-
-          // Add state parameter for signup
-          const authUrlWithState = data.auth_url + "&state=signup";
-
-          // Redirect to Google OAuth
-          console.log("🔄 Redirecting to Google OAuth for sign-up...");
-          window.location.href = authUrlWithState;
-        } catch (error) {
-          console.error("❌ Google Sign-Up error:", error);
-          showToast(
-            "Failed to start Google Sign-Up. Please try again.",
-            "error",
-            "Google Sign-Up Failed"
-          );
-        }
-      }
-
-      // Handle Google OAuth callback when page loads
-      async function handleGoogleCallback() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get("code");
-        const error = urlParams.get("error");
-        const state = urlParams.get("state"); // Get state parameter
-
-        // Handle errors first
-        if (error) {
-          console.error("❌ Google OAuth error:", error);
-          showToast(
-            decodeURIComponent(error),
-            "error",
-            "Google Sign-Up Failed"
-          );
-          cleanUrl();
-          return;
-        }
-
-        // Handle Google OAuth callback
-        if (code) {
-          console.log("🔄 Handling Google OAuth callback for sign-up...");
-
-          try {
-            // Send code to backend
-            console.log("📡 Sending Google auth code to backend...");
-            const response = await fetch(`${API_BASE_URL}/auth/google`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ code: code, state: state }),
-            });
-
-            console.log("📨 Backend response status:", response.status);
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(
-                errorData.detail || `HTTP error! status: ${response.status}`
-              );
-            }
-
-            const data = await response.json();
-            console.log("✅ Backend response data:", data);
-
-            if (data.access_token) {
-              // Success! Store the token and user data
-              localStorage.setItem("access_token", data.access_token);
-              localStorage.setItem("token_type", data.token_type);
-              localStorage.setItem("user", JSON.stringify(data.user));
-
-              console.log(
-                "✅ Google Sign-Up successful, user data:",
-                data.user
-              );
-
-              // Show success message
-              showToast(
-                `Welcome, ${
-                  data.user.full_name || data.user.username
-                }! Your account has been created.`,
-                "success",
-                "Google Sign-Up Successful!",
-                3000
-              );
-
-              cleanUrl();
-
-              // Redirect to dashboard
-              setTimeout(() => {
-                if (data.user.role === "admin") {
-                  window.location.href =
-                    "/static/dashboards/Admin-Dashboard-Overview.html";
-                } else {
-                  window.location.href =
-                    "/static/dashboards/Student-Dashboard-Overview.html";
-                }
-              }, 1500);
-            } else {
-              throw new Error("No access token received from backend");
-            }
-          } catch (error) {
-            console.error("❌ Google callback error:", error);
-            showToast(
-              error.message || "Google sign-up failed. Please try again.",
-              "error",
-              "Google Sign-Up Failed"
-            );
-            cleanUrl();
-          }
-        }
-      }
-
-      // Clean URL parameters
-      function cleanUrl() {
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
-      }
-
-      // Call this when page loads
-      document.addEventListener("DOMContentLoaded", function () {
-        handleGoogleCallback(); // Check for Google callback
       });
     </script>
   </body>

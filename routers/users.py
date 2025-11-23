@@ -86,11 +86,11 @@ async def signup(
     
     return user
 
-# Login endpoint - No authentication required
+# UPDATED LOGIN ENDPOINT - FIXED RESPONSE PARAMETER
 @router.post("/login")
 async def login(
+    response: Response,  # MOVE THIS TO FIRST PARAMETER
     form_data: OAuth2PasswordRequestForm = Depends(),
-    response: Response = None,
     crud = Depends(get_user_crud)
 ):
     identifier = form_data.username.strip()
@@ -101,7 +101,7 @@ async def login(
     
     if user:
         print(f"✅ User found: {user.username} ({user.email})")
-        print(f"🔐 Password hash type: {user.password_hash[:10]}...")  # Debug hash format
+        print(f"🔐 Password hash type: {user.password_hash[:10]}...")
     else:
         print(f"❌ User not found for identifier: '{identifier}'")
         raise HTTPException(
@@ -164,13 +164,14 @@ async def login(
         data={"sub": user.email, "role": user.role}
     )
 
-    # Set HTTP-only cookie for session persistence
-    set_auth_cookie(response, access_token)
-    print(f"🍪 HTTP-only cookie set for user: {user.email}")
+    # Set HTTP-only cookie for session persistence - FIXED
+    print(f"🔄 Setting HTTP-only cookie for user: {user.email}")
+    set_auth_cookie(response, access_token)  # Now response is properly available
+    print(f"✅ Cookie set in response headers")
 
     return {
-        "access_token": access_token,  # Still return for flexibility
-        "token_type": "bearer",
+        "access_token": access_token,  # Still return for debugging
+        "token_type": "bearer", 
         "user": {
             "id": str(user.id),
             "email": user.email,
@@ -178,29 +179,17 @@ async def login(
             "username": user.username,
             "avatar_url": user.avatar_url,
             "is_active": user.is_active
-        }
+        },
+        "message": "Login successful - cookie set"
     }
 
-# Logout endpoint
-@router.post("/logout")
-async def logout(response: Response):
-    """
-    Logout user by clearing the HTTP-only cookie
-    """
-    delete_auth_cookie(response)
-    print("🍪 HTTP-only cookie cleared - user logged out")
-    
-    return {
-        "message": "Successfully logged out",
-        "success": True
-    }
-
-# Session check endpoint
+# Session check endpoint - ENHANCED DEBUGGING
 @router.get("/session")
 async def check_session(current_user: User = Depends(get_current_user)):
     """
     Check if user session is valid
     """
+    print(f"✅ Session valid for user: {current_user.email}")
     return {
         "authenticated": True,
         "user": {
@@ -212,7 +201,22 @@ async def check_session(current_user: User = Depends(get_current_user)):
             "avatar_url": current_user.avatar_url,
             "is_active": current_user.is_active,
             "last_login": current_user.last_login
-        }
+        },
+        "message": "Session is valid"
+    }
+
+# Logout endpoint - UPDATED
+@router.post("/logout")
+async def logout(response: Response):
+    """
+    Logout user by clearing the HTTP-only cookie
+    """
+    delete_auth_cookie(response)
+    print("🍪 HTTP-only cookie cleared - user logged out")
+    
+    return {
+        "message": "Successfully logged out",
+        "success": True
     }
 
 # --- Get current user ---

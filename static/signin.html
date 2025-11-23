@@ -570,29 +570,22 @@
           }
         });
 
-      // ⚙️ API Configuration - Updated for Render deployment
+      // ⚙️ API Configuration - FIXED
       const getApiBaseUrl = () => {
-        // Check if we're on localhost
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "http://localhost:8000";
-        }
-        // For production (Render), use the actual backend URL
-        return "https://curralms-backend.onrender.com";
+        // CRITICAL: Always use port 8000 for backend API
+        return "http://localhost:8000";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // URL helper functions
+      // URL helper functions for frontend navigation only
       function getBasePath() {
         // Check if we're on localhost
         if (
           window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1"
         ) {
-          return "/static"; // Localhost needs /static prefix for everything
+          return "/static"; // Localhost needs /static prefix for frontend files
         }
         // For production (Render), no prefix
         return "";
@@ -601,6 +594,24 @@
       function getUrl(path) {
         const basePath = getBasePath();
         return `${basePath}${path}`;
+      }
+
+      // Debug function to verify URLs
+      console.log("🌐 Frontend URL:", window.location.origin);
+      console.log("🔌 Backend API URL:", API_BASE_URL);
+      console.log("📞 Login endpoint:", `${API_BASE_URL}/users/login`);
+
+      // Test backend connection
+      async function verifyBackend() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/health`);
+          const data = await response.json();
+          console.log("✅ Backend is accessible:", data);
+          return true;
+        } catch (error) {
+          console.error("❌ Cannot reach backend:", error);
+          return false;
+        }
       }
 
       // Override default alert with toast
@@ -647,15 +658,15 @@
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
         toast.innerHTML = `
-      <div class="toast-icon">${icon}</div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close" onclick="this.parentElement.remove()">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+        `;
 
         container.appendChild(toast);
 
@@ -666,14 +677,21 @@
         }, duration);
       }
 
-      // NEW: Enhanced authentication state management with cookie support
+      // Enhanced authentication state management with cookie support
       async function checkAuthState() {
         try {
+          console.log("🔐 Checking authentication state...");
+
           // Check session with credentials (cookies will be sent automatically)
           const response = await fetch(`${API_BASE_URL}/users/session`, {
             method: "GET",
             credentials: "include", // CRITICAL: This sends cookies
+            headers: {
+              Accept: "application/json",
+            },
           });
+
+          console.log("📨 Session check response:", response.status);
 
           if (response.ok) {
             const data = await response.json();
@@ -682,27 +700,21 @@
             // Store user data in localStorage for quick access
             localStorage.setItem("user", JSON.stringify(data.user));
             return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
           } else {
-            // Session invalid, clear storage
-            console.log("❌ Session invalid, clearing storage");
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
             clearAuthData();
             return null;
           }
         } catch (error) {
           console.error("❌ Auth check failed:", error);
-          // If session check fails, try the old token method as fallback
-          const token = localStorage.getItem("access_token");
-          const userData = localStorage.getItem("user");
-
-          if (token && userData) {
-            console.log("🔄 Falling back to token authentication");
-            try {
-              return JSON.parse(userData);
-            } catch {
-              clearAuthData();
-              return null;
-            }
-          }
           return null;
         }
       }
@@ -851,7 +863,9 @@
           console.log("🔐 Starting Google Sign-In...");
 
           // Get Google OAuth URL for signin
-          const response = await fetch(`${API_BASE_URL}/auth/google/url`);
+          const response = await fetch(`${API_BASE_URL}/auth/google/url`, {
+            credentials: "include",
+          });
           const data = await response.json();
 
           if (!response.ok) {
@@ -901,7 +915,7 @@
               headers: {
                 "Content-Type": "application/json",
               },
-              credentials: "include", // NEW: Include cookies for session
+              credentials: "include", // Include cookies for session
               body: JSON.stringify({ code: code }),
             });
 
@@ -921,6 +935,9 @@
               localStorage.setItem("user", JSON.stringify(data.user));
 
               console.log("✅ Google authentication successful");
+
+              // Test cookie session immediately
+              await testCookieSession();
 
               // Show success message
               showToast(
@@ -955,84 +972,155 @@
         }
       }
 
-      // Check for authentication errors on page load
-      function checkAuthErrors() {
-        const authError = localStorage.getItem("auth_error");
-        if (authError) {
-          showToast(authError, "error", "Authentication Failed");
-          localStorage.removeItem("auth_error");
-        }
+      // Function to test cookie session - ENHANCED
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
 
-        // Also check for success messages
-        const successMessage = localStorage.getItem("success_message");
-        if (successMessage) {
-          showToast(successMessage, "success", "Success!");
-          localStorage.removeItem("success_message");
+          const sessionResponse = await fetch(`${API_BASE_URL}/users/session`, {
+            method: "GET",
+            credentials: "include", // MUST be include for cookies
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          console.log("🎯 Session test status:", sessionResponse.status);
+          console.log("🔍 Response OK:", sessionResponse.ok);
+
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            console.log("✅ Session test successful - cookies working!");
+            console.log("👤 User:", sessionData.user.email);
+            return true;
+          } else {
+            console.log("❌ Session test failed - cookies not being sent");
+            console.log("🔍 Testing CORS configuration...");
+            await testCorsConfiguration();
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
+          return false;
         }
       }
 
-      // NEW: Enhanced login function with cookie support
+      // Test CORS configuration
+      async function testCorsConfiguration() {
+        try {
+          console.log("🧪 Testing CORS configuration...");
+
+          const corsTest = await fetch(`${API_BASE_URL}/debug/cors-test`, {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          if (corsTest.ok) {
+            const corsData = await corsTest.json();
+            console.log("✅ CORS test successful:", corsData);
+            console.log("🔍 Request origin:", corsData.request_origin);
+            console.log(
+              "🍪 Cookies received by backend:",
+              corsData.cookies_received
+            );
+          } else {
+            console.log(
+              "❌ CORS test failed - check backend CORS configuration"
+            );
+          }
+        } catch (error) {
+          console.error("💥 CORS test error:", error);
+        }
+      }
+
+      // Enhanced login function with detailed cookie debugging
       async function handleLogin(identifier, password) {
         try {
-          console.log("🔐 Login attempt with identifier:", identifier);
+          console.log("🔐 STEP 1: Starting login process...");
+          console.log("📍 Frontend origin:", window.location.origin);
+          console.log("🌐 API Base URL:", API_BASE_URL);
 
           // Prepare form data for OAuth2PasswordRequestForm
           const formData = new URLSearchParams();
           formData.append("username", identifier);
           formData.append("password", password);
 
-          console.log(
-            "📡 Sending login request to:",
-            `${API_BASE_URL}/users/login`
-          );
+          console.log("📡 STEP 2: Sending login request...");
+          console.log("➡️ URL:", `${API_BASE_URL}/users/login`);
+          console.log("🍪 Credentials mode: include");
 
           // Send login request to backend WITH credentials
           const response = await fetch(`${API_BASE_URL}/users/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
+              Accept: "application/json",
             },
-            credentials: "include", // CRITICAL: This sends/receives cookies
+            credentials: "include", // This should send/receive cookies
             body: formData,
           });
 
-          console.log("📨 Response status:", response.status);
+          console.log("📨 STEP 3: Login response received");
+          console.log("✅ Status:", response.status);
 
           let data;
           try {
             data = await response.json();
-            console.log("📊 Response data:", data);
+            console.log("📊 Response data received");
           } catch (jsonError) {
             console.error("❌ JSON parse error:", jsonError);
             throw new Error("Invalid server response");
           }
 
           if (response.ok) {
-            // Success! HTTP-only cookie is automatically set by browser
-            // Store user data in localStorage for quick access
+            console.log("🎉 STEP 4: Login successful!");
+
+            // Store user data in localStorage
             localStorage.setItem("user", JSON.stringify(data.user));
+            console.log("💾 User data stored in localStorage");
 
-            console.log("✅ Login successful, user data:", data.user);
-            console.log("🍪 HTTP-only cookie set automatically by browser");
+            // Test if cookies are working
+            console.log("🧪 STEP 5: Testing cookie session...");
+            const cookieTest = await testCookieSession();
 
-            // Show success message with toast
+            if (cookieTest) {
+              console.log("🎉 Cookie authentication is working!");
+              showToast(
+                "Session established successfully!",
+                "success",
+                "Authentication Complete",
+                2000
+              );
+            } else {
+              console.warn(
+                "⚠️ Cookie authentication failed, but login was successful"
+              );
+              showToast(
+                "Login successful! If sessions don't persist, try using the same origin.",
+                "warning",
+                "Login Successful",
+                3000
+              );
+            }
+
+            // Show success message
             showToast(
-              `Welcome back, ${
-                data.user.username || data.user.email
-              }! Redirecting...`,
+              `Welcome back, ${data.user.username || data.user.email}!`,
               "success",
               "Login Successful!",
               3000
             );
 
-            // Redirect to dashboard based on role after a short delay
+            // Redirect to dashboard
             setTimeout(() => {
               redirectToDashboard(data.user);
-            }, 1500);
+            }, 2000);
 
             return { success: true, data };
           } else {
-            // Error from server - handle specific error messages
             const errorMessage = data.detail || "Login failed";
             console.error("❌ Login error:", errorMessage);
 
@@ -1051,7 +1139,7 @@
             throw new Error(userFriendlyMessage);
           }
         } catch (error) {
-          console.error("💥 Login error:", error);
+          console.error("💥 Login process failed:", error);
 
           // Handle connection errors specifically
           let userMessage = error.message;
@@ -1068,12 +1156,27 @@
         }
       }
 
+      // Check for authentication errors on page load
+      function checkAuthErrors() {
+        const authError = localStorage.getItem("auth_error");
+        if (authError) {
+          showToast(authError, "error", "Authentication Failed");
+          localStorage.removeItem("auth_error");
+        }
+
+        // Also check for success messages
+        const successMessage = localStorage.getItem("success_message");
+        if (successMessage) {
+          showToast(successMessage, "success", "Success!");
+          localStorage.removeItem("success_message");
+        }
+      }
+
       // Main initialization
       document.addEventListener("DOMContentLoaded", function () {
         console.log("🚀 Page loaded - Initializing authentication...");
         console.log("📍 Current environment:", window.location.hostname);
         console.log("🌐 API_BASE_URL:", API_BASE_URL);
-        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();
@@ -1083,11 +1186,17 @@
           themeToggle.addEventListener("click", toggleTheme);
         }
 
+        // Test backend connection
+        verifyBackend();
+
         // Check for authentication errors
         checkAuthErrors();
 
         // Check Google callback and auth state
         handleGoogleCallback();
+
+        // Check if user is already authenticated
+        redirectIfAuthenticated();
 
         // Form submission
         const signinForm = document.getElementById("signin-form");
@@ -1109,6 +1218,43 @@
               showLoadingState(false);
             }
           });
+        }
+        // Prevent redirect loops
+        function shouldRedirect() {
+          const lastRedirect = sessionStorage.getItem("lastRedirect");
+          const now = Date.now();
+
+          // Only redirect if we haven't redirected in the last 3 seconds
+          if (!lastRedirect || now - parseInt(lastRedirect) > 3000) {
+            sessionStorage.setItem("lastRedirect", now.toString());
+            return true;
+          }
+          return false;
+        }
+
+        // Update redirect functions:
+        async function redirectIfAuthenticated() {
+          if (!shouldRedirect()) return;
+
+          const user = await checkAuthState();
+          if (user) {
+            console.log("🔄 Redirecting to dashboard...");
+            setTimeout(() => {
+              window.location.href = dashboardPath;
+            }, 1000);
+          }
+        }
+
+        async function redirectIfUnauthenticated() {
+          if (!shouldRedirect()) return;
+
+          const user = await checkAuthState();
+          if (!user) {
+            console.log("🔄 Redirecting to signin...");
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 1000);
+          }
         }
 
         // Welcome message
