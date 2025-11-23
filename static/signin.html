@@ -574,7 +574,7 @@
       const getApiBaseUrl = () => {
         // Check if we're on Render production
         if (window.location.hostname.includes("onrender.com")) {
-          // Use relative path for same-origin requests - FIXED
+          // Use actual backend URL for production
           return "https://curralms-backend.onrender.com";
         }
         // Local development
@@ -655,10 +655,17 @@
           ...options,
         };
 
+        // Add Authorization header from localStorage if token exists
+        const token = localStorage.getItem("access_token");
+        if (token && !config.headers["Authorization"]) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
         console.log(`📡 API Call: ${url}`, {
           method: config.method,
           credentials: config.credentials,
           environment: getEnvironment(),
+          hasToken: !!token,
         });
 
         try {
@@ -757,6 +764,10 @@
           console.log("🔐 Checking authentication state...");
           console.log("📍 Environment:", getEnvironment());
           console.log("🍪 Current cookies:", document.cookie);
+          console.log(
+            "🔑 LocalStorage token:",
+            localStorage.getItem("access_token") ? "Present" : "Missing"
+          );
 
           const response = await apiFetch("/users/session", {
             method: "GET",
@@ -1010,12 +1021,17 @@
             const data = await response.json();
 
             if (data.user) {
-              // Store user data (token is now in HTTP-only cookie)
+              // Store user data and token in localStorage as fallback
               localStorage.setItem("user", JSON.stringify(data.user));
+              if (data.access_token) {
+                localStorage.setItem("access_token", data.access_token);
+                localStorage.setItem("token_type", data.token_type);
+                console.log("💾 Token stored in localStorage as fallback");
+              }
 
               console.log("✅ Google authentication successful");
 
-              // Test cookie session immediately
+              // Test session immediately
               await testCookieSession();
 
               // Show success message
@@ -1089,7 +1105,7 @@
         }
       }
 
-      // ENHANCED login function with detailed debugging for both environments - FIXED
+      // ENHANCED login function with token fallback - FIXED FOR CROSS-ORIGIN ISSUES
       async function handleLogin(identifier, password) {
         try {
           console.log("🔐 STEP 1: Starting login process...");
@@ -1130,32 +1146,51 @@
           if (response.ok) {
             console.log("🎉 STEP 4: Login successful!");
 
+            // CRITICAL FIX: Store token in localStorage as fallback for cross-origin issues
+            if (data.access_token) {
+              localStorage.setItem("access_token", data.access_token);
+              localStorage.setItem("token_type", data.token_type);
+              console.log("💾 Token stored in localStorage as fallback");
+            }
+
             // Store user data in localStorage
             localStorage.setItem("user", JSON.stringify(data.user));
             console.log("💾 User data stored in localStorage");
 
-            // Test if cookies are working - ENHANCED
-            console.log("🧪 STEP 5: Testing cookie session...");
+            // Test if cookies are working - but don't block on failure
+            console.log("🧪 STEP 5: Testing authentication...");
 
-            // Wait a moment for cookie to be set
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            const sessionResponse = await apiFetch("/users/session");
-            if (sessionResponse.ok) {
-              console.log("✅ Cookie session test PASSED!");
-              showToast(
-                "Session established successfully!",
-                "success",
-                "Authentication Complete",
-                2000
+            try {
+              const sessionResponse = await apiFetch("/users/session");
+              if (sessionResponse.ok) {
+                console.log("✅ Authentication test PASSED!");
+                showToast(
+                  "Session established successfully!",
+                  "success",
+                  "Authentication Complete",
+                  2000
+                );
+              } else {
+                console.warn(
+                  "⚠️ Session test failed, but localStorage token should work"
+                );
+                showToast(
+                  "Login successful! Using token-based authentication.",
+                  "success",
+                  "Login Successful",
+                  3000
+                );
+              }
+            } catch (sessionError) {
+              console.warn(
+                "⚠️ Session test error, but localStorage token should work:",
+                sessionError
               );
-            } else {
-              console.warn("⚠️ Cookie session test FAILED");
               showToast(
-                "Login successful but session test failed. Please refresh the page.",
-                "warning",
+                "Login successful! Using fallback authentication.",
+                "success",
                 "Login Successful",
-                4000
+                3000
               );
             }
 
@@ -1164,13 +1199,13 @@
               `Welcome back, ${data.user.username || data.user.email}!`,
               "success",
               "Login Successful!",
-              3000
+              2000
             );
 
             // Redirect to dashboard
             setTimeout(() => {
               redirectToDashboard(data.user);
-            }, 2000);
+            }, 1500);
 
             return { success: true, data };
           } else {
@@ -1238,6 +1273,10 @@
         console.log("🌐 Frontend URL:", window.location.origin);
         console.log("🔌 Backend URL:", API_BASE_URL);
         console.log("🍪 Cookies present:", document.cookie);
+        console.log(
+          "🔑 LocalStorage token:",
+          localStorage.getItem("access_token") ? "Present" : "Missing"
+        );
 
         // Test backend connectivity
         await verifyBackend();
