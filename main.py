@@ -19,29 +19,35 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Enhanced CORS configuration
+# Enhanced CORS configuration - FIXED FOR RENDER
 def get_allowed_origins():
     """Get allowed origins based on environment"""
     env_origins = os.getenv("ALLOWED_ORIGINS", "")
     if env_origins:
         return [origin.strip() for origin in env_origins.split(",") if origin.strip()]
     
-    # Default origins
-    return [
-        "https://curralms-frontend.onrender.com",
-        "https://curralms-backend.onrender.com",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "null"
-    ]
+    # Default origins - UPDATED FOR RENDER
+    environment = os.getenv("ENVIRONMENT", "development")
+    
+    if environment == "production":
+        return [
+            "https://curralms.onrender.com",
+            "https://curralms-frontend.onrender.com",
+            "https://curralms-backend.onrender.com",
+        ]
+    else:
+        return [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://localhost:5500",
+            "http://127.0.0.1:5500",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
 
 # CORS middleware - ENHANCED FOR RENDER DEPLOYMENT
 app.add_middleware(
@@ -80,13 +86,26 @@ async def cors_test(request: Request, response: Response):
     cookies = request.cookies
     headers = dict(request.headers)
     
+    # Get environment
+    environment = os.getenv("ENVIRONMENT", "development")
+    
     # Set test cookies with proper settings
-    cookie_settings = {
-        "httponly": False,  # Make accessible to JS for testing
-        "secure": origin and origin.startswith('https'),
-        "samesite": "none" if origin and origin != 'null' else "lax",
-        "path": "/"
-    }
+    if environment == "production":
+        cookie_settings = {
+            "httponly": False,  # Make accessible to JS for testing
+            "secure": True,
+            "samesite": "none",
+            "domain": ".onrender.com",
+            "path": "/"
+        }
+    else:
+        cookie_settings = {
+            "httponly": False,
+            "secure": False,
+            "samesite": "lax",
+            "domain": None,
+            "path": "/"
+        }
     
     response.set_cookie(
         key="test_cookie",
@@ -96,13 +115,13 @@ async def cors_test(request: Request, response: Response):
     
     return {
         "message": "CORS Test Endpoint",
+        "environment": environment,
         "request_origin": origin,
         "cookies_received": cookies,
-        "environment": os.getenv("ENVIRONMENT", "development"),
+        "cookie_settings_used": cookie_settings,
         "cors_configuration": {
             "allow_credentials": True,
             "allow_origins": get_allowed_origins(),
-            "expose_headers": True
         }
     }
 

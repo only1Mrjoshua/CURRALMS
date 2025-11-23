@@ -574,7 +574,8 @@
       const getApiBaseUrl = () => {
         // Check if we're on Render production
         if (window.location.hostname.includes("onrender.com")) {
-          return "https://curralms-backend.onrender.com";
+          // Use relative path for same-origin requests - FIXED
+          return "";
         }
         // Local development
         return "http://localhost:8000";
@@ -641,11 +642,11 @@
         }
       }
 
-      // Enhanced fetch wrapper with debugging
+      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
       async function apiFetch(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
         const config = {
-          credentials: "include", // ALWAYS include cookies
+          credentials: "include", // ALWAYS include cookies - CRITICAL
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
@@ -654,7 +655,11 @@
           ...options,
         };
 
-        console.log(`📡 API Call: ${url}`, config);
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          credentials: config.credentials,
+          environment: getEnvironment(),
+        });
 
         try {
           const response = await fetch(url, config);
@@ -665,8 +670,16 @@
               url: url,
               status: response.status,
               ok: response.ok,
+              environment: getEnvironment(),
             }
           );
+
+          // Debug cookie info for auth endpoints
+          if (endpoint.includes("/login") || endpoint.includes("/session")) {
+            console.log("🍪 Cookie debug for auth endpoint");
+            console.log("📍 Current domain:", window.location.hostname);
+            console.log("🔗 API base URL:", API_BASE_URL);
+          }
 
           return response;
         } catch (error) {
@@ -1076,7 +1089,7 @@
         }
       }
 
-      // ENHANCED login function with detailed debugging for both environments
+      // ENHANCED login function with detailed debugging for both environments - FIXED
       async function handleLogin(identifier, password) {
         try {
           console.log("🔐 STEP 1: Starting login process...");
@@ -1121,12 +1134,15 @@
             localStorage.setItem("user", JSON.stringify(data.user));
             console.log("💾 User data stored in localStorage");
 
-            // Test if cookies are working
+            // Test if cookies are working - ENHANCED
             console.log("🧪 STEP 5: Testing cookie session...");
-            const cookieTest = await testCookieSession();
 
-            if (cookieTest) {
-              console.log("🎉 Cookie authentication is working!");
+            // Wait a moment for cookie to be set
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            const sessionResponse = await apiFetch("/users/session");
+            if (sessionResponse.ok) {
+              console.log("✅ Cookie session test PASSED!");
               showToast(
                 "Session established successfully!",
                 "success",
@@ -1134,26 +1150,13 @@
                 2000
               );
             } else {
-              console.warn(
-                "⚠️ Cookie authentication failed, but login was successful"
+              console.warn("⚠️ Cookie session test FAILED");
+              showToast(
+                "Login successful but session test failed. Please refresh the page.",
+                "warning",
+                "Login Successful",
+                4000
               );
-
-              // Environment-specific guidance
-              if (getEnvironment() === "production") {
-                showToast(
-                  "Login successful! If sessions don't persist, please ensure you're using the same domain.",
-                  "warning",
-                  "Login Successful",
-                  4000
-                );
-              } else {
-                showToast(
-                  "Login successful! Cookie session test failed - check console for details.",
-                  "warning",
-                  "Login Successful",
-                  4000
-                );
-              }
             }
 
             // Show success message

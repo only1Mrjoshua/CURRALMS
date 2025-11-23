@@ -86,7 +86,7 @@ async def signup(
     
     return user
 
-# UPDATED LOGIN ENDPOINT - FIXED RESPONSE PARAMETER
+# routers/users.py - UPDATED LOGIN ENDPOINT
 @router.post("/login")
 async def login(
     response: Response,  # MOVE THIS TO FIRST PARAMETER
@@ -101,7 +101,6 @@ async def login(
     
     if user:
         print(f"✅ User found: {user.username} ({user.email})")
-        print(f"🔐 Password hash type: {user.password_hash[:10]}...")
     else:
         print(f"❌ User not found for identifier: '{identifier}'")
         raise HTTPException(
@@ -164,9 +163,10 @@ async def login(
         data={"sub": user.email, "role": user.role}
     )
 
-    # Set HTTP-only cookie for session persistence - FIXED
+    # Set HTTP-only cookie for session persistence - USING FIXED FUNCTION
     print(f"🔄 Setting HTTP-only cookie for user: {user.email}")
-    set_auth_cookie(response, access_token)  # Now response is properly available
+    from utils.cookies import set_auth_cookie
+    set_auth_cookie(response, access_token)
     print(f"✅ Cookie set in response headers")
 
     return {

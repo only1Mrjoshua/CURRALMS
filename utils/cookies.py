@@ -121,38 +121,4 @@ def get_token_from_cookie(request) -> str:
         if "debug_token" in all_cookies and environment != "production":
             print("🔍 Debug token found (development mode)")
     
-    # Additional debug info for production
-    if environment == "production":
-        origin = request.headers.get("origin")
-        print(f"🌐 Request origin: {origin}")
-        print(f"🔒 Secure context: {request.url.scheme}")
-        
-        # Check if we're dealing with cross-site request
-        if origin and "onrender.com" in origin:
-            expected_domain = ".onrender.com"
-            print(f"🎯 Expected cookie domain: {expected_domain}")
-    
     return token
-
-def debug_cookie_info(request):
-    """
-    Comprehensive cookie debugging information
-    """
-    all_cookies = dict(request.cookies)
-    headers = dict(request.headers)
-    
-    debug_info = {
-        "environment": os.getenv("ENVIRONMENT", "development"),
-        "cookies_received": all_cookies,
-        "has_access_token": "access_token" in all_cookies,
-        "request_origin": headers.get("origin"),
-        "user_agent": headers.get("user-agent"),
-        "cookie_header": headers.get("cookie"),
-        "url_scheme": request.url.scheme
-    }
-    
-    print("🔍 COOKIE DEBUG INFO:")
-    for key, value in debug_info.items():
-        print(f"   {key}: {value}")
-    
-    return debug_info

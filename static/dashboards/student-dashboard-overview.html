@@ -1819,7 +1819,7 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // URL helper functions
+      // URL helper functions - FIXED FOR RENDER
       function getBasePath() {
         // Check if we're on localhost
         if (
@@ -1923,7 +1923,7 @@
           });
       }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render (MATCHING SIGNIN)
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1932,24 +1932,75 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain)
+        // For production (Render), use relative path (same domain) - FIXED
         return "";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
+      // Enhanced environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
+      }
+
+      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include", // ALWAYS include cookies - CRITICAL
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          credentials: config.credentials,
+          environment: getEnvironment(),
+        });
+
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+              environment: getEnvironment(),
+            }
+          );
+
+          // Debug cookie info for auth endpoints
+          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
+            console.log("🍪 Cookie debug for endpoint:", endpoint);
+            console.log("📍 Current domain:", window.location.hostname);
+            console.log("🔗 API base URL:", API_BASE_URL);
+          }
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
+        }
+      }
+
       // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🍪 Current cookies:", document.cookie);
 
           // Check session with credentials (cookies will be sent automatically)
-          const response = await fetch(`${API_BASE_URL}/users/session`, {
+          const response = await apiFetch("/users/session", {
             method: "GET",
-            credentials: "include", // CRITICAL: This sends cookies
-            headers: {
-              Accept: "application/json",
-            },
           });
 
           console.log("📨 Session check response:", response.status);
@@ -1986,6 +2037,7 @@
         localStorage.removeItem("user");
         localStorage.removeItem("auth_error");
         localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
       }
 
       // Redirect unauthenticated users to signin page
@@ -2018,24 +2070,31 @@
         try {
           console.log("🧪 Testing cookie session...");
 
-          const sessionResponse = await fetch(`${API_BASE_URL}/users/session`, {
-            method: "GET",
-            credentials: "include", // MUST be include for cookies
-            headers: {
-              Accept: "application/json",
-            },
-          });
+          const sessionResponse = await apiFetch("/debug/session");
+          const sessionData = await sessionResponse.json();
 
-          console.log("🎯 Session test status:", sessionResponse.status);
-          console.log("🔍 Response OK:", sessionResponse.ok);
+          console.log("🎯 Session test result:", sessionData);
 
-          if (sessionResponse.ok) {
-            const sessionData = await sessionResponse.json();
-            console.log("✅ Session test successful - cookies working!");
-            console.log("👤 User:", sessionData.user.email);
+          if (sessionData.has_access_token) {
+            console.log("✅ Cookie session is working!");
+            console.log(
+              "🍪 Cookies received by backend:",
+              sessionData.cookies_received
+            );
             return true;
           } else {
-            console.log("❌ Session test failed - cookies not being sent");
+            console.log("❌ No access_token cookie found");
+            console.log("🔍 Available cookies:", sessionData.cookies_received);
+
+            // Additional debug for production
+            if (getEnvironment() === "production") {
+              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
+              console.log("   - Check if backend has ENVIRONMENT=production");
+              console.log("   - Verify CORS allows your frontend origin");
+              console.log(
+                "   - Check cookie settings (secure=true, samesite=none)"
+              );
+            }
             return false;
           }
         } catch (error) {
@@ -2125,18 +2184,13 @@
         return text.charAt(0).toUpperCase();
       }
 
-      // Function to fetch data from API with proper authentication
+      // Function to fetch data from API with proper authentication - FIXED
       async function fetchData(endpoint) {
         try {
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
 
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          const response = await apiFetch(endpoint, {
             method: "GET",
-            credentials: "include", // Include cookies for session
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
           });
 
           console.log(
@@ -2811,9 +2865,8 @@
 
           try {
             // Call backend logout endpoint to clear session
-            await fetch(`${API_BASE_URL}/users/logout`, {
+            await apiFetch("/users/logout", {
               method: "POST",
-              credentials: "include",
             });
           } catch (error) {
             console.error("Logout API call failed:", error);
@@ -2901,6 +2954,42 @@
         });
       }
 
+      // Enhanced redirect prevention
+      function shouldRedirect() {
+        const lastRedirect = sessionStorage.getItem("lastRedirect");
+        const now = Date.now();
+
+        // Only redirect if we haven't redirected in the last 3 seconds
+        if (!lastRedirect || now - parseInt(lastRedirect) > 3000) {
+          sessionStorage.setItem("lastRedirect", now.toString());
+          return true;
+        }
+        return false;
+      }
+
+      // Enhanced redirect functions
+      async function redirectIfAuthenticated() {
+        if (!shouldRedirect()) return;
+
+        const user = await checkAuthState();
+        if (user) {
+          console.log("🔄 User is authenticated, redirecting to dashboard...");
+          setTimeout(() => {
+            let dashboardPath;
+            if (user.role === "admin") {
+              dashboardPath = getUrl(
+                "/dashboards/Admin-Dashboard-Overview.html"
+              );
+            } else {
+              dashboardPath = getUrl(
+                "/dashboards/student-dashboard-overview.html"
+              );
+            }
+            window.location.href = dashboardPath;
+          }, 1000);
+        }
+      }
+
       // Initialize dashboard
       document.addEventListener("DOMContentLoaded", function () {
         console.log("Student Dashboard initializing...");
@@ -2932,43 +3021,6 @@
 
         // Load data immediately
         fetchStudentData();
-        // Prevent redirect loops
-        function shouldRedirect() {
-          const lastRedirect = sessionStorage.getItem("lastRedirect");
-          const now = Date.now();
-
-          // Only redirect if we haven't redirected in the last 3 seconds
-          if (!lastRedirect || now - parseInt(lastRedirect) > 3000) {
-            sessionStorage.setItem("lastRedirect", now.toString());
-            return true;
-          }
-          return false;
-        }
-
-        // Update redirect functions:
-        async function redirectIfAuthenticated() {
-          if (!shouldRedirect()) return;
-
-          const user = await checkAuthState();
-          if (user) {
-            console.log("🔄 Redirecting to dashboard...");
-            setTimeout(() => {
-              window.location.href = dashboardPath;
-            }, 1000);
-          }
-        }
-
-        async function redirectIfUnauthenticated() {
-          if (!shouldRedirect()) return;
-
-          const user = await checkAuthState();
-          if (!user) {
-            console.log("🔄 Redirecting to signin...");
-            setTimeout(() => {
-              window.location.href = getUrl("/signin.html");
-            }, 1000);
-          }
-        }
 
         // Add active class to clicked sidebar items
         const sidebarItems = document.querySelectorAll(".sidebar-menu a");
