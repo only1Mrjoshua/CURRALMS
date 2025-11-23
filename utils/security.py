@@ -6,7 +6,7 @@ import bcrypt  # Use bcrypt directly instead of passlib
 # Secret key for JWT - change this in production!
 SECRET_KEY = "fhu5a0PfLz0zCKHk4Xg14Lk9jKMG2E5bTnh6aZp3NfE6d6shbw2"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 120
+ACCESS_TOKEN_EXPIRE_MINUTES = 12000
 
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt with length handling"""
