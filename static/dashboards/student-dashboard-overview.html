@@ -8,6 +8,19 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <script>
+      // In head: set theme class immediately
+      (function () {
+        const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+
+        if (savedTheme === "dark" || (!savedTheme && systemPrefersDark)) {
+          document.documentElement.classList.add("theme-loading-dark");
+        }
+      })();
+    </script>
     <style>
       :root {
         --primary-indigo: #6366f1;
@@ -51,6 +64,15 @@
         --text-muted: #94a3b8;
         --border-color: rgba(255, 255, 255, 0.1);
         --skeleton-bg: rgba(255, 255, 255, 0.1);
+      }
+
+      .theme-loading-dark {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --text-primary: #f8fafc;
+        background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
+        color: #f8fafc;
       }
 
       * {
@@ -1345,6 +1367,22 @@
     </style>
   </head>
   <body>
+    <script>
+      // In body: set data-theme attribute immediately
+      (function () {
+        const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+
+        if (savedTheme === "dark" || (!savedTheme && systemPrefersDark)) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        } else {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+        document.documentElement.classList.remove("theme-loading-dark");
+      })();
+    </script>
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
