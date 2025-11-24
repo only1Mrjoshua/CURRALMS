@@ -879,24 +879,30 @@
           }
         });
 
-      // ⚙️ API Configuration - FIXED
+      // ⚙️ API Configuration - UPDATED FOR AUTHORIZATION HEADERS
       const getApiBaseUrl = () => {
-        // CRITICAL: Always use port 8000 for backend API
+        // Check if we're on Render production
+        if (window.location.hostname.includes("onrender.com")) {
+          return "https://curralms-backend.onrender.com";
+        }
+        // Local development
         return "http://localhost:8000";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // URL helper functions for frontend navigation only
+      // Environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
+      }
+
+      // URL helper functions for frontend navigation
       function getBasePath() {
-        // Check if we're on localhost
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "/static"; // Localhost needs /static prefix for frontend files
+        if (getEnvironment() === "development") {
+          return "/static";
         }
-        // For production (Render), no prefix
         return "";
       }
 
@@ -905,28 +911,51 @@
         return `${basePath}${path}`;
       }
 
-      // Debug function to verify URLs
-      console.log("🌐 Frontend URL:", window.location.origin);
-      console.log("🔌 Backend API URL:", API_BASE_URL);
-      console.log("📞 Signup endpoint:", `${API_BASE_URL}/users/signup`);
+      // Enhanced fetch wrapper with Authorization headers - UPDATED
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
 
-      // Test backend connection
-      async function verifyBackend() {
+        // Get token from localStorage for Authorization header
+        const token = localStorage.getItem("access_token");
+
+        const config = {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        // Add Authorization header if token exists
+        if (token) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          hasToken: !!token,
+          environment: getEnvironment(),
+        });
+
         try {
-          const response = await fetch(`${API_BASE_URL}/health`);
-          const data = await response.json();
-          console.log("✅ Backend is accessible:", data);
-          return true;
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+            }
+          );
+
+          return response;
         } catch (error) {
-          console.error("❌ Cannot reach backend:", error);
-          return false;
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
         }
       }
-
-      // Override default alert with toast
-      window.alert = function (message) {
-        showToast(message, "info", "Notice");
-      };
 
       // Toast Notification System
       function showToast(message, type = "info", title = "", duration = 5000) {
@@ -992,18 +1021,55 @@
         }, duration);
       }
 
-      // Enhanced authentication state management with cookie support
+      // Override default alert with toast
+      window.alert = function (message) {
+        showToast(message, "info", "Notice");
+      };
+
+      // Token and Auth Management - UPDATED FOR AUTHORIZATION HEADERS
+      function storeAuthData(authResponse) {
+        if (authResponse.access_token) {
+          localStorage.setItem("access_token", authResponse.access_token);
+          localStorage.setItem(
+            "token_type",
+            authResponse.token_type || "bearer"
+          );
+          localStorage.setItem(
+            "token_expires_in",
+            authResponse.expires_in || 30 * 24 * 60 * 60
+          );
+          console.log("✅ Token stored in localStorage");
+        }
+
+        if (authResponse.user) {
+          localStorage.setItem("user", JSON.stringify(authResponse.user));
+          console.log("✅ User data stored in localStorage");
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("token_expires_in");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
+      }
+
+      // Check authentication state using Authorization header - UPDATED
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
 
-          // Check session with credentials (cookies will be sent automatically)
-          const response = await fetch(`${API_BASE_URL}/users/session`, {
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            console.log("❌ No token found in localStorage");
+            return null;
+          }
+
+          const response = await apiFetch("/users/session", {
             method: "GET",
-            credentials: "include", // CRITICAL: This sends cookies
-            headers: {
-              Accept: "application/json",
-            },
           });
 
           console.log("📨 Session check response:", response.status);
@@ -1011,13 +1077,9 @@
           if (response.ok) {
             const data = await response.json();
             console.log("✅ User session is valid:", data.user.email);
-
-            // Store user data in localStorage for quick access
-            localStorage.setItem("user", JSON.stringify(data.user));
             return data.user;
           } else if (response.status === 401) {
-            // Session invalid - this is normal for logged out users
-            console.log("🔐 No valid session found (user not logged in)");
+            console.log("🔐 Session invalid - clearing token");
             clearAuthData();
             return null;
           } else {
@@ -1025,21 +1087,12 @@
               "❌ Session check failed with status:",
               response.status
             );
-            clearAuthData();
             return null;
           }
         } catch (error) {
           console.error("❌ Auth check failed:", error);
           return null;
         }
-      }
-
-      function clearAuthData() {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("token_type");
-        localStorage.removeItem("user");
-        localStorage.removeItem("auth_error");
-        localStorage.removeItem("success_message");
       }
 
       // Redirect authenticated users away from auth pages
@@ -1051,7 +1104,6 @@
             "🔄 User is already authenticated, redirecting to dashboard..."
           );
 
-          // If we're on a sign-in/sign-up page, redirect to dashboard
           if (
             window.location.pathname.includes("signin.html") ||
             window.location.pathname.includes("signup.html")
@@ -1067,7 +1119,6 @@
               );
             }
 
-            // Add a small delay to show any success messages
             setTimeout(() => {
               window.location.href = dashboardPath;
             }, 500);
@@ -1221,15 +1272,13 @@
         return re.test(email);
       }
 
-      // Google Sign-Up handler
+      // Google Sign-Up handler - UPDATED FOR AUTHORIZATION HEADERS
       async function handleGoogleSignUp() {
         try {
           console.log("🔐 Starting Google Sign-Up...");
 
           // Get Google OAuth URL for signup
-          const response = await fetch(`${API_BASE_URL}/auth/google/url`, {
-            credentials: "include",
-          });
+          const response = await apiFetch("/auth/google/url");
           const data = await response.json();
 
           if (!response.ok) {
@@ -1237,7 +1286,7 @@
           }
 
           console.log("🔄 Redirecting to Google OAuth for sign-up...");
-          window.location.href = data.auth_url;
+          window.location.href = data.auth_url + "&state=signup";
         } catch (error) {
           console.error("❌ Google Sign-Up error:", error);
           showToast(
@@ -1248,7 +1297,7 @@
         }
       }
 
-      // Enhanced Google callback handler
+      // Enhanced Google callback handler - UPDATED FOR AUTHORIZATION HEADERS
       async function handleGoogleCallback() {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get("code");
@@ -1274,12 +1323,11 @@
           try {
             showLoadingState(true);
 
-            const response = await fetch(`${API_BASE_URL}/auth/google`, {
+            const response = await apiFetch("/auth/google", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              credentials: "include", // Include cookies for session
               body: JSON.stringify({ code: code }),
             });
 
@@ -1294,14 +1342,11 @@
 
             const data = await response.json();
 
-            if (data.user) {
-              // Store user data (token is now in HTTP-only cookie)
-              localStorage.setItem("user", JSON.stringify(data.user));
+            if (data.user && data.access_token) {
+              // Store token and user data in localStorage
+              storeAuthData(data);
 
               console.log("✅ Google authentication successful");
-
-              // Test cookie session immediately
-              await testCookieSession();
 
               // Show success message
               showToast(
@@ -1336,94 +1381,23 @@
         }
       }
 
-      // Function to test cookie session - ENHANCED
-      async function testCookieSession() {
-        try {
-          console.log("🧪 Testing cookie session...");
-
-          const sessionResponse = await fetch(`${API_BASE_URL}/users/session`, {
-            method: "GET",
-            credentials: "include", // MUST be include for cookies
-            headers: {
-              Accept: "application/json",
-            },
-          });
-
-          console.log("🎯 Session test status:", sessionResponse.status);
-          console.log("🔍 Response OK:", sessionResponse.ok);
-
-          if (sessionResponse.ok) {
-            const sessionData = await sessionResponse.json();
-            console.log("✅ Session test successful - cookies working!");
-            console.log("👤 User:", sessionData.user.email);
-            return true;
-          } else {
-            console.log("❌ Session test failed - cookies not being sent");
-            console.log("🔍 Testing CORS configuration...");
-            await testCorsConfiguration();
-            return false;
-          }
-        } catch (error) {
-          console.error("💥 Session test error:", error);
-          return false;
-        }
-      }
-
-      // Test CORS configuration
-      async function testCorsConfiguration() {
-        try {
-          console.log("🧪 Testing CORS configuration...");
-
-          const corsTest = await fetch(`${API_BASE_URL}/debug/cors-test`, {
-            method: "GET",
-            credentials: "include",
-            headers: {
-              Accept: "application/json",
-            },
-          });
-
-          if (corsTest.ok) {
-            const corsData = await corsTest.json();
-            console.log("✅ CORS test successful:", corsData);
-            console.log("🔍 Request origin:", corsData.request_origin);
-            console.log(
-              "🍪 Cookies received by backend:",
-              corsData.cookies_received
-            );
-          } else {
-            console.log(
-              "❌ CORS test failed - check backend CORS configuration"
-            );
-          }
-        } catch (error) {
-          console.error("💥 CORS test error:", error);
-        }
-      }
-
-      // Enhanced signup function with detailed cookie debugging
+      // UPDATED signup function for Authorization headers
       async function handleSignup(formData) {
         try {
-          console.log("🔐 STEP 1: Starting signup process...");
-          console.log("📍 Frontend origin:", window.location.origin);
-          console.log("🌐 API Base URL:", API_BASE_URL);
+          console.log("🔐 Starting signup process...");
 
-          console.log("📡 STEP 2: Sending signup request...");
-          console.log("➡️ URL:", `${API_BASE_URL}/users/signup`);
-          console.log("🍪 Credentials mode: include");
+          console.log("📡 Sending signup request...");
 
-          // Send signup request to backend WITH credentials
-          const response = await fetch(`${API_BASE_URL}/users/signup`, {
+          // Send signup request to backend
+          const response = await apiFetch("/users/signup", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Accept: "application/json",
             },
-            credentials: "include", // This should send/receive cookies
             body: JSON.stringify(formData),
           });
 
-          console.log("📨 STEP 3: Signup response received");
-          console.log("✅ Status:", response.status);
+          console.log("📨 Signup response received - Status:", response.status);
 
           let data;
           try {
@@ -1435,50 +1409,25 @@
           }
 
           if (response.ok) {
-            console.log("🎉 STEP 4: Signup successful!");
+            console.log("🎉 Signup successful!");
 
-            // Store user data in localStorage
-            localStorage.setItem("user", JSON.stringify(data.user));
+            // Store user data in localStorage (no token for signup, user needs to login)
+            localStorage.setItem("user", JSON.stringify(data));
             console.log("💾 User data stored in localStorage");
-
-            // Test if cookies are working
-            console.log("🧪 STEP 5: Testing cookie session...");
-            const cookieTest = await testCookieSession();
-
-            if (cookieTest) {
-              console.log("🎉 Cookie authentication is working!");
-              showToast(
-                "Account created and session established successfully!",
-                "success",
-                "Registration Complete",
-                2000
-              );
-            } else {
-              console.warn(
-                "⚠️ Cookie authentication failed, but signup was successful"
-              );
-              showToast(
-                "Account created! If sessions don't persist, try using the same origin.",
-                "warning",
-                "Registration Successful",
-                3000
-              );
-            }
 
             // Show success message
             showToast(
               `Welcome, ${
-                data.user.full_name || data.user.email
+                data.full_name || data.email
               }! Your account has been created.`,
               "success",
               "Registration Successful!",
               3000
             );
 
-            // Redirect to dashboard
-            setTimeout(() => {
-              redirectToDashboard(data.user);
-            }, 2000);
+            // Auto-login after successful signup
+            console.log("🔄 Attempting auto-login after signup...");
+            await handleAutoLogin(formData.email, formData.password);
 
             return { success: true, data };
           } else {
@@ -1517,6 +1466,50 @@
         }
       }
 
+      // Auto-login after successful signup
+      async function handleAutoLogin(email, password) {
+        try {
+          console.log("🔄 Attempting auto-login...");
+
+          const formData = new URLSearchParams();
+          formData.append("username", email);
+          formData.append("password", password);
+
+          const response = await apiFetch("/users/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ Auto-login successful!");
+
+            // Store token and user data
+            storeAuthData(data);
+
+            // Redirect to dashboard
+            setTimeout(() => {
+              redirectToDashboard(data.user);
+            }, 1000);
+          } else {
+            console.log("⚠️ Auto-login failed, redirecting to signin page");
+            // Redirect to signin page if auto-login fails
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+          }
+        } catch (error) {
+          console.error("❌ Auto-login error:", error);
+          // Redirect to signin page
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 2000);
+        }
+      }
+
       // Check for authentication errors on page load
       function checkAuthErrors() {
         const authError = localStorage.getItem("auth_error");
@@ -1531,6 +1524,30 @@
           showToast(successMessage, "success", "Success!");
           localStorage.removeItem("success_message");
         }
+      }
+
+      // Enhanced diagnostic function
+      async function runDiagnostics() {
+        console.group("🔍 AUTHENTICATION DIAGNOSTICS");
+        console.log("📍 Environment:", getEnvironment());
+        console.log("🌐 Frontend URL:", window.location.origin);
+        console.log("🔌 Backend URL:", API_BASE_URL);
+        console.log(
+          "🔑 Token in localStorage:",
+          !!localStorage.getItem("access_token")
+        );
+        console.log("👤 User in localStorage:", !!localStorage.getItem("user"));
+
+        // Test backend connectivity
+        try {
+          const response = await fetch(`${API_BASE_URL}/health`);
+          const data = await response.json();
+          console.log("✅ Backend is accessible:", data);
+        } catch (error) {
+          console.error("❌ Cannot reach backend:", error);
+        }
+
+        console.groupEnd();
       }
 
       // Form navigation functions
@@ -1695,8 +1712,9 @@
       // Main initialization
       document.addEventListener("DOMContentLoaded", function () {
         console.log("🚀 Page loaded - Initializing authentication...");
-        console.log("📍 Current environment:", window.location.hostname);
-        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+
+        // Run comprehensive diagnostics
+        runDiagnostics();
 
         // Initialize theme first
         initTheme();
@@ -1705,9 +1723,6 @@
         if (themeToggle) {
           themeToggle.addEventListener("click", toggleTheme);
         }
-
-        // Test backend connection
-        verifyBackend();
 
         // Check for authentication errors
         checkAuthErrors();

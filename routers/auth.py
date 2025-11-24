@@ -1,5 +1,5 @@
 import httpx
-from fastapi import Request, APIRouter, HTTPException, Depends, status, Response
+from fastapi import Request, APIRouter, HTTPException, Depends, status
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 import os
@@ -10,7 +10,6 @@ from crud.user import UserCRUD
 from models.user import User, RoleEnum, GenderEnum
 from schemas.user import UserCreate
 from utils.security import create_access_token
-from utils.cookies import set_auth_cookie
 import secrets
 import string
 
@@ -100,8 +99,8 @@ async def get_google_user_info(access_token: str):
         return GoogleUserInfo(**user_data)
 
 @router.post("/google")
-async def google_auth(request: GoogleTokenRequest, response: Response, db=Depends(get_database)):
-    """Handle Google OAuth callback with HTTP-only cookie"""
+async def google_auth(request: GoogleTokenRequest, db=Depends(get_database)):
+    """Handle Google OAuth callback - return token in response body"""
     try:
         print(f"🔍 Starting Google OAuth POST processing...")
         
@@ -175,19 +174,19 @@ async def google_auth(request: GoogleTokenRequest, response: Response, db=Depend
         await crud.update_last_login(user.id)
         print(f"✅ Last login updated for user: {user.id}")
         
-        # Create JWT token
+        # Create JWT token with 30-day expiration
         jwt_token = create_access_token(
             data={"sub": user.email, "role": user.role}
         )
         print(f"✅ JWT token created for user: {user.email}")
 
-        # Set HTTP-only cookie
-        set_auth_cookie(response, jwt_token)
-        print(f"🍪 HTTP-only cookie set for Google OAuth user: {user.email}")
+        # REMOVED: Cookie setting
+        # set_auth_cookie(response, jwt_token)
 
         return {
             "access_token": jwt_token,
             "token_type": "bearer",
+            "expires_in": 30 * 24 * 60 * 60,  # 30 days in seconds
             "user": {
                 "id": str(user.id),
                 "email": user.email,
@@ -237,7 +236,7 @@ async def google_callback(
     state: str = None,
     db=Depends(get_database)
 ):
-    """Handle Google OAuth callback and set HTTP-only cookie"""
+    """Handle Google OAuth callback - return token in JavaScript"""
     print(f"🔍 Google callback received - code: {code is not None}, error: {error}, state: {state}")
     
     # Determine if this is signup or signin from state parameter
@@ -388,7 +387,7 @@ async def google_callback(
         await crud.update_last_login(user.id)
         print(f"✅ Last login updated for user: {user.id}")
         
-        # Create JWT token
+        # Create JWT token with 30-day expiration
         jwt_token = create_access_token(data={"sub": user.email, "role": user.role})
         print(f"✅ JWT token created for user: {user.email}")
         
@@ -416,15 +415,18 @@ async def google_callback(
             success_message = f"Welcome back, {user.full_name}!"
             toast_type = "success"
         
-        # Create HTML response and set cookie
+        # UPDATED: Store token in localStorage instead of setting cookie
         html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Authentication Successful</title>
             <script>
-                // Store user data in localStorage (but NOT the token)
+                // Store user data and token in localStorage
                 localStorage.setItem('user', '{user_json}');
+                localStorage.setItem('access_token', '{jwt_token}');
+                localStorage.setItem('token_type', 'bearer');
+                localStorage.setItem('token_expires_in', '{30 * 24 * 60 * 60}'); // 30 days in seconds
                 
                 // Store custom success messaging
                 localStorage.setItem('auth_success_title', '{success_title}');
@@ -452,10 +454,8 @@ async def google_callback(
         </html>
         """
         
-        # Create response and set cookie
+        # REMOVED: Cookie setting
         response = HTMLResponse(html_content)
-        set_auth_cookie(response, jwt_token)
-        print(f"🍪 HTTP-only cookie set for Google OAuth user: {user.email}")
         
         return response
             

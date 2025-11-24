@@ -1,12 +1,14 @@
-# utils/security.py
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt  # Use bcrypt directly instead of passlib
+import os
 
 # Secret key for JWT - change this in production!
-SECRET_KEY = "fhu5a0PfLz0zCKHk4Xg14Lk9jKMG2E5bTnh6aZp3NfE6d6shbw2"
+SECRET_KEY = os.getenv("SECRET_KEY", "fhu5a0PfLz0zCKHk4Xg14Lk9jKMG2E5bTnh6aZp3NfE6d6shbw2")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 12000
+# CHANGED: From 12000 minutes to 30 days (43,200 minutes)
+ACCESS_TOKEN_EXPIRE_DAYS = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60
 
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt with length handling"""
@@ -42,7 +44,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        # CHANGED: From minutes to days for 30-day expiration
+        expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

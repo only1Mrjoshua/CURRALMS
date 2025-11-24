@@ -1,5 +1,4 @@
-# routers/users.py
-from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Optional
 from datetime import datetime
@@ -10,8 +9,10 @@ from database import get_database
 from models.user import User, RoleEnum
 from schemas.user import UserOut, UserCreate, AdminUserCreate
 from utils.security import hash_password, verify_password, create_access_token
-from utils.cookies import set_auth_cookie, delete_auth_cookie
 from dependencies import get_current_user, require_admin, oauth2_scheme
+
+# REMOVED: Cookie imports
+# from utils.cookies import set_auth_cookie, delete_auth_cookie
 
 # Create directory if not exists
 UPLOAD_DIR = "static/avatars"
@@ -86,10 +87,9 @@ async def signup(
     
     return user
 
-# UPDATED LOGIN ENDPOINT - FIXED RESPONSE PARAMETER
+# UPDATED LOGIN ENDPOINT - Removed cookie setting
 @router.post("/login")
 async def login(
-    response: Response,  # MOVE THIS TO FIRST PARAMETER
     form_data: OAuth2PasswordRequestForm = Depends(),
     crud = Depends(get_user_crud)
 ):
@@ -159,19 +159,18 @@ async def login(
     # Update last login
     await crud.update_last_login(user.id)
 
-    # Create token including role
+    # Create token including role - NOW WITH 30-DAY EXPIRATION
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role}
     )
 
-    # Set HTTP-only cookie for session persistence - FIXED
-    print(f"🔄 Setting HTTP-only cookie for user: {user.email}")
-    set_auth_cookie(response, access_token)  # Now response is properly available
-    print(f"✅ Cookie set in response headers")
+    # REMOVED: Cookie setting
+    # set_auth_cookie(response, access_token)
 
     return {
-        "access_token": access_token,  # Still return for debugging
+        "access_token": access_token,  # Frontend will store this in localStorage
         "token_type": "bearer", 
+        "expires_in": 30 * 24 * 60 * 60,  # 30 days in seconds
         "user": {
             "id": str(user.id),
             "email": user.email,
@@ -180,7 +179,7 @@ async def login(
             "avatar_url": user.avatar_url,
             "is_active": user.is_active
         },
-        "message": "Login successful - cookie set"
+        "message": "Login successful - store token in Authorization header"
     }
 
 # Session check endpoint - ENHANCED DEBUGGING
@@ -205,17 +204,16 @@ async def check_session(current_user: User = Depends(get_current_user)):
         "message": "Session is valid"
     }
 
-# Logout endpoint - UPDATED
+# UPDATED LOGOUT ENDPOINT - Removed cookie deletion
 @router.post("/logout")
-async def logout(response: Response):
+async def logout():
     """
-    Logout user by clearing the HTTP-only cookie
+    Logout user - frontend should remove the token from storage
     """
-    delete_auth_cookie(response)
-    print("🍪 HTTP-only cookie cleared - user logged out")
+    print("🔒 User logged out - frontend should remove token from localStorage")
     
     return {
-        "message": "Successfully logged out",
+        "message": "Successfully logged out - please remove token from client storage",
         "success": True
     }
 

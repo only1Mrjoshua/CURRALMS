@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Enhanced CORS configuration - FIXED FOR RENDER
+# Enhanced CORS configuration - UPDATED FOR AUTHORIZATION HEADERS
 def get_allowed_origins():
     """Get allowed origins based on environment"""
     env_origins = os.getenv("ALLOWED_ORIGINS", "")
@@ -49,14 +49,14 @@ def get_allowed_origins():
             "http://127.0.0.1:5173",
         ]
 
-# CORS middleware - ENHANCED FOR RENDER DEPLOYMENT
+# CORS middleware - UPDATED FOR AUTHORIZATION HEADERS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),
-    allow_credentials=True,  # CRITICAL FOR COOKIES
+    allow_credentials=True,  # Keep this True for other cookies if needed
     allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]  # IMPORTANT FOR COOKIES
+    allow_headers=["*", "Authorization"],  # Ensure Authorization header is allowed
+    expose_headers=["*"]
 )
 
 # Include routers
@@ -78,87 +78,44 @@ async def read_root():
 async def health_check():
     return {"status": "healthy", "message": "API is running smoothly"}
 
-# Enhanced CORS Debug Endpoint
+# UPDATED CORS Debug Endpoint - Removed cookie testing
 @app.get("/debug/cors-test")
-async def cors_test(request: Request, response: Response):
-    """Test CORS and cookie functionality"""
+async def cors_test(request: Request):
+    """Test CORS and Authorization header functionality"""
     origin = request.headers.get("origin")
-    cookies = request.cookies
-    headers = dict(request.headers)
+    auth_header = request.headers.get("authorization")
     
     # Get environment
     environment = os.getenv("ENVIRONMENT", "development")
     
-    # Set test cookies with proper settings
-    if environment == "production":
-        cookie_settings = {
-            "httponly": False,  # Make accessible to JS for testing
-            "secure": True,
-            "samesite": "none",
-            "domain": None,
-            "path": "/"
-        }
-    else:
-        cookie_settings = {
-            "httponly": False,
-            "secure": False,
-            "samesite": "lax",
-            "domain": None,
-            "path": "/"
-        }
-    
-    response.set_cookie(
-        key="test_cookie",
-        value="cors_works",
-        **cookie_settings
-    )
-    
     return {
-        "message": "CORS Test Endpoint",
+        "message": "CORS Test Endpoint - Authorization Headers",
         "environment": environment,
         "request_origin": origin,
-        "cookies_received": cookies,
-        "cookie_settings_used": cookie_settings,
+        "authorization_header_received": auth_header is not None,
         "cors_configuration": {
             "allow_credentials": True,
             "allow_origins": get_allowed_origins(),
+            "allow_headers": ["Authorization", "Content-Type"]
         }
     }
 
-# Cookie Debug Endpoint
-@app.get("/debug/cookies")
-async def debug_cookies(request: Request):
-    """Debug endpoint to check if cookies are being sent"""
-    cookies = request.cookies
+# UPDATED Auth Debug Endpoint
+@app.get("/debug/auth")
+async def debug_auth(request: Request):
+    """Debug authentication headers"""
+    auth_header = request.headers.get("authorization")
     headers = dict(request.headers)
     
     return {
-        "cookies_received": cookies,
+        "authorization_header": auth_header,
         "headers_received": {
             "origin": headers.get("origin"),
-            "cookie": headers.get("cookie"),
-            "authorization": headers.get("authorization")
+            "authorization": auth_header,
+            "content_type": headers.get("content-type")
         },
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "message": "Check if access_token cookie exists in 'cookies_received'"
-    }
-
-# Session Debug Endpoint
-@app.get("/debug/session")
-async def debug_session(request: Request):
-    """Debug session and authentication"""
-    cookies = request.cookies
-    headers = dict(request.headers)
-    
-    # Check if access_token cookie exists
-    has_access_token = "access_token" in cookies
-    
-    return {
-        "has_access_token": has_access_token,
-        "cookies_present": list(cookies.keys()),
-        "origin": headers.get("origin"),
-        "user_agent": headers.get("user-agent"),
-        "environment": os.getenv("ENVIRONMENT", "development")
+        "message": "Check if Authorization header exists"
     }
 
 @app.get("/{full_path:path}")
@@ -246,8 +203,7 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
         ("/auth/google/test", "GET"),
         ("/auth/google", "POST"),
         ("/debug/cors-test", "GET"),
-        ("/debug/cookies", "GET"),
-        ("/debug/session", "GET"),
+        ("/debug/auth", "GET"),
     ]
     
     if (path, method) in public_endpoints:
