@@ -289,6 +289,7 @@
         color: var(--white);
         font-weight: bold;
         margin-right: 10px;
+        text-decoration: none;
       }
 
       /* Theme Toggle Button */
@@ -938,6 +939,12 @@
         flex: 1;
       }
 
+      /* Remove underline from user info links */
+      .user-info a {
+        text-decoration: none;
+        color: inherit;
+      }
+
       .form-actions {
         display: flex;
         justify-content: flex-end;
@@ -1568,6 +1575,7 @@
         .user-avatar {
           width: 35px;
           height: 35px;
+          text-decoration: none;
         }
 
         .logout-btn {
@@ -1736,7 +1744,7 @@
         <div class="navbar-right">
           <div class="user-info">
             <a
-              href="student-profile.html"
+              href="Admin-profile.html"
               class="user-avatar"
               id="currentUserAvatar"
               >JD</a
