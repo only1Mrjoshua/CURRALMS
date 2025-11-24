@@ -1518,7 +1518,25 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // Theme Management
+      // URL helper functions - FIXED FOR RENDER
+      function getBasePath() {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "/static"; // Localhost needs /static prefix for everything
+        }
+        // For production (Render), no prefix
+        return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
+      // Theme Management - MATCHING OVERVIEW PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1541,35 +1559,53 @@
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
+        showToast(
+          "info",
+          "Theme Changed",
+          `Switched to ${newTheme} mode`,
+          2000
+        );
       }
 
-      // Initialize theme
+      // Initialize theme with device preference as default
       function initTheme() {
-        // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
 
-        if (savedTheme) {
-          setTheme(savedTheme);
-        } else {
-          // Check system preference
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
-          setTheme(prefersDark ? "dark" : "light");
-        }
+        // If no theme is saved, use device preference
+        const currentTheme =
+          savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Update toggle switch to reflect current theme
+        themeToggleInput.checked = currentTheme === "dark";
+
+        console.log(
+          `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
+        );
       }
 
-      // Listen for system theme changes
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          // Only change if user hasn't set a preference
-          if (!localStorage.getItem("theme")) {
-            setTheme(e.matches ? "dark" : "light");
-          }
-        });
+      // Listen for system theme changes and update if no manual preference is set
+      function setupSystemThemeListener() {
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            // Only change if user hasn't set a manual preference
+            if (!localStorage.getItem("theme")) {
+              const newTheme = e.matches ? "dark" : "light";
+              setTheme(newTheme);
+              showToast(
+                "info",
+                "Theme Updated",
+                `Changed to system theme (${newTheme})`,
+                3000
+              );
+            }
+          });
+      }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1578,147 +1614,221 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        // For production (Render), use relative path (same domain) - FIXED
+        return "https://curralms-backend.onrender.com";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // Toast Notification System
-      function showToast(type, title, message, duration = 5000) {
-        let toastContainer = document.getElementById("toastContainer");
-        if (!toastContainer) {
-          toastContainer = document.createElement("div");
-          toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        max-width: 400px;
-      `;
-          document.body.appendChild(toastContainer);
-        }
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.style.cssText = `
-      background: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 16px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-    `;
-
-        // Set border color based on type
-        const colors = {
-          success: "var(--success-green)",
-          info: "var(--primary-indigo)",
-          warning: "var(--accent-purple)",
-          error: "var(--error-red)",
-        };
-        toast.style.borderLeftColor = colors[type] || colors.info;
-
-        const icons = {
-          success: "fas fa-check",
-          info: "fas fa-info-circle",
-          warning: "fas fa-exclamation-triangle",
-          error: "fas fa-exclamation-circle",
-        };
-
-        toast.innerHTML = `
-      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-        colors[type] || colors.info
-      }">
-        <i class="${icons[type]}"></i>
-      </div>
-      <div class="toast-content" style="flex: 1;">
-        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-      </div>
-      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-
-        toastContainer.appendChild(toast);
-
-        // Show toast with animation
-        setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
-        }, 100);
-
-        // Close button functionality
-        const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
-
-        // Auto-hide after duration
-        if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
-        }
-
-        return toast;
+      // Enhanced environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
       }
 
-      function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
+      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include", // ALWAYS include cookies - CRITICAL
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          credentials: config.credentials,
+          environment: getEnvironment(),
+        });
+
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+              environment: getEnvironment(),
+            }
+          );
+
+          // Debug cookie info for auth endpoints
+          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
+            console.log("🍪 Cookie debug for endpoint:", endpoint);
+            console.log("📍 Current domain:", window.location.hostname);
+            console.log("🔗 API base URL:", API_BASE_URL);
           }
-        }, 300);
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
+        }
+      }
+
+      // Enhanced authentication state management with cookie support (MATCHING OVERVIEW)
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🍪 Current cookies:", document.cookie);
+
+          // Check session with credentials (cookies will be sent automatically)
+          const response = await apiFetch("/users/session", {
+            method: "GET",
+          });
+
+          console.log("📨 Session check response:", response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
+          } else {
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
+            clearAuthData();
+            return null;
+          }
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
+      }
+
+      // Redirect unauthenticated users to signin page
+      async function redirectIfUnauthenticated() {
+        const user = await checkAuthState();
+
+        if (!user) {
+          console.log("🔄 User is not authenticated, redirecting to signin...");
+
+          // If we're on a dashboard page, redirect to signin
+          if (
+            window.location.pathname.includes("dashboard") ||
+            window.location.pathname.includes("student")
+          ) {
+            showToast(
+              "warning",
+              "Authentication Required",
+              "Please log in to access the dashboard",
+              3000
+            );
+
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Function to test cookie session - ENHANCED
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
+
+          const sessionResponse = await apiFetch("/debug/session");
+          const sessionData = await sessionResponse.json();
+
+          console.log("🎯 Session test result:", sessionData);
+
+          if (sessionData.has_access_token) {
+            console.log("✅ Cookie session is working!");
+            console.log(
+              "🍪 Cookies received by backend:",
+              sessionData.cookies_received
+            );
+            return true;
+          } else {
+            console.log("❌ No access_token cookie found");
+            console.log("🔍 Available cookies:", sessionData.cookies_received);
+
+            // Additional debug for production
+            if (getEnvironment() === "production") {
+              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
+              console.log("   - Check if backend has ENVIRONMENT=production");
+              console.log("   - Verify CORS allows your frontend origin");
+              console.log(
+                "   - Check cookie settings (secure=true, samesite=none)"
+              );
+            }
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
+          return false;
+        }
       }
 
       // Function to load and display current user info
-      function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
-
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = userEmail;
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
-            }
-          } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = "User";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "U";
-            }
+      async function loadCurrentUserInfo() {
+        try {
+          // First try to get user from localStorage
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            updateUserUI(user);
+            return user;
           }
+
+          // If no stored user, check session
+          const user = await checkAuthState();
+          if (user) {
+            updateUserUI(user);
+            return user;
+          }
+
+          // Fallback to default
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        } catch (error) {
+          console.error("Error loading user info:", error);
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        }
+      }
+
+      function updateUserUI(user) {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+
+        const displayName =
+          user.full_name || user.username || user.email || "Student";
+
+        if (userNameElement) {
+          userNameElement.textContent = displayName;
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = getInitials(displayName);
         }
       }
 
@@ -1732,8 +1842,106 @@
           return username.charAt(0).toUpperCase();
         }
 
-        // If it's a name, use the first character
+        // If it's a name, use the first character of first and last name
+        const names = text.split(" ");
+        if (names.length > 1) {
+          return (
+            names[0].charAt(0) + names[names.length - 1].charAt(0)
+          ).toUpperCase();
+        }
+
+        // If it's a single name, use the first character
         return text.charAt(0).toUpperCase();
+      }
+
+      // Function to fetch data from API with proper authentication - FIXED
+      async function fetchData(endpoint) {
+        try {
+          console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
+
+          const response = await apiFetch(endpoint, {
+            method: "GET",
+          });
+
+          console.log(
+            `📊 Response status: ${response.status} ${response.statusText}`
+          );
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              `❌ HTTP error! status: ${response.status}`,
+              errorText
+            );
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log(`✅ Fetched data from ${endpoint}:`, data);
+          return data;
+        } catch (error) {
+          console.error(`❌ Error fetching data from ${endpoint}:`, error);
+          return null;
+        }
+      }
+
+      // Function to fetch student grades data - USING MOCK DATA
+      async function fetchStudentGrades() {
+        console.log("🔄 Fetching student grades data...");
+
+        // Check authentication first
+        if (!(await redirectIfUnauthenticated())) {
+          return;
+        }
+
+        try {
+          // Test cookie session first
+          const cookieTest = await testCookieSession();
+          if (!cookieTest) {
+            console.warn("⚠️ Cookie session test failed, but continuing...");
+          }
+
+          // TEMPORARY: Always use mock data until backend is fixed
+          console.log("📋 Using mock grades data for demonstration");
+          loadMockGradesData();
+          return;
+
+          // Original API call commented out for now
+          /*
+      // Fetch student grades data
+      const grades = await fetchData("/students/grades");
+
+      console.log("📦 Student grades data fetched:", {
+        grades: grades?.length || 0,
+      });
+
+      updateGradesUI(grades);
+      */
+        } catch (error) {
+          console.error("❌ Error in fetchStudentGrades:", error);
+          showToast(
+            "error",
+            "Data Fetch Error",
+            "Could not load student grades data. Please try again.",
+            5000
+          );
+
+          // Load mock data for demonstration
+          loadMockGradesData();
+        }
       }
 
       // Global variables
@@ -1756,246 +1964,88 @@
       const confirmYes = document.getElementById("confirmYes");
       const confirmNo = document.getElementById("confirmNo");
 
-      // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view grades",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 2000);
-          return false;
-        }
-        return true;
-      }
+      // Function to update UI with grades data
+      function updateGradesUI(grades) {
+        console.log("🎨 Updating UI with grades data");
 
-      // Setup logout confirmation functionality
-      function setupLogoutConfirmation() {
-        sidebarLogoutBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          logoutConfirmationModal.style.display = "block";
-        });
-
-        confirmNo.addEventListener("click", function () {
-          logoutConfirmationModal.style.display = "none";
-        });
-
-        confirmYes.addEventListener("click", function () {
-          showToast(
-            "info",
-            "Logging Out",
-            "You have been logged out successfully",
-            500
-          );
-
-          // Clear authentication tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 500);
-        });
-
-        // Close logout confirmation modal when clicking outside
-        window.addEventListener("click", function (event) {
-          if (event.target === logoutConfirmationModal) {
-            logoutConfirmationModal.style.display = "none";
-          }
-        });
-      }
-
-      // Load grades from API
-      async function loadGrades() {
-        try {
-          showLoadingState();
-
-          console.log(
-            "📊 Fetching grades from:",
-            `${API_BASE_URL}/grades/student`
-          );
-
-          // In a real application, you would fetch from your grades API
-          // For now, we'll use mock data
-          const mockGrades = await generateMockGrades();
-          allGrades = mockGrades;
-
-          console.log(`✅ Loaded ${allGrades.length} grades`);
-
-          // Update stats
-          updateGradeStats();
-
-          // Render grades table
-          renderGrades();
-
-          // Initialize charts
-          initializeCharts();
-        } catch (error) {
-          console.error("❌ Error loading grades:", error);
+        if (!grades || grades.length === 0) {
           showEmptyState();
-          showToast(
-            "error",
-            "Load Error",
-            "Failed to load grades. Please try again.",
-            5000
-          );
+          return;
         }
-      }
 
-      // Generate mock grades data
-      async function generateMockGrades() {
-        return [
-          {
-            id: "1",
-            course: "UI/UX Design",
-            assignment: "Wireframe Project",
-            type: "project",
-            date: "2024-01-15",
-            score: 92,
-            maxScore: 100,
-            grade: "A",
-            status: "passed",
-            category: "Design",
-          },
-          {
-            id: "2",
-            course: "Web Development",
-            assignment: "JavaScript Quiz",
-            type: "quiz",
-            date: "2024-01-20",
-            score: 88,
-            maxScore: 100,
-            grade: "B+",
-            status: "passed",
-            category: "Development",
-          },
-          {
-            id: "3",
-            course: "Blockchain Fundamentals",
-            assignment: "Smart Contract Assignment",
-            type: "assignment",
-            date: "2024-01-25",
-            score: 95,
-            maxScore: 100,
-            grade: "A",
-            status: "passed",
-            category: "Blockchain",
-          },
-          {
-            id: "4",
-            course: "Cyber Security",
-            assignment: "Midterm Exam",
-            type: "exam",
-            date: "2024-02-01",
-            score: 78,
-            maxScore: 100,
-            grade: "C+",
-            status: "passed",
-            category: "Cyber Security",
-          },
-          {
-            id: "5",
-            course: "UI/UX Design",
-            assignment: "Prototype Development",
-            type: "project",
-            date: "2024-02-10",
-            score: 85,
-            maxScore: 100,
-            grade: "B",
-            status: "passed",
-            category: "Design",
-          },
-          {
-            id: "6",
-            course: "Web Development",
-            assignment: "React Final Project",
-            type: "project",
-            date: "2024-02-15",
-            score: 96,
-            maxScore: 100,
-            grade: "A",
-            status: "passed",
-            category: "Development",
-          },
-          {
-            id: "7",
-            course: "Blockchain Fundamentals",
-            assignment: "Final Exam",
-            type: "exam",
-            date: "2024-02-20",
-            score: 82,
-            maxScore: 100,
-            grade: "B-",
-            status: "passed",
-            category: "Blockchain",
-          },
-          {
-            id: "8",
-            course: "Cyber Security",
-            assignment: "Security Audit Report",
-            type: "assignment",
-            date: "2024-02-25",
-            score: 90,
-            maxScore: 100,
-            grade: "A-",
-            status: "passed",
-            category: "Cyber Security",
-          },
-        ];
+        allGrades = grades;
+
+        // Update stats
+        updateGradeStats();
+
+        // Render grades table
+        renderGrades();
+
+        // Initialize charts
+        initializeCharts();
+
+        console.log("✅ Student grades page updated successfully");
       }
 
       // Update grade statistics
       function updateGradeStats() {
+        if (!allGrades || allGrades.length === 0) {
+          document.getElementById("averageGrade").textContent = "0%";
+          document.getElementById("overallGPA").textContent = "0.00";
+          document.getElementById("completedCourses").textContent = "0";
+          document.getElementById("performanceTrend").textContent = "0%";
+          return;
+        }
+
         // Calculate average grade
         const totalScore = allGrades.reduce(
           (sum, grade) => sum + grade.score,
           0
         );
-        const averageScore =
-          allGrades.length > 0 ? Math.round(totalScore / allGrades.length) : 0;
+        const averageScore = Math.round(totalScore / allGrades.length);
         document.getElementById(
           "averageGrade"
         ).textContent = `${averageScore}%`;
 
         // Calculate GPA (simplified)
         const gradePoints = allGrades.map((grade) => {
-          switch (grade.grade) {
-            case "A":
-              return 4.0;
-            case "A-":
-              return 3.7;
-            case "B+":
-              return 3.3;
-            case "B":
-              return 3.0;
-            case "B-":
-              return 2.7;
-            case "C+":
-              return 2.3;
-            case "C":
-              return 2.0;
-            case "C-":
-              return 1.7;
-            case "D":
-              return 1.0;
-            default:
-              return 0.0;
-          }
+          const score = grade.score;
+          if (score >= 90) return 4.0;
+          if (score >= 80) return 3.0;
+          if (score >= 70) return 2.0;
+          if (score >= 60) return 1.0;
+          return 0.0;
         });
 
-        const gpa =
-          gradePoints.length > 0
-            ? (
-                gradePoints.reduce((sum, point) => sum + point, 0) /
-                gradePoints.length
-              ).toFixed(2)
-            : "0.00";
+        const gpa = (
+          gradePoints.reduce((sum, point) => sum + point, 0) /
+          gradePoints.length
+        ).toFixed(2);
         document.getElementById("overallGPA").textContent = gpa;
+
+        // Calculate completed courses (unique courses)
+        const uniqueCourses = [
+          ...new Set(
+            allGrades.map((grade) => grade.course_name || grade.course)
+          ),
+        ];
+        document.getElementById("completedCourses").textContent =
+          uniqueCourses.length;
+
+        // Simple performance trend calculation
+        const recentGrades = allGrades.slice(-5);
+        const olderGrades = allGrades.slice(0, 5);
+
+        const recentAvg =
+          recentGrades.reduce((sum, g) => sum + g.score, 0) /
+          recentGrades.length;
+        const olderAvg =
+          olderGrades.reduce((sum, g) => sum + g.score, 0) / olderGrades.length;
+
+        const trend = recentAvg - olderAvg;
+        document.getElementById("performanceTrend").textContent = `${
+          trend >= 0 ? "+" : ""
+        }${trend.toFixed(1)}%`;
       }
 
       // Render grades to the table
@@ -2011,14 +2061,14 @@
           const row = document.createElement("tr");
 
           // Format date
-          const formattedDate = new Date(grade.date).toLocaleDateString(
-            "en-US",
-            {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            }
-          );
+          const date = grade.submitted_at || grade.date || grade.created_at;
+          const formattedDate = date
+            ? new Date(date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
+            : "N/A";
 
           // Determine grade class based on score
           let gradeClass = "grade-average";
@@ -2027,40 +2077,56 @@
           else if (grade.score < 70) gradeClass = "grade-poor";
 
           // Status badge
-          const statusClass = `status-${grade.status}`;
-          const statusText =
-            grade.status.charAt(0).toUpperCase() + grade.status.slice(1);
+          const status =
+            grade.status || (grade.score >= 60 ? "passed" : "failed");
+          const statusClass = `status-${status}`;
+          const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+
+          // Grade type
+          const gradeType = grade.type || grade.assignment_type || "assignment";
+
+          // Course and assignment names
+          const courseName =
+            grade.course_name || grade.course || "Unknown Course";
+          const assignmentName =
+            grade.assignment_name || grade.assignment || "Unknown Assignment";
 
           row.innerHTML = `
-            <td>
-              <div class="course-title">${grade.course}</div>
-              <div class="course-meta">${grade.assignment}</div>
-            </td>
-            <td>
-              <span class="grade-status status-${grade.type}">${grade.type}</span>
-            </td>
-            <td>${formattedDate}</td>
-            <td>
-              <div class="grade-score ${gradeClass}">${grade.score}%</div>
-              <div class="course-meta">out of ${grade.maxScore}%</div>
-            </td>
-            <td>
-              <div class="grade-score ${gradeClass}">${grade.grade}</div>
-            </td>
-            <td>
-              <span class="grade-status ${statusClass}">${statusText}</span>
-            </td>
-            <td>
-              <div class="grade-actions">
-                <button class="action-btn btn-view" data-id="${grade.id}" title="View Details">
-                  <i class="fas fa-eye"></i>
-                </button>
-                <button class="action-btn btn-download" data-id="${grade.id}" title="Download Report">
-                  <i class="fas fa-download"></i>
-                </button>
-              </div>
-            </td>
-          `;
+        <td>
+          <div class="course-title">${courseName}</div>
+          <div class="course-meta">${assignmentName}</div>
+        </td>
+        <td>
+          <span class="grade-status status-${gradeType}">${gradeType}</span>
+        </td>
+        <td>${formattedDate}</td>
+        <td>
+          <div class="grade-score ${gradeClass}">${grade.score}%</div>
+          <div class="course-meta">out of ${grade.max_score || 100}%</div>
+        </td>
+        <td>
+          <div class="grade-score ${gradeClass}">${getLetterGrade(
+            grade.score
+          )}</div>
+        </td>
+        <td>
+          <span class="grade-status ${statusClass}">${statusText}</span>
+        </td>
+        <td>
+          <div class="grade-actions">
+            <button class="action-btn btn-view" data-id="${
+              grade.id
+            }" title="View Details">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="action-btn btn-download" data-id="${
+              grade.id
+            }" title="Download Report">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+        </td>
+      `;
 
           gradesTableBody.appendChild(row);
         });
@@ -2075,6 +2141,15 @@
 
         // Re-attach event listeners to the new buttons
         attachGradeButtonListeners();
+      }
+
+      // Helper function to get letter grade
+      function getLetterGrade(score) {
+        if (score >= 90) return "A";
+        if (score >= 80) return "B";
+        if (score >= 70) return "C";
+        if (score >= 60) return "D";
+        return "F";
       }
 
       // Attach event listeners to grade buttons
@@ -2108,16 +2183,26 @@
 
       // Show grade details
       function showGradeDetails(grade) {
+        const courseName =
+          grade.course_name || grade.course || "Unknown Course";
+        const assignmentName =
+          grade.assignment_name || grade.assignment || "Unknown Assignment";
+        const gradeType = grade.type || grade.assignment_type || "assignment";
+        const date = grade.submitted_at || grade.date || grade.created_at;
+        const formattedDate = date
+          ? new Date(date).toLocaleDateString()
+          : "N/A";
+
         // Format a detailed message
         const details = `
-          Course: ${grade.course}
-          Assignment: ${grade.assignment}
-          Type: ${grade.type}
-          Date: ${new Date(grade.date).toLocaleDateString()}
-          Score: ${grade.score}% / ${grade.maxScore}%
-          Grade: ${grade.grade}
-          Status: ${grade.status}
-        `;
+      Course: ${courseName}
+      Assignment: ${assignmentName}
+      Type: ${gradeType}
+      Date: ${formattedDate}
+      Score: ${grade.score}% / ${grade.max_score || 100}%
+      Grade: ${getLetterGrade(grade.score)}
+      Status: ${grade.status || (grade.score >= 60 ? "passed" : "failed")}
+    `;
 
         showToast("info", "Grade Details", details, 5000);
       }
@@ -2134,6 +2219,15 @@
           gradeDistributionChart.destroy();
         }
 
+        // Calculate grade distribution
+        const gradeCounts = {
+          A: allGrades.filter((g) => g.score >= 90).length,
+          B: allGrades.filter((g) => g.score >= 80 && g.score < 90).length,
+          C: allGrades.filter((g) => g.score >= 70 && g.score < 80).length,
+          D: allGrades.filter((g) => g.score >= 60 && g.score < 70).length,
+          F: allGrades.filter((g) => g.score < 60).length,
+        };
+
         gradeDistributionChart = new Chart(gradeDistributionCtx, {
           type: "bar",
           data: {
@@ -2141,7 +2235,13 @@
             datasets: [
               {
                 label: "Number of Grades",
-                data: [3, 2, 2, 1, 0],
+                data: [
+                  gradeCounts.A,
+                  gradeCounts.B,
+                  gradeCounts.C,
+                  gradeCounts.D,
+                  gradeCounts.F,
+                ],
                 backgroundColor: [
                   "rgba(16, 185, 129, 0.7)",
                   "rgba(6, 182, 212, 0.7)",
@@ -2196,24 +2296,40 @@
           performanceChart.destroy();
         }
 
+        // Calculate performance by course/category
+        const courses = [
+          ...new Set(allGrades.map((g) => g.course_name || g.course)),
+        ];
+        const courseAverages = courses.map((course) => {
+          const courseGrades = allGrades.filter(
+            (g) => (g.course_name || g.course) === course
+          );
+          const average =
+            courseGrades.reduce((sum, g) => sum + g.score, 0) /
+            courseGrades.length;
+          return Math.round(average);
+        });
+
         performanceChart = new Chart(performanceCtx, {
           type: "doughnut",
           data: {
-            labels: ["Design", "Development", "Blockchain", "Cyber Security"],
+            labels: courses,
             datasets: [
               {
-                data: [88.5, 92, 88.5, 84],
+                data: courseAverages,
                 backgroundColor: [
                   "rgba(99, 102, 241, 0.7)",
                   "rgba(139, 92, 246, 0.7)",
                   "rgba(16, 185, 129, 0.7)",
                   "rgba(6, 182, 212, 0.7)",
+                  "rgba(245, 158, 11, 0.7)",
                 ],
                 borderColor: [
                   "rgb(99, 102, 241)",
                   "rgb(139, 92, 246)",
                   "rgb(16, 185, 129)",
                   "rgb(6, 182, 212)",
+                  "rgb(245, 158, 11)",
                 ],
                 borderWidth: 1,
               },
@@ -2238,6 +2354,103 @@
         });
       }
 
+      // Load mock data for demonstration (when API is not available)
+      function loadMockGradesData() {
+        console.log("📋 Loading mock grades data for demonstration");
+
+        const mockGrades = [
+          {
+            id: "1",
+            course_name: "UI/UX Design",
+            assignment_name: "Wireframe Project",
+            type: "project",
+            date: "2024-01-15",
+            score: 92,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "2",
+            course_name: "Web Development",
+            assignment_name: "JavaScript Quiz",
+            type: "quiz",
+            date: "2024-01-20",
+            score: 88,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "3",
+            course_name: "Blockchain Fundamentals",
+            assignment_name: "Smart Contract Assignment",
+            type: "assignment",
+            date: "2024-01-25",
+            score: 95,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "4",
+            course_name: "Cyber Security",
+            assignment_name: "Midterm Exam",
+            type: "exam",
+            date: "2024-02-01",
+            score: 78,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "5",
+            course_name: "UI/UX Design",
+            assignment_name: "Prototype Development",
+            type: "project",
+            date: "2024-02-10",
+            score: 85,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "6",
+            course_name: "Web Development",
+            assignment_name: "React Final Project",
+            type: "project",
+            date: "2024-02-15",
+            score: 96,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "7",
+            course_name: "Data Structures",
+            assignment_name: "Algorithm Analysis",
+            type: "assignment",
+            date: "2024-02-20",
+            score: 82,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "8",
+            course_name: "Database Systems",
+            assignment_name: "SQL Query Optimization",
+            type: "project",
+            date: "2024-02-25",
+            score: 91,
+            max_score: 100,
+            status: "passed",
+          },
+        ];
+
+        updateGradesUI(mockGrades);
+
+        showToast(
+          "info",
+          "Demo Mode",
+          "Using mock data for demonstration. Connect to backend for real data.",
+          5000
+        );
+      }
+
       // UI State Management
       function showLoadingState() {
         loadingState.style.display = "flex";
@@ -2255,6 +2468,135 @@
         gradesTable.style.display = "none";
         emptyState.style.display = "flex";
         gradesCount.textContent = "No grades found";
+      }
+
+      // Toast Notification System (MATCHING OVERVIEW PAGE STYLE)
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.className = "toast-container";
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
+
+        toast.innerHTML = `
+      <div class="toast-icon">
+        <i class="${icon}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        sidebarLogoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", async function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            2000
+          );
+
+          try {
+            // Call backend logout endpoint to clear session
+            await apiFetch("/users/logout", {
+              method: "POST",
+            });
+          } catch (error) {
+            console.error("Logout API call failed:", error);
+          }
+
+          // Clear authentication data
+          clearAuthData();
+
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 1000);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
       }
 
       // Event Listeners Setup
@@ -2287,6 +2629,15 @@
           }
         );
 
+        // Update sidebar navigation links
+        const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
+        sidebarLinks.forEach((link) => {
+          const href = link.getAttribute("href");
+          if (href && !href.startsWith("http")) {
+            link.href = getUrl("/dashboards/" + href);
+          }
+        });
+
         console.log("✅ Event listeners setup completed");
       }
 
@@ -2302,7 +2653,8 @@
         // Course filter
         if (courseFilter) {
           filteredGrades = filteredGrades.filter((grade) => {
-            return grade.course
+            const courseName = grade.course_name || grade.course || "";
+            return courseName
               .toLowerCase()
               .includes(courseFilter.toLowerCase());
           });
@@ -2311,14 +2663,17 @@
         // Type filter
         if (typeFilter) {
           filteredGrades = filteredGrades.filter((grade) => {
-            return grade.type === typeFilter;
+            const gradeType = grade.type || grade.assignment_type || "";
+            return gradeType === typeFilter;
           });
         }
 
         // Status filter
         if (statusFilter) {
           filteredGrades = filteredGrades.filter((grade) => {
-            return grade.status === statusFilter;
+            const gradeStatus =
+              grade.status || (grade.score >= 60 ? "passed" : "failed");
+            return gradeStatus === statusFilter;
           });
         }
 
@@ -2341,14 +2696,14 @@
           const row = document.createElement("tr");
 
           // Format date
-          const formattedDate = new Date(grade.date).toLocaleDateString(
-            "en-US",
-            {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            }
-          );
+          const date = grade.submitted_at || grade.date || grade.created_at;
+          const formattedDate = date
+            ? new Date(date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
+            : "N/A";
 
           // Determine grade class based on score
           let gradeClass = "grade-average";
@@ -2357,40 +2712,56 @@
           else if (grade.score < 70) gradeClass = "grade-poor";
 
           // Status badge
-          const statusClass = `status-${grade.status}`;
-          const statusText =
-            grade.status.charAt(0).toUpperCase() + grade.status.slice(1);
+          const status =
+            grade.status || (grade.score >= 60 ? "passed" : "failed");
+          const statusClass = `status-${status}`;
+          const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+
+          // Grade type
+          const gradeType = grade.type || grade.assignment_type || "assignment";
+
+          // Course and assignment names
+          const courseName =
+            grade.course_name || grade.course || "Unknown Course";
+          const assignmentName =
+            grade.assignment_name || grade.assignment || "Unknown Assignment";
 
           row.innerHTML = `
-            <td>
-              <div class="course-title">${grade.course}</div>
-              <div class="course-meta">${grade.assignment}</div>
-            </td>
-            <td>
-              <span class="grade-status status-${grade.type}">${grade.type}</span>
-            </td>
-            <td>${formattedDate}</td>
-            <td>
-              <div class="grade-score ${gradeClass}">${grade.score}%</div>
-              <div class="course-meta">out of ${grade.maxScore}%</div>
-            </td>
-            <td>
-              <div class="grade-score ${gradeClass}">${grade.grade}</div>
-            </td>
-            <td>
-              <span class="grade-status ${statusClass}">${statusText}</span>
-            </td>
-            <td>
-              <div class="grade-actions">
-                <button class="action-btn btn-view" data-id="${grade.id}" title="View Details">
-                  <i class="fas fa-eye"></i>
-                </button>
-                <button class="action-btn btn-download" data-id="${grade.id}" title="Download Report">
-                  <i class="fas fa-download"></i>
-                </button>
-              </div>
-            </td>
-          `;
+        <td>
+          <div class="course-title">${courseName}</div>
+          <div class="course-meta">${assignmentName}</div>
+        </td>
+        <td>
+          <span class="grade-status status-${gradeType}">${gradeType}</span>
+        </td>
+        <td>${formattedDate}</td>
+        <td>
+          <div class="grade-score ${gradeClass}">${grade.score}%</div>
+          <div class="course-meta">out of ${grade.max_score || 100}%</div>
+        </td>
+        <td>
+          <div class="grade-score ${gradeClass}">${getLetterGrade(
+            grade.score
+          )}</div>
+        </td>
+        <td>
+          <span class="grade-status ${statusClass}">${statusText}</span>
+        </td>
+        <td>
+          <div class="grade-actions">
+            <button class="action-btn btn-view" data-id="${
+              grade.id
+            }" title="View Details">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="action-btn btn-download" data-id="${
+              grade.id
+            }" title="Download Report">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+        </td>
+      `;
 
           gradesTableBody.appendChild(row);
         });
@@ -2406,6 +2777,9 @@
       // Initialize the page
       document.addEventListener("DOMContentLoaded", async function () {
         console.log("🚀 Student Grades page initializing...");
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();
@@ -2417,20 +2791,20 @@
           toggleTheme();
         });
 
+        // Set up system theme listener
+        setupSystemThemeListener();
+
         // Load current user info first
-        loadCurrentUserInfo();
-
-        // Check authentication first
-        if (!checkAuthentication()) {
-          return;
-        }
-
-        // Load grades
-        await loadGrades();
-        setupEventListeners();
+        await loadCurrentUserInfo();
 
         // Setup logout confirmation
         setupLogoutConfirmation();
+
+        // Setup button event listeners
+        setupEventListeners();
+
+        // Load data immediately - USING MOCK DATA
+        await fetchStudentGrades();
       });
     </script>
   </body>
