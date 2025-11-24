@@ -1695,6 +1695,33 @@
     </div>
 
     <script>
+      // Immediately apply theme based on device preference or saved setting
+      (function () {
+        const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+
+        // Priority: saved theme > device preference > light (default)
+        const theme = savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Apply immediately to prevent flash
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.classList.add(
+          "theme-loading",
+          `theme-loading-${theme}`
+        );
+      })();
+
+      // Clean up loading classes once proper CSS is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        document.documentElement.classList.remove(
+          "theme-loading",
+          "theme-loading-dark",
+          "theme-loading-light"
+        );
+      });
+
       // Mobile Sidebar Toggle Functionality
       const sidebar = document.getElementById("sidebar");
       const mobileMenuBtn = document.getElementById("mobileMenuBtn");
@@ -1713,7 +1740,25 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // Theme Management
+      // URL helper functions - FIXED FOR RENDER
+      function getBasePath() {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "/static"; // Localhost needs /static prefix for everything
+        }
+        // For production (Render), no prefix
+        return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
+      // Theme Management - MATCHING SIGNIN PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1736,35 +1781,53 @@
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
+        showToast(
+          "info",
+          "Theme Changed",
+          `Switched to ${newTheme} mode`,
+          2000
+        );
       }
 
-      // Initialize theme
+      // Initialize theme with device preference as default
       function initTheme() {
-        // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
 
-        if (savedTheme) {
-          setTheme(savedTheme);
-        } else {
-          // Check system preference
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
-          setTheme(prefersDark ? "dark" : "light");
-        }
+        // If no theme is saved, use device preference
+        const currentTheme =
+          savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Update toggle switch to reflect current theme
+        themeToggleInput.checked = currentTheme === "dark";
+
+        console.log(
+          `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
+        );
       }
 
-      // Listen for system theme changes
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          // Only change if user hasn't set a preference
-          if (!localStorage.getItem("theme")) {
-            setTheme(e.matches ? "dark" : "light");
-          }
-        });
+      // Listen for system theme changes and update if no manual preference is set
+      function setupSystemThemeListener() {
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            // Only change if user hasn't set a manual preference
+            if (!localStorage.getItem("theme")) {
+              const newTheme = e.matches ? "dark" : "light";
+              setTheme(newTheme);
+              showToast(
+                "info",
+                "Theme Updated",
+                `Changed to system theme (${newTheme})`,
+                3000
+              );
+            }
+          });
+      }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1773,81 +1836,303 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        // For production (Render), use relative path (same domain) - FIXED
+        return "https://curralms-backend.onrender.com";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // Toast Notification System
+      // Enhanced environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
+      }
+
+      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include", // ALWAYS include cookies - CRITICAL
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          credentials: config.credentials,
+          environment: getEnvironment(),
+        });
+
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+              environment: getEnvironment(),
+            }
+          );
+
+          // Debug cookie info for auth endpoints
+          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
+            console.log("🍪 Cookie debug for endpoint:", endpoint);
+            console.log("📍 Current domain:", window.location.hostname);
+            console.log("🔗 API base URL:", API_BASE_URL);
+          }
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
+        }
+      }
+
+      // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🍪 Current cookies:", document.cookie);
+
+          // Check session with credentials (cookies will be sent automatically)
+          const response = await apiFetch("/users/session", {
+            method: "GET",
+          });
+
+          console.log("📨 Session check response:", response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
+          } else {
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
+            clearAuthData();
+            return null;
+          }
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
+      }
+
+      // Redirect unauthenticated users to signin page
+      async function redirectIfUnauthenticated() {
+        const user = await checkAuthState();
+
+        if (!user) {
+          console.log("🔄 User is not authenticated, redirecting to signin...");
+
+          // If we're on a dashboard page, redirect to signin
+          if (
+            window.location.pathname.includes("dashboard") ||
+            window.location.pathname.includes("student-")
+          ) {
+            showToast(
+              "warning",
+              "Authentication Required",
+              "Please log in to access the dashboard",
+              3000
+            );
+
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Function to test cookie session - ENHANCED (MATCHING SIGNIN)
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
+
+          const sessionResponse = await apiFetch("/debug/session");
+          const sessionData = await sessionResponse.json();
+
+          console.log("🎯 Session test result:", sessionData);
+
+          if (sessionData.has_access_token) {
+            console.log("✅ Cookie session is working!");
+            console.log(
+              "🍪 Cookies received by backend:",
+              sessionData.cookies_received
+            );
+            return true;
+          } else {
+            console.log("❌ No access_token cookie found");
+            console.log("🔍 Available cookies:", sessionData.cookies_received);
+
+            // Additional debug for production
+            if (getEnvironment() === "production") {
+              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
+              console.log("   - Check if backend has ENVIRONMENT=production");
+              console.log("   - Verify CORS allows your frontend origin");
+              console.log(
+                "   - Check cookie settings (secure=true, samesite=none)"
+              );
+            }
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
+          return false;
+        }
+      }
+
+      // Function to load and display current user info
+      async function loadCurrentUserInfo() {
+        try {
+          // First try to get user from localStorage
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            updateUserUI(user);
+            return user;
+          }
+
+          // If no stored user, check session
+          const user = await checkAuthState();
+          if (user) {
+            updateUserUI(user);
+            return user;
+          }
+
+          // Fallback to default
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        } catch (error) {
+          console.error("Error loading user info:", error);
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        }
+      }
+
+      function updateUserUI(user) {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+
+        const displayName =
+          user.full_name || user.username || user.email || "Student";
+
+        if (userNameElement) {
+          userNameElement.textContent = displayName;
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = getInitials(displayName);
+        }
+      }
+
+      // Helper function to get initials from email or name
+      function getInitials(text) {
+        if (!text) return "?";
+
+        // If it's an email, use the part before @
+        if (text.includes("@")) {
+          const username = text.split("@")[0];
+          return username.charAt(0).toUpperCase();
+        }
+
+        // If it's a name, use the first character of first and last name
+        const names = text.split(" ");
+        if (names.length > 1) {
+          return (
+            names[0].charAt(0) + names[names.length - 1].charAt(0)
+          ).toUpperCase();
+        }
+
+        // If it's a single name, use the first character
+        return text.charAt(0).toUpperCase();
+      }
+
+      // Toast Notification System (MATCHING SIGNIN PAGE STYLE)
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
         if (!toastContainer) {
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        max-width: 400px;
-      `;
+          toastContainer.className = "toast-container";
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
-        toast.style.cssText = `
-      background: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 16px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-    `;
 
-        // Set border color based on type
-        const colors = {
-          success: "var(--success-green)",
-          info: "var(--primary-indigo)",
-          warning: "var(--accent-purple)",
-          error: "var(--error-red)",
-        };
-        toast.style.borderLeftColor = colors[type] || colors.info;
-
-        const icons = {
-          success: "fas fa-check",
-          info: "fas fa-info-circle",
-          warning: "fas fa-exclamation-triangle",
-          error: "fas fa-exclamation-circle",
-        };
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
 
         toast.innerHTML = `
-      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-        colors[type] || colors.info
-      }">
-        <i class="${icons[type]}"></i>
+      <div class="toast-icon">
+        <i class="${icon}"></i>
       </div>
-      <div class="toast-content" style="flex: 1;">
-        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
       </div>
-      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
+      <button class="toast-close">
         <i class="fas fa-times"></i>
       </button>
     `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
 
         toastContainer.appendChild(toast);
 
         // Show toast with animation
         setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
+          toast.classList.add("show");
         }, 100);
 
         // Close button functionality
@@ -1867,75 +2152,14 @@
       }
 
       function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
+        toast.classList.remove("show");
+        toast.classList.add("hide");
         setTimeout(() => {
           if (toast.parentNode) {
             toast.parentNode.removeChild(toast);
           }
         }, 300);
       }
-
-      // Function to load and display current user info
-      function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
-
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = userEmail;
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
-            }
-          } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = "User";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "U";
-            }
-          }
-        }
-      }
-
-      // Helper function to get initials from email or name
-      function getInitials(text) {
-        if (!text) return "?";
-
-        // If it's an email, use the part before @
-        if (text.includes("@")) {
-          const username = text.split("@")[0];
-          return username.charAt(0).toUpperCase();
-        }
-
-        // If it's a name, use the first character
-        return text.charAt(0).toUpperCase();
-      }
-
-      // Global variables
-      let progressChart = null;
-      let timeChart = null;
-      let activityChart = null;
-      let performanceChart = null;
 
       // Logout Confirmation Elements
       const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
@@ -1944,24 +2168,6 @@
       );
       const confirmYes = document.getElementById("confirmYes");
       const confirmNo = document.getElementById("confirmNo");
-
-      // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view progress",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 2000);
-          return false;
-        }
-        return true;
-      }
 
       // Setup logout confirmation functionality
       function setupLogoutConfirmation() {
@@ -1974,21 +2180,29 @@
           logoutConfirmationModal.style.display = "none";
         });
 
-        confirmYes.addEventListener("click", function () {
+        confirmYes.addEventListener("click", async function () {
           showToast(
             "info",
             "Logging Out",
             "You have been logged out successfully",
-            500
+            2000
           );
 
-          // Clear authentication tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+          try {
+            // Call backend logout endpoint to clear session
+            await apiFetch("/users/logout", {
+              method: "POST",
+            });
+          } catch (error) {
+            console.error("Logout API call failed:", error);
+          }
+
+          // Clear authentication data
+          clearAuthData();
 
           setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 500);
+            window.location.href = getUrl("/signin.html");
+          }, 1000);
         });
 
         // Close logout confirmation modal when clicking outside
@@ -1999,22 +2213,64 @@
         });
       }
 
+      // Global variables for charts
+      let progressChart = null;
+      let timeChart = null;
+      let activityChart = null;
+      let performanceChart = null;
+
+      // Function to check if user is authenticated
+      async function checkAuthentication() {
+        const user = await checkAuthState();
+        if (!user) {
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to view progress",
+            4000
+          );
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 2000);
+          return false;
+        }
+        return true;
+      }
+
       // Load progress data
       async function loadProgressData() {
         try {
           console.log("📊 Loading progress data...");
 
-          // Generate mock progress data
-          const mockProgressData = await generateMockProgressData();
+          // Check authentication first
+          if (!(await redirectIfUnauthenticated())) {
+            return;
+          }
 
-          // Update stats
-          updateProgressStats(mockProgressData);
+          // Test cookie session first
+          const cookieTest = await testCookieSession();
+          if (!cookieTest) {
+            console.warn("⚠️ Cookie session test failed, but continuing...");
+          }
 
-          // Render progress cards
-          renderProgressCards(mockProgressData.courses);
+          // Fetch student progress data
+          const progressData = await fetchData("/students/progress");
 
-          // Initialize charts
-          initializeCharts(mockProgressData);
+          if (progressData) {
+            // Update stats
+            updateProgressStats(progressData);
+
+            // Render progress cards
+            renderProgressCards(progressData.courses || []);
+
+            // Initialize charts
+            initializeCharts(progressData);
+
+            console.log("✅ Progress data loaded successfully");
+          } else {
+            // Load mock data if API fails
+            loadMockProgressData();
+          }
         } catch (error) {
           console.error("❌ Error loading progress data:", error);
           showToast(
@@ -2023,6 +2279,53 @@
             "Failed to load progress data. Please try again.",
             5000
           );
+
+          // Load mock data for demonstration
+          loadMockProgressData();
+        }
+      }
+
+      // Function to fetch data from API with proper authentication - FIXED
+      async function fetchData(endpoint) {
+        try {
+          console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
+
+          const response = await apiFetch(endpoint, {
+            method: "GET",
+          });
+
+          console.log(
+            `📊 Response status: ${response.status} ${response.statusText}`
+          );
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              `❌ HTTP error! status: ${response.status}`,
+              errorText
+            );
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log(`✅ Fetched data from ${endpoint}:`, data);
+          return data;
+        } catch (error) {
+          console.error(`❌ Error fetching data from ${endpoint}:`, error);
+          return null;
         }
       }
 
@@ -2094,22 +2397,58 @@
         };
       }
 
+      // Load mock progress data
+      async function loadMockProgressData() {
+        console.log("📋 Loading mock progress data for demonstration");
+
+        const mockProgressData = await generateMockProgressData();
+
+        // Update stats
+        updateProgressStats(mockProgressData);
+
+        // Render progress cards
+        renderProgressCards(mockProgressData.courses);
+
+        // Initialize charts
+        initializeCharts(mockProgressData);
+
+        showToast(
+          "info",
+          "Demo Mode",
+          "Using mock data for demonstration. Connect to backend for real data.",
+          5000
+        );
+      }
+
       // Update progress statistics
       function updateProgressStats(data) {
-        document.getElementById(
-          "overallProgress"
-        ).textContent = `${data.overallProgress}%`;
-        document.getElementById("completedItems").textContent =
-          data.completedItems;
-        document.getElementById("inProgressItems").textContent =
-          data.inProgressItems;
-        document.getElementById("achievementsCount").textContent =
-          data.achievementsCount;
+        const overallProgressElement =
+          document.getElementById("overallProgress");
+        const completedItemsElement = document.getElementById("completedItems");
+        const inProgressItemsElement =
+          document.getElementById("inProgressItems");
+        const achievementsCountElement =
+          document.getElementById("achievementsCount");
+
+        if (overallProgressElement) {
+          overallProgressElement.textContent = `${data.overallProgress}%`;
+        }
+        if (completedItemsElement) {
+          completedItemsElement.textContent = data.completedItems;
+        }
+        if (inProgressItemsElement) {
+          inProgressItemsElement.textContent = data.inProgressItems;
+        }
+        if (achievementsCountElement) {
+          achievementsCountElement.textContent = data.achievementsCount;
+        }
       }
 
       // Render progress cards
       function renderProgressCards(courses) {
         const progressCards = document.getElementById("progressCards");
+        if (!progressCards) return;
+
         progressCards.innerHTML = "";
 
         courses.forEach((course) => {
@@ -2128,51 +2467,51 @@
           const categoryClass = getCategoryClass(course.category);
 
           card.innerHTML = `
-            <div class="progress-card-header">
-              <div>
-                <div class="progress-card-title">${course.title}</div>
-                <span class="progress-card-category ${categoryClass}">${
+        <div class="progress-card-header">
+          <div>
+            <div class="progress-card-title">${course.title}</div>
+            <span class="progress-card-category ${categoryClass}">${
             course.category
           }</span>
-              </div>
-              <div class="progress-stat-value">${course.progress}%</div>
-            </div>
-            <div class="progress-card-body">
-              <div class="progress-stats">
-                <div class="progress-stat">
-                  <div class="progress-stat-label">Lessons</div>
-                  <div class="progress-stat-value">${course.completedLessons}/${
+          </div>
+          <div class="progress-stat-value">${course.progress}%</div>
+        </div>
+        <div class="progress-card-body">
+          <div class="progress-stats">
+            <div class="progress-stat">
+              <div class="progress-stat-label">Lessons</div>
+              <div class="progress-stat-value">${course.completedLessons}/${
             course.totalLessons
           }</div>
-                </div>
-                <div class="progress-stat">
-                  <div class="progress-stat-label">Assignments</div>
-                  <div class="progress-stat-value">${
-                    course.assignmentsCompleted
-                  }/${course.totalAssignments}</div>
-                </div>
-                <div class="progress-stat">
-                  <div class="progress-stat-label">Avg Grade</div>
-                  <div class="progress-stat-value">${course.averageGrade}%</div>
-                </div>
-                <div class="progress-stat">
-                  <div class="progress-stat-label">Last Active</div>
-                  <div class="progress-stat-value">${formatDate(
-                    course.lastActivity
-                  )}</div>
-                </div>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar ${progressBarClass}" style="width: ${
+            </div>
+            <div class="progress-stat">
+              <div class="progress-stat-label">Assignments</div>
+              <div class="progress-stat-value">${course.assignmentsCompleted}/${
+            course.totalAssignments
+          }</div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-stat-label">Avg Grade</div>
+              <div class="progress-stat-value">${course.averageGrade}%</div>
+            </div>
+            <div class="progress-stat">
+              <div class="progress-stat-label">Last Active</div>
+              <div class="progress-stat-value">${formatDate(
+                course.lastActivity
+              )}</div>
+            </div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar ${progressBarClass}" style="width: ${
             course.progress
           }%"></div>
-              </div>
-              <div class="progress-labels">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-            </div>
-          `;
+          </div>
+          <div class="progress-labels">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
+      `;
 
           progressCards.appendChild(card);
         });
@@ -2183,192 +2522,200 @@
         // Progress Chart (Doughnut)
         const progressCtx = document
           .getElementById("progressChart")
-          .getContext("2d");
+          ?.getContext("2d");
 
-        if (progressChart) {
-          progressChart.destroy();
-        }
+        if (progressCtx) {
+          if (progressChart) {
+            progressChart.destroy();
+          }
 
-        progressChart = new Chart(progressCtx, {
-          type: "doughnut",
-          data: {
-            labels: ["Completed", "In Progress", "Not Started"],
-            datasets: [
-              {
-                data: [
-                  data.overallProgress,
-                  15,
-                  100 - data.overallProgress - 15,
-                ],
-                backgroundColor: [
-                  "rgba(16, 185, 129, 0.7)",
-                  "rgba(6, 182, 212, 0.7)",
-                  "rgba(107, 114, 128, 0.7)",
-                ],
-                borderColor: [
-                  "rgb(16, 185, 129)",
-                  "rgb(6, 182, 212)",
-                  "rgb(107, 114, 128)",
-                ],
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "bottom",
+          progressChart = new Chart(progressCtx, {
+            type: "doughnut",
+            data: {
+              labels: ["Completed", "In Progress", "Not Started"],
+              datasets: [
+                {
+                  data: [
+                    data.overallProgress,
+                    15,
+                    100 - data.overallProgress - 15,
+                  ],
+                  backgroundColor: [
+                    "rgba(16, 185, 129, 0.7)",
+                    "rgba(6, 182, 212, 0.7)",
+                    "rgba(107, 114, 128, 0.7)",
+                  ],
+                  borderColor: [
+                    "rgb(16, 185, 129)",
+                    "rgb(6, 182, 212)",
+                    "rgb(107, 114, 128)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                },
               },
             },
-          },
-        });
+          });
+        }
 
         // Time Spent Chart (Pie)
-        const timeCtx = document.getElementById("timeChart").getContext("2d");
+        const timeCtx = document.getElementById("timeChart")?.getContext("2d");
 
-        if (timeChart) {
-          timeChart.destroy();
-        }
+        if (timeCtx) {
+          if (timeChart) {
+            timeChart.destroy();
+          }
 
-        timeChart = new Chart(timeCtx, {
-          type: "pie",
-          data: {
-            labels: ["Design", "Development", "Blockchain", "Cyber Security"],
-            datasets: [
-              {
-                data: [
-                  data.timeSpent.design,
-                  data.timeSpent.development,
-                  data.timeSpent.blockchain,
-                  data.timeSpent.cybersecurity,
-                ],
-                backgroundColor: [
-                  "rgba(99, 102, 241, 0.7)",
-                  "rgba(139, 92, 246, 0.7)",
-                  "rgba(16, 185, 129, 0.7)",
-                  "rgba(6, 182, 212, 0.7)",
-                ],
-                borderColor: [
-                  "rgb(99, 102, 241)",
-                  "rgb(139, 92, 246)",
-                  "rgb(16, 185, 129)",
-                  "rgb(6, 182, 212)",
-                ],
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: "bottom",
+          timeChart = new Chart(timeCtx, {
+            type: "pie",
+            data: {
+              labels: ["Design", "Development", "Blockchain", "Cyber Security"],
+              datasets: [
+                {
+                  data: [
+                    data.timeSpent.design,
+                    data.timeSpent.development,
+                    data.timeSpent.blockchain,
+                    data.timeSpent.cybersecurity,
+                  ],
+                  backgroundColor: [
+                    "rgba(99, 102, 241, 0.7)",
+                    "rgba(139, 92, 246, 0.7)",
+                    "rgba(16, 185, 129, 0.7)",
+                    "rgba(6, 182, 212, 0.7)",
+                  ],
+                  borderColor: [
+                    "rgb(99, 102, 241)",
+                    "rgb(139, 92, 246)",
+                    "rgb(16, 185, 129)",
+                    "rgb(6, 182, 212)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                },
               },
             },
-          },
-        });
+          });
+        }
 
         // Activity Chart (Line)
         const activityCtx = document
           .getElementById("activityChart")
-          .getContext("2d");
+          ?.getContext("2d");
 
-        if (activityChart) {
-          activityChart.destroy();
-        }
+        if (activityCtx) {
+          if (activityChart) {
+            activityChart.destroy();
+          }
 
-        activityChart = new Chart(activityCtx, {
-          type: "line",
-          data: {
-            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            datasets: [
-              {
-                label: "Learning Hours",
-                data: data.weeklyActivity,
-                borderColor: "rgb(99, 102, 241)",
-                backgroundColor: "rgba(99, 102, 241, 0.1)",
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false,
-              },
+          activityChart = new Chart(activityCtx, {
+            type: "line",
+            data: {
+              labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+              datasets: [
+                {
+                  label: "Learning Hours",
+                  data: data.weeklyActivity,
+                  borderColor: "rgb(99, 102, 241)",
+                  backgroundColor: "rgba(99, 102, 241, 0.1)",
+                  borderWidth: 2,
+                  fill: true,
+                  tension: 0.4,
+                },
+              ],
             },
-            scales: {
-              y: {
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: "Hours",
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false,
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: "Hours",
+                  },
                 },
               },
             },
-          },
-        });
+          });
+        }
 
         // Performance Chart (Line)
         const performanceCtx = document
           .getElementById("performanceChart")
-          .getContext("2d");
+          ?.getContext("2d");
 
-        if (performanceChart) {
-          performanceChart.destroy();
-        }
+        if (performanceCtx) {
+          if (performanceChart) {
+            performanceChart.destroy();
+          }
 
-        performanceChart = new Chart(performanceCtx, {
-          type: "line",
-          data: {
-            labels: [
-              "Week 1",
-              "Week 2",
-              "Week 3",
-              "Week 4",
-              "Week 5",
-              "Week 6",
-              "Week 7",
-            ],
-            datasets: [
-              {
-                label: "Average Score",
-                data: data.performanceTrend,
-                borderColor: "rgb(16, 185, 129)",
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false,
-              },
+          performanceChart = new Chart(performanceCtx, {
+            type: "line",
+            data: {
+              labels: [
+                "Week 1",
+                "Week 2",
+                "Week 3",
+                "Week 4",
+                "Week 5",
+                "Week 6",
+                "Week 7",
+              ],
+              datasets: [
+                {
+                  label: "Average Score",
+                  data: data.performanceTrend,
+                  borderColor: "rgb(16, 185, 129)",
+                  backgroundColor: "rgba(16, 185, 129, 0.1)",
+                  borderWidth: 2,
+                  fill: true,
+                  tension: 0.4,
+                },
+              ],
             },
-            scales: {
-              y: {
-                min: 70,
-                max: 100,
-                title: {
-                  display: true,
-                  text: "Score %",
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false,
+                },
+              },
+              scales: {
+                y: {
+                  min: 70,
+                  max: 100,
+                  title: {
+                    display: true,
+                    text: "Score %",
+                  },
                 },
               },
             },
-          },
-        });
+          });
+        }
       }
 
       // Helper functions
@@ -2427,12 +2774,24 @@
           });
         }
 
+        // Update sidebar navigation links
+        const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
+        sidebarLinks.forEach((link) => {
+          const href = link.getAttribute("href");
+          if (href && !href.startsWith("http")) {
+            link.href = getUrl("/dashboards/" + href);
+          }
+        });
+
         console.log("✅ Event listeners setup completed");
       }
 
       // Initialize the page
       document.addEventListener("DOMContentLoaded", async function () {
         console.log("🚀 Student Progress page initializing...");
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();
@@ -2444,20 +2803,20 @@
           toggleTheme();
         });
 
+        // Set up system theme listener
+        setupSystemThemeListener();
+
         // Load current user info first
         loadCurrentUserInfo();
 
-        // Check authentication first
-        if (!checkAuthentication()) {
-          return;
-        }
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+
+        // Setup button event listeners
+        setupEventListeners();
 
         // Load progress data
         await loadProgressData();
-        setupEventListeners();
-
-        // Setup logout confirmation
-        setupLogoutConfirmation();
       });
     </script>
   </body>
