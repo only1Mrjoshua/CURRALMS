@@ -1536,7 +1536,7 @@
         return `${basePath}${path}`;
       }
 
-      // Theme Management - MATCHING SIGNIN PAGE
+      // Theme Management - MATCHING OVERVIEW PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1673,7 +1673,7 @@
         }
       }
 
-      // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
+      // Enhanced authentication state management with cookie support (MATCHING OVERVIEW)
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
@@ -1730,7 +1730,10 @@
           console.log("🔄 User is not authenticated, redirecting to signin...");
 
           // If we're on a dashboard page, redirect to signin
-          if (window.location.pathname.includes("dashboard")) {
+          if (
+            window.location.pathname.includes("dashboard") ||
+            window.location.pathname.includes("student")
+          ) {
             showToast(
               "warning",
               "Authentication Required",
@@ -1747,7 +1750,7 @@
         return true;
       }
 
-      // Function to test cookie session - ENHANCED (MATCHING SIGNIN)
+      // Function to test cookie session - ENHANCED
       async function testCookieSession() {
         try {
           console.log("🧪 Testing cookie session...");
@@ -1783,91 +1786,6 @@
           console.error("💥 Session test error:", error);
           return false;
         }
-      }
-
-      // Toast Notification System (MATCHING SIGNIN PAGE STYLE)
-      function showToast(type, title, message, duration = 5000) {
-        let toastContainer = document.getElementById("toastContainer");
-        if (!toastContainer) {
-          toastContainer = document.createElement("div");
-          toastContainer.id = "toastContainer";
-          toastContainer.className = "toast-container";
-          document.body.appendChild(toastContainer);
-        }
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-
-        // Set appropriate colors based on type
-        let bgColor, icon;
-        switch (type) {
-          case "success":
-            bgColor = "var(--success-green)";
-            icon = "fas fa-check-circle";
-            break;
-          case "error":
-            bgColor = "var(--error-red)";
-            icon = "fas fa-exclamation-circle";
-            break;
-          case "warning":
-            bgColor = "var(--warning-orange)";
-            icon = "fas fa-exclamation-triangle";
-            break;
-          case "info":
-          default:
-            bgColor = "var(--primary-indigo)";
-            icon = "fas fa-info-circle";
-            break;
-        }
-
-        toast.innerHTML = `
-      <div class="toast-icon">
-        <i class="${icon}"></i>
-      </div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-
-        // Apply background color
-        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
-        toast.style.color = "white";
-
-        toastContainer.appendChild(toast);
-
-        // Show toast with animation
-        setTimeout(() => {
-          toast.classList.add("show");
-        }, 100);
-
-        // Close button functionality
-        const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
-
-        // Auto-hide after duration
-        if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
-        }
-
-        return toast;
-      }
-
-      function hideToast(toast) {
-        toast.classList.remove("show");
-        toast.classList.add("hide");
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-          }
-        }, 300);
       }
 
       // Function to load and display current user info
@@ -2522,6 +2440,91 @@
         gradesTable.style.display = "none";
         emptyState.style.display = "flex";
         gradesCount.textContent = "No grades found";
+      }
+
+      // Toast Notification System (MATCHING OVERVIEW PAGE STYLE)
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.className = "toast-container";
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
+
+        toast.innerHTML = `
+      <div class="toast-icon">
+        <i class="${icon}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }
 
       // Setup logout confirmation functionality
