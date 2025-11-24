@@ -1706,9 +1706,28 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // Theme Management
+      // URL helper functions - FIXED FOR RENDER
+      function getBasePath() {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "/static"; // Localhost needs /static prefix for everything
+        }
+        // For production (Render), no prefix
+        return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
+      // Theme Management - MATCHING OVERVIEW PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
+      const resetThemeBtn = document.getElementById("resetThemeBtn");
       const htmlElement = document.documentElement;
 
       // Function to set theme
@@ -1729,35 +1748,69 @@
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
+        showToast(
+          "info",
+          "Theme Changed",
+          `Switched to ${newTheme} mode`,
+          2000
+        );
       }
 
-      // Initialize theme
+      // Initialize theme with device preference as default
       function initTheme() {
-        // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
 
-        if (savedTheme) {
-          setTheme(savedTheme);
-        } else {
-          // Check system preference
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
-          setTheme(prefersDark ? "dark" : "light");
-        }
+        // If no theme is saved, use device preference
+        const currentTheme =
+          savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Update toggle switch to reflect current theme
+        themeToggleInput.checked = currentTheme === "dark";
+
+        console.log(
+          `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
+        );
       }
 
-      // Listen for system theme changes
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          // Only change if user hasn't set a preference
-          if (!localStorage.getItem("theme")) {
-            setTheme(e.matches ? "dark" : "light");
-          }
-        });
+      // Reset to device theme
+      function resetToDeviceTheme() {
+        localStorage.removeItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const deviceTheme = systemPrefersDark ? "dark" : "light";
+        setTheme(deviceTheme);
+        showToast(
+          "success",
+          "Theme Reset",
+          `Now using device theme (${deviceTheme})`,
+          3000
+        );
+      }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // Listen for system theme changes and update if no manual preference is set
+      function setupSystemThemeListener() {
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            // Only change if user hasn't set a manual preference
+            if (!localStorage.getItem("theme")) {
+              const newTheme = e.matches ? "dark" : "light";
+              setTheme(newTheme);
+              showToast(
+                "info",
+                "Theme Updated",
+                `Changed to system theme (${newTheme})`,
+                3000
+              );
+            }
+          });
+      }
+
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1766,147 +1819,221 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        // For production (Render), use relative path (same domain) - FIXED
+        return "https://curralms-backend.onrender.com";
       };
 
       const API_BASE_URL = getApiBaseUrl();
 
-      // Toast Notification System
-      function showToast(type, title, message, duration = 5000) {
-        let toastContainer = document.getElementById("toastContainer");
-        if (!toastContainer) {
-          toastContainer = document.createElement("div");
-          toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        max-width: 400px;
-      `;
-          document.body.appendChild(toastContainer);
-        }
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.style.cssText = `
-      background: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 16px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-    `;
-
-        // Set border color based on type
-        const colors = {
-          success: "var(--success-green)",
-          info: "var(--primary-indigo)",
-          warning: "var(--accent-purple)",
-          error: "var(--error-red)",
-        };
-        toast.style.borderLeftColor = colors[type] || colors.info;
-
-        const icons = {
-          success: "fas fa-check",
-          info: "fas fa-info-circle",
-          warning: "fas fa-exclamation-triangle",
-          error: "fas fa-exclamation-circle",
-        };
-
-        toast.innerHTML = `
-      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-        colors[type] || colors.info
-      }">
-        <i class="${icons[type]}"></i>
-      </div>
-      <div class="toast-content" style="flex: 1;">
-        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-      </div>
-      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-
-        toastContainer.appendChild(toast);
-
-        // Show toast with animation
-        setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
-        }, 100);
-
-        // Close button functionality
-        const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
-
-        // Auto-hide after duration
-        if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
-        }
-
-        return toast;
+      // Enhanced environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
       }
 
-      function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
+      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+          credentials: "include", // ALWAYS include cookies - CRITICAL
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          credentials: config.credentials,
+          environment: getEnvironment(),
+        });
+
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+              environment: getEnvironment(),
+            }
+          );
+
+          // Debug cookie info for auth endpoints
+          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
+            console.log("🍪 Cookie debug for endpoint:", endpoint);
+            console.log("📍 Current domain:", window.location.hostname);
+            console.log("🔗 API base URL:", API_BASE_URL);
           }
-        }, 300);
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          throw error;
+        }
+      }
+
+      // Enhanced authentication state management with cookie support (MATCHING OVERVIEW)
+      async function checkAuthState() {
+        try {
+          console.log("🔐 Checking authentication state...");
+          console.log("📍 Environment:", getEnvironment());
+          console.log("🍪 Current cookies:", document.cookie);
+
+          // Check session with credentials (cookies will be sent automatically)
+          const response = await apiFetch("/users/session", {
+            method: "GET",
+          });
+
+          console.log("📨 Session check response:", response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("✅ User session is valid:", data.user.email);
+
+            // Store user data in localStorage for quick access
+            localStorage.setItem("user", JSON.stringify(data.user));
+            return data.user;
+          } else if (response.status === 401) {
+            // Session invalid - this is normal for logged out users
+            console.log("🔐 No valid session found (user not logged in)");
+            clearAuthData();
+            return null;
+          } else {
+            console.log(
+              "❌ Session check failed with status:",
+              response.status
+            );
+            clearAuthData();
+            return null;
+          }
+        } catch (error) {
+          console.error("❌ Auth check failed:", error);
+          return null;
+        }
+      }
+
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+        console.log("🧹 Auth data cleared from localStorage");
+      }
+
+      // Redirect unauthenticated users to signin page
+      async function redirectIfUnauthenticated() {
+        const user = await checkAuthState();
+
+        if (!user) {
+          console.log("🔄 User is not authenticated, redirecting to signin...");
+
+          // If we're on a dashboard page, redirect to signin
+          if (
+            window.location.pathname.includes("dashboard") ||
+            window.location.pathname.includes("student")
+          ) {
+            showToast(
+              "warning",
+              "Authentication Required",
+              "Please log in to access the dashboard",
+              3000
+            );
+
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Function to test cookie session - ENHANCED
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
+
+          const sessionResponse = await apiFetch("/debug/session");
+          const sessionData = await sessionResponse.json();
+
+          console.log("🎯 Session test result:", sessionData);
+
+          if (sessionData.has_access_token) {
+            console.log("✅ Cookie session is working!");
+            console.log(
+              "🍪 Cookies received by backend:",
+              sessionData.cookies_received
+            );
+            return true;
+          } else {
+            console.log("❌ No access_token cookie found");
+            console.log("🔍 Available cookies:", sessionData.cookies_received);
+
+            // Additional debug for production
+            if (getEnvironment() === "production") {
+              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
+              console.log("   - Check if backend has ENVIRONMENT=production");
+              console.log("   - Verify CORS allows your frontend origin");
+              console.log(
+                "   - Check cookie settings (secure=true, samesite=none)"
+              );
+            }
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
+          return false;
+        }
       }
 
       // Function to load and display current user info
-      function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
-          try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
-
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = userEmail;
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
-            }
-          } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = "User";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "U";
-            }
+      async function loadCurrentUserInfo() {
+        try {
+          // First try to get user from localStorage
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            updateUserUI(user);
+            return user;
           }
+
+          // If no stored user, check session
+          const user = await checkAuthState();
+          if (user) {
+            updateUserUI(user);
+            return user;
+          }
+
+          // Fallback to default
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        } catch (error) {
+          console.error("Error loading user info:", error);
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        }
+      }
+
+      function updateUserUI(user) {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+
+        const displayName =
+          user.full_name || user.username || user.email || "Student";
+
+        if (userNameElement) {
+          userNameElement.textContent = displayName;
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = getInitials(displayName);
         }
       }
 
@@ -1920,11 +2047,112 @@
           return username.charAt(0).toUpperCase();
         }
 
-        // If it's a name, use the first character
+        // If it's a name, use the first character of first and last name
+        const names = text.split(" ");
+        if (names.length > 1) {
+          return (
+            names[0].charAt(0) + names[names.length - 1].charAt(0)
+          ).toUpperCase();
+        }
+
+        // If it's a single name, use the first character
         return text.charAt(0).toUpperCase();
       }
 
-      // Global variables
+      // Function to fetch data from API with proper authentication - FIXED
+      async function fetchData(endpoint) {
+        try {
+          console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
+
+          const response = await apiFetch(endpoint, {
+            method: "GET",
+          });
+
+          console.log(
+            `📊 Response status: ${response.status} ${response.statusText}`
+          );
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return null;
+          }
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              `❌ HTTP error! status: ${response.status}`,
+              errorText
+            );
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log(`✅ Fetched data from ${endpoint}:`, data);
+          return data;
+        } catch (error) {
+          console.error(`❌ Error fetching data from ${endpoint}:`, error);
+          return null;
+        }
+      }
+
+      // Function to post data to API
+      async function postData(endpoint, data) {
+        try {
+          console.log("🌐 POST API CALL:", `${API_BASE_URL}${endpoint}`);
+          console.log("📤 POST Data:", JSON.stringify(data, null, 2));
+
+          const response = await apiFetch(endpoint, {
+            method: "POST",
+            body: JSON.stringify(data),
+          });
+
+          if (response.status === 401) {
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return null;
+          }
+
+          const responseData = await response.json().catch(() => null);
+
+          if (!response.ok) {
+            console.error("❌ Server response error:", {
+              status: response.status,
+              statusText: response.statusText,
+              responseData: responseData,
+            });
+
+            const errorMessage =
+              responseData?.detail ||
+              responseData?.message ||
+              (responseData && JSON.stringify(responseData)) ||
+              `HTTP error! status: ${response.status}`;
+            throw new Error(errorMessage);
+          }
+
+          console.log("✅ POST response:", responseData);
+          return responseData;
+        } catch (error) {
+          console.error("❌ Error posting data:", error);
+          throw error;
+        }
+      }
+
+      // Global variables for lessons data
       let allLessons = [];
       let allCourses = [];
       let courseIdToTitleMap = {};
@@ -1962,65 +2190,52 @@
       const confirmYes = document.getElementById("confirmYes");
       const confirmNo = document.getElementById("confirmNo");
 
-      // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view lessons",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 2000);
-          return false;
+      // Function to fetch student-specific lessons data
+      async function fetchStudentLessonsData() {
+        console.log("🔄 Fetching student lessons data...");
+
+        // Check authentication first
+        if (!(await redirectIfUnauthenticated())) {
+          return;
         }
-        return true;
-      }
 
-      // Setup logout confirmation functionality
-      function setupLogoutConfirmation() {
-        sidebarLogoutBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          logoutConfirmationModal.style.display = "block";
-        });
+        try {
+          // Test cookie session first
+          const cookieTest = await testCookieSession();
+          if (!cookieTest) {
+            console.warn("⚠️ Cookie session test failed, but continuing...");
+          }
 
-        confirmNo.addEventListener("click", function () {
-          logoutConfirmationModal.style.display = "none";
-        });
+          // Load courses first (for filtering and course names)
+          await loadAllCourses();
 
-        confirmYes.addEventListener("click", function () {
+          // Fetch lessons data
+          const lessons = await fetchData("/students/lessons");
+
+          console.log("📦 Student lessons data fetched:", {
+            lessons: lessons?.length || 0,
+          });
+
+          updateLessonsUI(lessons);
+        } catch (error) {
+          console.error("❌ Error in fetchStudentLessonsData:", error);
           showToast(
-            "info",
-            "Logging Out",
-            "You have been logged out successfully",
-            500
+            "error",
+            "Data Fetch Error",
+            "Could not load lessons data. Please try again.",
+            5000
           );
 
-          // Clear authentication tokens
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 500);
-        });
-
-        // Close logout confirmation modal when clicking outside
-        window.addEventListener("click", function (event) {
-          if (event.target === logoutConfirmationModal) {
-            logoutConfirmationModal.style.display = "none";
-          }
-        });
+          // Load mock data for demonstration
+          loadMockLessonsData();
+        }
       }
 
       // Load all courses for filtering
       async function loadAllCourses() {
         try {
           console.log("📚 Loading all courses...");
-          const coursesData = await fetchData("/courses");
+          const coursesData = await fetchData("/students/courses");
           if (coursesData) {
             allCourses = coursesData;
             console.log(`✅ Loaded ${allCourses.length} courses:`, allCourses);
@@ -2065,74 +2280,56 @@
         }
       }
 
-      // Load lessons from API
-      async function loadLessons() {
-        try {
-          showLoadingState();
+      // Update UI with lessons data
+      function updateLessonsUI(lessons) {
+        console.log("🎨 Updating UI with lessons data");
 
-          console.log("📚 Fetching lessons from:", `${API_BASE_URL}/lessons`);
-
-          // Wait for courses to load first
-          if (Object.keys(courseIdToTitleMap).length === 0) {
-            console.log("📚 Courses not loaded yet, loading courses first...");
-            await loadAllCourses();
-          }
-
-          const lessonsData = await fetchData("/lessons");
-
-          if (!lessonsData) {
-            console.log("❌ API fetch failed, showing empty state");
-            showEmptyState();
-            showToast(
-              "error",
-              "Load Failed",
-              "Could not load lessons data",
-              5000
-            );
-            return;
-          }
-
-          allLessons = lessonsData;
-          console.log(`✅ Loaded ${allLessons.length} lessons`);
-
-          // Update stats
-          updateLessonStats();
-
-          // Render lessons
-          renderLessons();
-        } catch (error) {
-          console.error("❌ Error loading lessons:", error);
+        if (!lessons || lessons.length === 0) {
           showEmptyState();
-          showToast(
-            "error",
-            "Load Error",
-            "Failed to load lessons. Please try again.",
-            5000
-          );
+          updateLessonStats([]);
+          return;
         }
+
+        allLessons = lessons;
+
+        // Update stats
+        updateLessonStats(lessons);
+
+        // Render lessons
+        renderLessons();
+
+        console.log("✅ Lessons dashboard updated successfully");
       }
 
       // Update lesson statistics
-      function updateLessonStats() {
+      function updateLessonStats(lessons) {
+        if (!lessons || lessons.length === 0) {
+          totalLessonsElement.textContent = "0";
+          completedLessonsElement.textContent = "0";
+          upcomingLessonsElement.textContent = "0";
+          progressPercentageElement.textContent = "0%";
+          return;
+        }
+
         // Total lessons
-        totalLessonsElement.textContent = allLessons.length;
+        totalLessonsElement.textContent = lessons.length;
 
         // Calculate completed lessons (based on status)
-        const completedLessons = allLessons.filter(
+        const completedLessons = lessons.filter(
           (lesson) => lesson.status === "completed"
         ).length;
         completedLessonsElement.textContent = completedLessons;
 
         // Calculate upcoming lessons
-        const upcomingLessons = allLessons.filter(
+        const upcomingLessons = lessons.filter(
           (lesson) => lesson.status === "upcoming"
         ).length;
         upcomingLessonsElement.textContent = upcomingLessons;
 
         // Calculate progress percentage
         const progressPercentage =
-          allLessons.length > 0
-            ? Math.round((completedLessons / allLessons.length) * 100)
+          lessons.length > 0
+            ? Math.round((completedLessons / lessons.length) * 100)
             : 0;
         progressPercentageElement.textContent = `${progressPercentage}%`;
       }
@@ -2176,70 +2373,70 @@
             : "Upcoming";
 
           card.innerHTML = `
-            <div class="lesson-card-header">
-              <div>
-                <div class="lesson-card-title">${lesson.title}</div>
-                <span class="lesson-card-category ${categoryClass}">${category}</span>
-              </div>
+        <div class="lesson-card-header">
+          <div>
+            <div class="lesson-card-title">${lesson.title}</div>
+            <span class="lesson-card-category ${categoryClass}">${category}</span>
+          </div>
+        </div>
+        <div class="lesson-card-body">
+          <div class="lesson-card-description">
+            ${lesson.description || "No description available."}
+          </div>
+          <div class="lesson-card-datetime">
+            <div class="lesson-date">${formattedDate}</div>
+            <div class="lesson-time">${formattedTime}</div>
+          </div>
+          <div class="lesson-card-meta">
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-book"></i>
+              <span>${courseTitle}</span>
             </div>
-            <div class="lesson-card-body">
-              <div class="lesson-card-description">
-                ${lesson.description || "No description available."}
-              </div>
-              <div class="lesson-card-datetime">
-                <div class="lesson-date">${formattedDate}</div>
-                <div class="lesson-time">${formattedTime}</div>
-              </div>
-              <div class="lesson-card-meta">
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-book"></i>
-                  <span>${courseTitle}</span>
-                </div>
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-clock"></i>
-                  <span>${durationText}</span>
-                </div>
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-map-marker-alt"></i>
-                  <span>${formatLocationType(lesson.location_type)}</span>
-                </div>
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-info-circle"></i>
-                  <span>${lesson.order || 1} of ${
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-clock"></i>
+              <span>${durationText}</span>
+            </div>
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>${formatLocationType(lesson.location_type)}</span>
+            </div>
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-info-circle"></i>
+              <span>${lesson.order || 1} of ${
             allLessons.filter((l) => l.course_id === lesson.course_id).length ||
             1
           }</span>
-                </div>
-              </div>
             </div>
-            <div class="lesson-card-footer">
-              <div class="lesson-status">
-                <span class="status-badge ${statusClass}">${statusText}</span>
-              </div>
-              <div class="lesson-actions">
-                <button class="btn btn-outline view-lesson-btn" data-lesson-id="${
-                  lesson._id || lesson.id
-                }">
-                  <i class="fas fa-eye"></i> View
-                </button>
-                ${
-                  !isCompleted
-                    ? `
-                  <button class="btn btn-primary join-lesson-btn" data-lesson-id="${
-                    lesson._id || lesson.id
-                  }">
-                    <i class="fas fa-play"></i> Join
-                  </button>
-                `
-                    : `
-                  <button class="btn btn-success" disabled>
-                    <i class="fas fa-check"></i> Completed
-                  </button>
-                `
-                }
-              </div>
-            </div>
-          `;
+          </div>
+        </div>
+        <div class="lesson-card-footer">
+          <div class="lesson-status">
+            <span class="status-badge ${statusClass}">${statusText}</span>
+          </div>
+          <div class="lesson-actions">
+            <button class="btn btn-outline view-lesson-btn" data-lesson-id="${
+              lesson._id || lesson.id
+            }">
+              <i class="fas fa-eye"></i> View
+            </button>
+            ${
+              !isCompleted
+                ? `
+              <button class="btn btn-primary join-lesson-btn" data-lesson-id="${
+                lesson._id || lesson.id
+              }">
+                <i class="fas fa-play"></i> Join
+              </button>
+            `
+                : `
+              <button class="btn btn-success" disabled>
+                <i class="fas fa-check"></i> Completed
+              </button>
+            `
+            }
+          </div>
+        </div>
+      `;
 
           lessonCards.appendChild(card);
         });
@@ -2347,9 +2544,9 @@
         );
         if (lesson.location_type === "zoom" && lesson.zoom_link) {
           locationDetails.innerHTML = `
-            <p><strong>Zoom Meeting:</strong> <a href="${lesson.zoom_link}" target="_blank">Join Zoom Meeting</a></p>
-            <p><small>Click the link above to join the Zoom session</small></p>
-          `;
+        <p><strong>Zoom Meeting:</strong> <a href="${lesson.zoom_link}" target="_blank">Join Zoom Meeting</a></p>
+        <p><small>Click the link above to join the Zoom session</small></p>
+      `;
           document.getElementById("lessonModalLocationSection").style.display =
             "block";
           joinLessonBtn.style.display = "inline-flex";
@@ -2358,9 +2555,9 @@
           lesson.google_meet_link
         ) {
           locationDetails.innerHTML = `
-            <p><strong>Google Meet:</strong> <a href="${lesson.google_meet_link}" target="_blank">Join Google Meet</a></p>
-            <p><small>Click the link above to join the Google Meet session</small></p>
-          `;
+        <p><strong>Google Meet:</strong> <a href="${lesson.google_meet_link}" target="_blank">Join Google Meet</a></p>
+        <p><small>Click the link above to join the Google Meet session</small></p>
+      `;
           document.getElementById("lessonModalLocationSection").style.display =
             "block";
           joinLessonBtn.style.display = "inline-flex";
@@ -2369,9 +2566,9 @@
           lesson.classroom_location
         ) {
           locationDetails.innerHTML = `
-            <p><strong>Location:</strong> ${lesson.classroom_location}</p>
-            <p><small>Please arrive at the specified classroom location</small></p>
-          `;
+        <p><strong>Location:</strong> ${lesson.classroom_location}</p>
+        <p><small>Please arrive at the specified classroom location</small></p>
+      `;
           document.getElementById("lessonModalLocationSection").style.display =
             "block";
           joinLessonBtn.style.display = "inline-flex";
@@ -2427,7 +2624,10 @@
         try {
           const lessonId =
             currentSelectedLesson._id || currentSelectedLesson.id;
-          const response = await postData(`/lessons/${lessonId}/complete`, {});
+          const response = await postData(
+            `/students/lessons/${lessonId}/complete`,
+            {}
+          );
 
           if (response) {
             showToast(
@@ -2442,7 +2642,7 @@
 
             // Close modal and reload lessons to reflect changes
             lessonDetailModal.style.display = "none";
-            await loadLessons();
+            await fetchStudentLessonsData();
           }
         } catch (error) {
           console.error("Error completing lesson:", error);
@@ -2542,6 +2742,217 @@
         lessonCards.style.display = "none";
         emptyState.style.display = "flex";
         lessonsCount.textContent = "No lessons found";
+      }
+
+      // Load mock data for demonstration (when API is not available)
+      function loadMockLessonsData() {
+        console.log("📋 Loading mock lessons data for demonstration");
+
+        const mockLessons = [
+          {
+            id: 1,
+            title: "Introduction to Web Development",
+            course_id: 1,
+            description: "Learn the basics of HTML, CSS, and JavaScript",
+            start_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+            start_time: "10:00:00",
+            duration: 60,
+            category: "Development",
+            location_type: "zoom",
+            zoom_link: "https://zoom.us/j/123456789",
+            status: "upcoming",
+            order: 1,
+            content:
+              "This lesson covers the fundamentals of web development including HTML structure, CSS styling, and JavaScript basics.",
+          },
+          {
+            id: 2,
+            title: "Advanced CSS Techniques",
+            course_id: 1,
+            description: "Master CSS Grid, Flexbox, and responsive design",
+            start_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+            start_time: "14:00:00",
+            duration: 90,
+            category: "Development",
+            location_type: "google_meet",
+            google_meet_link: "https://meet.google.com/abc-defg-hij",
+            status: "completed",
+            order: 2,
+            content:
+              "Learn advanced CSS techniques including Grid and Flexbox layouts, responsive design principles, and CSS animations.",
+          },
+          {
+            id: 3,
+            title: "UI/UX Design Principles",
+            course_id: 2,
+            description: "Understand user-centered design approaches",
+            start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+            start_time: "11:30:00",
+            duration: 75,
+            category: "Design",
+            location_type: "physical_classroom",
+            classroom_location: "Room 301, Design Building",
+            status: "upcoming",
+            order: 1,
+            content:
+              "This lesson covers fundamental UI/UX design principles including user research, wireframing, and prototyping.",
+          },
+          {
+            id: 4,
+            title: "JavaScript Fundamentals",
+            course_id: 1,
+            description:
+              "Variables, functions, and control structures in JavaScript",
+            start_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+            start_time: "09:00:00",
+            duration: 120,
+            category: "Development",
+            location_type: "zoom",
+            zoom_link: "https://zoom.us/j/987654321",
+            status: "completed",
+            order: 3,
+            content:
+              "Learn JavaScript fundamentals including variables, data types, functions, loops, and conditional statements.",
+          },
+        ];
+
+        updateLessonsUI(mockLessons);
+
+        showToast(
+          "info",
+          "Demo Mode",
+          "Using mock data for demonstration. Connect to backend for real data.",
+          5000
+        );
+      }
+
+      // Toast Notification System (MATCHING OVERVIEW PAGE STYLE)
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.className = "toast-container";
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
+
+        toast.innerHTML = `
+      <div class="toast-icon">
+        <i class="${icon}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        sidebarLogoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", async function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            2000
+          );
+
+          try {
+            // Call backend logout endpoint to clear session
+            await apiFetch("/users/logout", {
+              method: "POST",
+            });
+          } catch (error) {
+            console.error("Logout API call failed:", error);
+          }
+
+          // Clear authentication data
+          clearAuthData();
+
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 1000);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
       }
 
       // Event Listeners Setup
@@ -2708,70 +3119,70 @@
             : "Upcoming";
 
           card.innerHTML = `
-            <div class="lesson-card-header">
-              <div>
-                <div class="lesson-card-title">${lesson.title}</div>
-                <span class="lesson-card-category ${categoryClass}">${category}</span>
-              </div>
+        <div class="lesson-card-header">
+          <div>
+            <div class="lesson-card-title">${lesson.title}</div>
+            <span class="lesson-card-category ${categoryClass}">${category}</span>
+          </div>
+        </div>
+        <div class="lesson-card-body">
+          <div class="lesson-card-description">
+            ${lesson.description || "No description available."}
+          </div>
+          <div class="lesson-card-datetime">
+            <div class="lesson-date">${formattedDate}</div>
+            <div class="lesson-time">${formattedTime}</div>
+          </div>
+          <div class="lesson-card-meta">
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-book"></i>
+              <span>${courseTitle}</span>
             </div>
-            <div class="lesson-card-body">
-              <div class="lesson-card-description">
-                ${lesson.description || "No description available."}
-              </div>
-              <div class="lesson-card-datetime">
-                <div class="lesson-date">${formattedDate}</div>
-                <div class="lesson-time">${formattedTime}</div>
-              </div>
-              <div class="lesson-card-meta">
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-book"></i>
-                  <span>${courseTitle}</span>
-                </div>
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-clock"></i>
-                  <span>${durationText}</span>
-                </div>
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-map-marker-alt"></i>
-                  <span>${formatLocationType(lesson.location_type)}</span>
-                </div>
-                <div class="lesson-card-meta-item">
-                  <i class="fas fa-info-circle"></i>
-                  <span>${lesson.order || 1} of ${
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-clock"></i>
+              <span>${durationText}</span>
+            </div>
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>${formatLocationType(lesson.location_type)}</span>
+            </div>
+            <div class="lesson-card-meta-item">
+              <i class="fas fa-info-circle"></i>
+              <span>${lesson.order || 1} of ${
             allLessons.filter((l) => l.course_id === lesson.course_id).length ||
             1
           }</span>
-                </div>
-              </div>
             </div>
-            <div class="lesson-card-footer">
-              <div class="lesson-status">
-                <span class="status-badge ${statusClass}">${statusText}</span>
-              </div>
-              <div class="lesson-actions">
-                <button class="btn btn-outline view-lesson-btn" data-lesson-id="${
-                  lesson._id || lesson.id
-                }">
-                  <i class="fas fa-eye"></i> View
-                </button>
-                ${
-                  !isCompleted
-                    ? `
-                  <button class="btn btn-primary join-lesson-btn" data-lesson-id="${
-                    lesson._id || lesson.id
-                  }">
-                    <i class="fas fa-play"></i> Join
-                  </button>
-                `
-                    : `
-                  <button class="btn btn-success" disabled>
-                    <i class="fas fa-check"></i> Completed
-                  </button>
-                `
-                }
-              </div>
-            </div>
-          `;
+          </div>
+        </div>
+        <div class="lesson-card-footer">
+          <div class="lesson-status">
+            <span class="status-badge ${statusClass}">${statusText}</span>
+          </div>
+          <div class="lesson-actions">
+            <button class="btn btn-outline view-lesson-btn" data-lesson-id="${
+              lesson._id || lesson.id
+            }">
+              <i class="fas fa-eye"></i> View
+            </button>
+            ${
+              !isCompleted
+                ? `
+              <button class="btn btn-primary join-lesson-btn" data-lesson-id="${
+                lesson._id || lesson.id
+              }">
+                <i class="fas fa-play"></i> Join
+              </button>
+            `
+                : `
+              <button class="btn btn-success" disabled>
+                <i class="fas fa-check"></i> Completed
+              </button>
+            `
+            }
+          </div>
+        </div>
+      `;
 
           lessonCards.appendChild(card);
         });
@@ -2784,139 +3195,12 @@
         emptyState.style.display = "none";
       }
 
-      // Helper function to get auth headers
-      function getAuthHeaders() {
-        const token = localStorage.getItem("access_token");
-        const headers = {
-          "Content-Type": "application/json",
-        };
-
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        return headers;
-      }
-
-      // Function to fetch data from API with enhanced logging
-      async function fetchData(endpoint) {
-        try {
-          const token = localStorage.getItem("access_token");
-          const headers = {
-            "Content-Type": "application/json",
-          };
-
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
-
-          console.log(`🌐 API CALL: GET ${API_BASE_URL}${endpoint}`);
-
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: "GET",
-            headers: headers,
-          });
-
-          console.log(
-            `📡 API RESPONSE: ${response.status} ${response.statusText}`
-          );
-
-          if (response.status === 401) {
-            showToast(
-              "warning",
-              "Session Expired",
-              "Please log in again",
-              3000
-            );
-            setTimeout(() => {
-              window.location.href = "/static/signin.html";
-            }, 2000);
-            return null;
-          }
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`❌ API ERROR: ${response.status} - ${errorText}`);
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          console.log(`📦 API DATA RECEIVED:`, data);
-          return data;
-        } catch (error) {
-          console.error("❌ Network Error:", error);
-          showToast(
-            "error",
-            "Network Error",
-            "Failed to fetch data from server",
-            5000
-          );
-          return null;
-        }
-      }
-
-      // Function to post data to API
-      async function postData(endpoint, data) {
-        try {
-          const token = localStorage.getItem("access_token");
-          const headers = {
-            "Content-Type": "application/json",
-          };
-
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
-
-          console.log("🌐 POST API CALL:", `${API_BASE_URL}${endpoint}`);
-          console.log("📤 POST Data:", JSON.stringify(data, null, 2));
-
-          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(data),
-          });
-
-          if (response.status === 401) {
-            showToast(
-              "warning",
-              "Session Expired",
-              "Please log in again",
-              3000
-            );
-            setTimeout(() => {
-              window.location.href = "/static/signin.html";
-            }, 2000);
-            return null;
-          }
-
-          const responseData = await response.json().catch(() => null);
-
-          if (!response.ok) {
-            console.error("❌ Server response error:", {
-              status: response.status,
-              statusText: response.statusText,
-              responseData: responseData,
-            });
-
-            const errorMessage =
-              responseData?.detail ||
-              responseData?.message ||
-              (responseData && JSON.stringify(responseData)) ||
-              `HTTP error! status: ${response.status}`;
-            throw new Error(errorMessage);
-          }
-
-          console.log("✅ POST response:", responseData);
-          return responseData;
-        } catch (error) {
-          console.error("❌ Error posting data:", error);
-          throw error;
-        }
-      }
-
       // Initialize the page
       document.addEventListener("DOMContentLoaded", async function () {
         console.log("🚀 Student Lessons page initializing...");
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();
@@ -2928,20 +3212,29 @@
           toggleTheme();
         });
 
+        // Set up system theme listener
+        setupSystemThemeListener();
+
         // Load current user info first
         loadCurrentUserInfo();
 
-        // Check authentication first
-        if (!checkAuthentication()) {
-          return;
-        }
-
-        // Load lessons
-        await loadLessons();
-        setupEventListeners();
-
         // Setup logout confirmation
         setupLogoutConfirmation();
+
+        // Setup button event listeners
+        setupEventListeners();
+
+        // Load data immediately
+        fetchStudentLessonsData();
+
+        // Update sidebar navigation links
+        const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
+        sidebarLinks.forEach((link) => {
+          const href = link.getAttribute("href");
+          if (href && !href.startsWith("http")) {
+            link.href = getUrl("/dashboards/" + href);
+          }
+        });
       });
     </script>
   </body>
