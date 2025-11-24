@@ -1738,7 +1738,7 @@
     }
   });
 
-  // ⚙️ API Configuration - UPDATED FOR AUTHORIZATION HEADERS
+  // ⚙️ API Configuration - UPDATED FOR BEARER TOKEN AUTH
   const getApiBaseUrl = () => {
     // Check if we're on Render production
     if (window.location.hostname.includes("onrender.com")) {
@@ -1770,7 +1770,7 @@
     return `${basePath}${path}`;
   }
 
-  // Enhanced fetch wrapper with Authorization headers - UPDATED
+  // Enhanced fetch wrapper with Bearer Token headers - FIXED
   async function apiFetch(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     
@@ -1840,7 +1840,7 @@
     }
   }
 
-  // Token and Auth Management - UPDATED FOR AUTHORIZATION HEADERS
+  // Token and Auth Management - UPDATED FOR BEARER TOKENS
   function clearAuthData() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
@@ -1850,6 +1850,46 @@
     localStorage.removeItem('success_message');
     localStorage.removeItem('dashboard_previous_data');
     console.log("🧹 Auth data cleared from localStorage");
+  }
+
+  // FIXED: Check if token is expired - SIMPLIFIED VERSION
+  function isTokenExpired() {
+    const token = localStorage.getItem('access_token');
+    if (!token) return true;
+    
+    try {
+      // Simple check - if we have a token, assume it's valid for now
+      // The backend will return 401 if it's actually expired
+      console.log("🔐 Token exists, validity will be checked by backend");
+      return false;
+    } catch (error) {
+      console.error("Error checking token:", error);
+      return true;
+    }
+  }
+
+  // FIXED: Function to check if user is authenticated
+  function checkAuthentication() {
+    const token = localStorage.getItem("access_token");
+    
+    if (!token) {
+      console.log("❌ No access token found");
+      showToast(
+        "warning",
+        "Authentication Required",
+        "Please log in to access the dashboard",
+        3000
+      );
+      setTimeout(() => {
+        window.location.href = getUrl("/signin.html");
+      }, 2000);
+      return false;
+    }
+    
+    // Don't do aggressive expiration checking here
+    // Let the backend handle token validation
+    console.log("✅ Token found, proceeding with API calls");
+    return true;
   }
 
   // Logout Confirmation Elements
@@ -1876,6 +1916,8 @@
         if (userAvatarElement) {
           userAvatarElement.textContent = getInitials(user.full_name || user.username || user.email);
         }
+
+        console.log("👤 User info loaded:", user.username || user.email);
       } catch (e) {
         console.error("Error parsing user data:", e);
         setDefaultUserInfo();
@@ -1910,24 +1952,6 @@
 
     // If it's a name, use the first character
     return text.charAt(0).toUpperCase();
-  }
-
-  // Function to check if user is authenticated
-  function checkAuthentication() {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      showToast(
-        "warning",
-        "Authentication Required",
-        "Please log in to view dashboard data",
-        4000
-      );
-      setTimeout(() => {
-        window.location.href = getUrl("/signin.html");
-      }, 2000);
-      return false;
-    }
-    return true;
   }
 
   // Function to fetch data from API with proper authentication
@@ -2198,8 +2222,17 @@
   async function updateDashboard() {
     console.log("🔄 Fetching dashboard data...");
 
-    // Check authentication first
-    if (!checkAuthentication()) {
+    // Check authentication first - BUT DON'T REDIRECT IMMEDIATELY
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      console.log("❌ No token found, showing warning but not redirecting immediately");
+      showToast(
+        "warning",
+        "Authentication Required",
+        "Please log in to view dashboard data",
+        5000
+      );
+      // Don't redirect immediately, let user see the message
       return;
     }
 
@@ -2209,7 +2242,7 @@
         fetchAllCourses(),
         fetchAllLessons(),
         fetchAllQuizzes(),
-        fetchAllAssignments(), // FIXED: Now properly fetches assignments
+        fetchAllAssignments(),
         fetchUserStats(),
       ]);
 
@@ -2217,7 +2250,7 @@
         courses: allCourses?.length || 0,
         lessons: allLessons?.length || 0,
         quizzes: allQuizzes?.length || 0,
-        assignments: allAssignments?.length || 0, // FIXED: Now includes assignments
+        assignments: allAssignments?.length || 0,
         userStats: userStats,
       });
 
@@ -2232,7 +2265,7 @@
           fetchCoursesByCategory(category),
           fetchLessonsByCategory(category),
           fetchQuizzesByCategory(category),
-          fetchAssignmentsByCategory(category), // FIXED: Now includes assignments
+          fetchAssignmentsByCategory(category),
         ]);
 
         console.log(`📊 ${category}: ${categoryCourses.length} courses, ${categoryLessons.length} lessons, ${categoryQuizzes.length} quizzes, ${categoryAssignments.length} assignments`);
@@ -2242,7 +2275,7 @@
           courses: categoryCourses,
           lessons: categoryLessons,
           quizzes: categoryQuizzes,
-          assignments: categoryAssignments, // FIXED: Now includes assignments
+          assignments: categoryAssignments,
         };
       });
 
@@ -2277,7 +2310,7 @@
         allCourses,
         allLessons,
         allQuizzes,
-        allAssignments, // FIXED: Pass assignments
+        allAssignments,
         { active: activeUsers, inactive: inactiveUsers, total: totalUsers },
         categoryData
       );
@@ -2298,7 +2331,7 @@
       courses: allCourses?.length,
       lessons: allLessons?.length,
       quizzes: allQuizzes?.length,
-      assignments: allAssignments?.length, // FIXED: Now includes assignments
+      assignments: allAssignments?.length,
       userStats: userStats,
       categoryData: categoryData?.length,
     });
@@ -2307,7 +2340,7 @@
     const totalCourses = allCourses ? allCourses.length : 0;
     const totalLessons = allLessons ? allLessons.length : 0;
     const totalQuizzes = allQuizzes ? allQuizzes.length : 0;
-    const totalAssignments = allAssignments ? allAssignments.length : 0; // FIXED: Use actual assignments count
+    const totalAssignments = allAssignments ? allAssignments.length : 0;
 
     // User statistics
     const activeUsers = userStats.active || 0;
@@ -2328,7 +2361,7 @@
           categoryStats[category].courses = courses?.length || 0;
           categoryStats[category].lessons = lessons?.length || 0;
           categoryStats[category].quizzes = quizzes?.length || 0;
-          categoryStats[category].assignments = assignments?.length || 0; // FIXED: Include assignments
+          categoryStats[category].assignments = assignments?.length || 0;
         }
       });
     }
@@ -2357,7 +2390,7 @@
     // Update UI with real database data
     updateStatElement("total-courses", totalCourses);
     updateStatElement("total-lessons", totalLessons);
-    updateStatElement("total-assignments", totalAssignments); // FIXED: Update assignments count
+    updateStatElement("total-assignments", totalAssignments);
     updateStatElement("total-quizzes", totalQuizzes);
     updateStatElement("active-users", activeUsers);
     updateStatElement("inactive-users", inactiveUsers);
@@ -2365,7 +2398,7 @@
     // Update percentages
     updatePercentageElement("courses-percentage", coursesPercentage);
     updatePercentageElement("lessons-percentage", lessonsPercentage);
-    updatePercentageElement("assignments-percentage", assignmentsPercentage); // FIXED: Update assignments percentage
+    updatePercentageElement("assignments-percentage", assignmentsPercentage);
     updatePercentageElement("quizzes-percentage", quizzesPercentage);
     updatePercentageElement("users-percentage", activeUsersPercentage);
     updatePercentageElement("inactive-percentage", inactiveUsersPercentage);
@@ -2393,7 +2426,7 @@
       JSON.stringify({
         courses: totalCourses,
         lessons: totalLessons,
-        assignments: totalAssignments, // FIXED: Store assignments count
+        assignments: totalAssignments,
         quizzes: totalQuizzes,
         activeUsers: activeUsers,
         inactiveUsers: inactiveUsers,
@@ -2412,7 +2445,7 @@
     console.log("📊 Final counts from database:", {
       courses: totalCourses,
       lessons: totalLessons,
-      assignments: totalAssignments, // FIXED: Include assignments in final log
+      assignments: totalAssignments,
       quizzes: totalQuizzes,
       activeUsers: activeUsers,
       inactiveUsers: inactiveUsers,
@@ -2569,7 +2602,7 @@
     });
   }
 
-  // Initialize dashboard
+  // FIXED: Initialize dashboard with better auth handling
   document.addEventListener("DOMContentLoaded", function () {
     console.log("Dashboard initializing...");
 
@@ -2585,14 +2618,29 @@
     // Setup logout confirmation
     setupLogoutConfirmation();
 
-    // Load data immediately
-    updateDashboard();
-
-    // Set up periodic refresh (every 2 minutes)
-    setInterval(() => {
-      console.log("Refreshing dashboard data...");
+    // Check if we have a token, but don't redirect immediately
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      console.log("⚠️ No token found, showing warning");
+      showToast(
+        "warning",
+        "Not Logged In",
+        "Please log in to view dashboard data",
+        5000
+      );
+    } else {
+      console.log("✅ Token found, loading dashboard data");
+      // Load data immediately if we have a token
       updateDashboard();
-    }, 120000);
+    }
+
+    // Set up periodic refresh (every 2 minutes) - only if we have a token
+    if (token) {
+      setInterval(() => {
+        console.log("Refreshing dashboard data...");
+        updateDashboard();
+      }, 120000);
+    }
 
     // Add active class to clicked sidebar items
     const sidebarItems = document.querySelectorAll(".sidebar-menu a");
