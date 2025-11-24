@@ -515,6 +515,7 @@
         color: var(--white);
         font-weight: bold;
         margin-right: 10px;
+        text-decoration: none;
       }
 
       /* Welcome Banner */
@@ -1564,7 +1565,12 @@
         </div>
         <div class="navbar-right">
           <div class="user-info">
-            <div class="user-avatar" id="currentUserAvatar">JD</div>
+            <a
+              href="student-profile.html"
+              class="user-avatar"
+              id="currentUserAvatar"
+              >JD</a
+            >
             <span id="currentUserName">John Doe</span>
           </div>
         </div>
@@ -2277,12 +2283,6 @@
           );
         } catch (error) {
           console.error("❌ Error in fetchStudentData:", error);
-          showToast(
-            "error",
-            "Data Fetch Error",
-            "Could not load student dashboard data. Please try again.",
-            5000
-          );
 
           // Load mock data for demonstration
           loadMockData();
@@ -2752,13 +2752,6 @@
           mockProgress,
           mockDeadlines,
           mockActivity
-        );
-
-        showToast(
-          "info",
-          "Demo Mode",
-          "Using mock data for demonstration. Connect to backend for real data.",
-          5000
         );
       }
 

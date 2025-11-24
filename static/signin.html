@@ -1067,12 +1067,6 @@
             const sessionResponse = await apiFetch("/users/session");
             if (sessionResponse.ok) {
               console.log("✅ Authorization header test PASSED!");
-              showToast(
-                "Session established successfully!",
-                "success",
-                "Authentication Complete",
-                2000
-              );
             } else {
               console.warn("⚠️ Authorization header test FAILED");
               showToast(
