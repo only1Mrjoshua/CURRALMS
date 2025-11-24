@@ -1898,7 +1898,7 @@
         }
       }
 
-      // Function to fetch student grades data
+      // Function to fetch student grades data - USING MOCK DATA
       async function fetchStudentGrades() {
         console.log("🔄 Fetching student grades data...");
 
@@ -1914,14 +1914,22 @@
             console.warn("⚠️ Cookie session test failed, but continuing...");
           }
 
-          // Fetch student grades data
-          const grades = await fetchData("/students/grades");
+          // TEMPORARY: Always use mock data until backend is fixed
+          console.log("📋 Using mock grades data for demonstration");
+          loadMockGradesData();
+          return;
 
-          console.log("📦 Student grades data fetched:", {
-            grades: grades?.length || 0,
-          });
+          // Original API call commented out for now
+          /*
+      // Fetch student grades data
+      const grades = await fetchData("/students/grades");
 
-          updateGradesUI(grades);
+      console.log("📦 Student grades data fetched:", {
+        grades: grades?.length || 0,
+      });
+
+      updateGradesUI(grades);
+      */
         } catch (error) {
           console.error("❌ Error in fetchStudentGrades:", error);
           showToast(
@@ -2411,6 +2419,26 @@
             max_score: 100,
             status: "passed",
           },
+          {
+            id: "7",
+            course_name: "Data Structures",
+            assignment_name: "Algorithm Analysis",
+            type: "assignment",
+            date: "2024-02-20",
+            score: 82,
+            max_score: 100,
+            status: "passed",
+          },
+          {
+            id: "8",
+            course_name: "Database Systems",
+            assignment_name: "SQL Query Optimization",
+            type: "project",
+            date: "2024-02-25",
+            score: 91,
+            max_score: 100,
+            status: "passed",
+          },
         ];
 
         updateGradesUI(mockGrades);
@@ -2775,7 +2803,7 @@
         // Setup button event listeners
         setupEventListeners();
 
-        // Load data immediately
+        // Load data immediately - USING MOCK DATA
         await fetchStudentGrades();
       });
     </script>
