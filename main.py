@@ -161,12 +161,21 @@ async def debug_session(request: Request):
         "environment": os.getenv("ENVIRONMENT", "development")
     }
 
-# Serve frontend files for production
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
     """
     Serve frontend files for SPA routing in production
     """
+    # List of API route prefixes that should NOT be handled by this route
+    api_routes = [
+        "students/", "users/", "courses/", "lessons/", 
+        "assignments/", "quizzes/", "auth/", "debug/"
+    ]
+    
+    # If it's an API route, return 404
+    if any(full_path.startswith(api_route) for api_route in api_routes):
+        return {"error": "API endpoint not found"}
+    
     frontend_paths = [
         "", "signin.html", "signup.html", "index.html",
         "dashboards/", "courses/", "profile/"
@@ -181,7 +190,7 @@ async def serve_frontend(full_path: str):
             # Fallback to index.html for SPA routing
             return FileResponse("static/index.html")
     
-    # Return 404 for API routes that don't exist
+    # Return 404 for other routes that don't exist
     return {"error": "Endpoint not found"}
 
 def custom_openapi():
