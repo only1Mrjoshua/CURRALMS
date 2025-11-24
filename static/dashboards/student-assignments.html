@@ -1840,7 +1840,25 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // Theme Management - MATCHING LOGIN PAGE
+      // URL helper functions - FIXED FOR RENDER
+      function getBasePath() {
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "/static"; // Localhost needs /static prefix for everything
+        }
+        // For production (Render), no prefix
+        return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
+      // Theme Management - MATCHING SIGNIN PAGE
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1863,42 +1881,63 @@
         const currentTheme = htmlElement.getAttribute("data-theme");
         const newTheme = currentTheme === "dark" ? "light" : "dark";
         setTheme(newTheme);
+        showToast(
+          "info",
+          "Theme Changed",
+          `Switched to ${newTheme} mode`,
+          2000
+        );
       }
 
-      // Initialize theme
+      // Initialize theme with device preference as default
       function initTheme() {
-        // Check for saved theme preference
         const savedTheme = localStorage.getItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
 
-        if (savedTheme) {
-          setTheme(savedTheme);
-        } else {
-          // Check system preference
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
-          setTheme(prefersDark ? "dark" : "light");
-        }
+        // If no theme is saved, use device preference
+        const currentTheme =
+          savedTheme || (systemPrefersDark ? "dark" : "light");
+
+        // Update toggle switch to reflect current theme
+        themeToggleInput.checked = currentTheme === "dark";
+
+        console.log(
+          `Theme: ${currentTheme} (${savedTheme ? "saved" : "device"})`
+        );
       }
 
-      // Listen for system theme changes
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          // Only change if user hasn't set a preference
-          if (!localStorage.getItem("theme")) {
-            setTheme(e.matches ? "dark" : "light");
-          }
-        });
+      // Listen for system theme changes and update if no manual preference is set
+      function setupSystemThemeListener() {
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            // Only change if user hasn't set a manual preference
+            if (!localStorage.getItem("theme")) {
+              const newTheme = e.matches ? "dark" : "light";
+              setTheme(newTheme);
+              showToast(
+                "info",
+                "Theme Updated",
+                `Changed to system theme (${newTheme})`,
+                3000
+              );
+            }
+          });
+      }
 
-      // ⚙️ ENHANCED API Configuration - FIXED FOR RENDER (MATCHING LOGIN PAGE)
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
       const getApiBaseUrl = () => {
-        // Check if we're on Render production
-        if (window.location.hostname.includes("onrender.com")) {
-          return "https://curralms-backend.onrender.com";
+        // Check if we're on localhost
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          return "http://localhost:8000";
         }
-        // Local development
-        return "http://localhost:8000";
+        // For production (Render), use relative path (same domain) - FIXED
+        return "https://curralms-backend.onrender.com";
       };
 
       const API_BASE_URL = getApiBaseUrl();
@@ -1908,21 +1947,6 @@
         return window.location.hostname.includes("onrender.com")
           ? "production"
           : "development";
-      }
-
-      // Enhanced URL helper functions for frontend navigation
-      function getBasePath() {
-        // Check if we're on localhost
-        if (getEnvironment() === "development") {
-          return "/static"; // Localhost needs /static prefix for frontend files
-        }
-        // For production (Render), no prefix
-        return "";
-      }
-
-      function getUrl(path) {
-        const basePath = getBasePath();
-        return `${basePath}${path}`;
       }
 
       // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
@@ -1958,11 +1982,8 @@
           );
 
           // Debug cookie info for auth endpoints
-          if (
-            endpoint.includes("/session") ||
-            endpoint.includes("/assignments")
-          ) {
-            console.log("🍪 Cookie debug for auth endpoint");
+          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
+            console.log("🍪 Cookie debug for endpoint:", endpoint);
             console.log("📍 Current domain:", window.location.hostname);
             console.log("🔗 API base URL:", API_BASE_URL);
           }
@@ -1974,13 +1995,14 @@
         }
       }
 
-      // ENHANCED authentication state management with comprehensive debugging
+      // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
           console.log("📍 Environment:", getEnvironment());
           console.log("🍪 Current cookies:", document.cookie);
 
+          // Check session with credentials (cookies will be sent automatically)
           const response = await apiFetch("/users/session", {
             method: "GET",
           });
@@ -2004,16 +2026,6 @@
               "❌ Session check failed with status:",
               response.status
             );
-
-            // Try to get more debug info
-            try {
-              const debugResponse = await apiFetch("/debug/session");
-              const debugData = await debugResponse.json();
-              console.log("🔍 Session debug info:", debugData);
-            } catch (debugError) {
-              console.log("🔍 No debug endpoint available");
-            }
-
             clearAuthData();
             return null;
           }
@@ -2032,108 +2044,198 @@
         console.log("🧹 Auth data cleared from localStorage");
       }
 
-      // Enhanced redirect functions
-      async function redirectIfAuthenticated() {
+      // Redirect unauthenticated users to signin page
+      async function redirectIfUnauthenticated() {
         const user = await checkAuthState();
-        if (user) {
-          console.log("🔄 User is authenticated, redirecting to dashboard...");
-          setTimeout(() => {
-            redirectToDashboard(user);
-          }, 1000);
-        }
-      }
 
-      function redirectToDashboard(user) {
-        let dashboardPath;
-        if (user.role === "admin") {
-          dashboardPath = getUrl("/dashboards/Admin-Dashboard-Overview.html");
-        } else {
-          dashboardPath = getUrl("/dashboards/student-dashboard-overview.html");
-        }
+        if (!user) {
+          console.log("🔄 User is not authenticated, redirecting to signin...");
 
-        console.log("🔄 Redirecting to:", dashboardPath);
-        window.location.href = dashboardPath;
-      }
-
-      // Enhanced backend connection test
-      async function verifyBackend() {
-        try {
-          console.log("🔍 Testing backend connectivity...");
-          const response = await fetch(`${API_BASE_URL}/health`, {
-            credentials: "include",
-          });
-          const data = await response.json();
-          console.log("✅ Backend is accessible:", data);
-          return true;
-        } catch (error) {
-          console.error("❌ Cannot reach backend:", error);
-
-          // Show user-friendly error
-          if (getEnvironment() === "production") {
+          // If we're on a dashboard page, redirect to signin
+          if (
+            window.location.pathname.includes("dashboard") ||
+            window.location.pathname.includes("student-assignments")
+          ) {
             showToast(
-              "error",
-              "Connection Error",
-              "Cannot connect to server. Please check if the backend service is running.",
-              5000
+              "warning",
+              "Authentication Required",
+              "Please log in to access the dashboard",
+              3000
             );
+
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            return false;
           }
+        }
+        return true;
+      }
+
+      // Function to test cookie session - ENHANCED (MATCHING SIGNIN)
+      async function testCookieSession() {
+        try {
+          console.log("🧪 Testing cookie session...");
+
+          const sessionResponse = await apiFetch("/debug/session");
+          const sessionData = await sessionResponse.json();
+
+          console.log("🎯 Session test result:", sessionData);
+
+          if (sessionData.has_access_token) {
+            console.log("✅ Cookie session is working!");
+            console.log(
+              "🍪 Cookies received by backend:",
+              sessionData.cookies_received
+            );
+            return true;
+          } else {
+            console.log("❌ No access_token cookie found");
+            console.log("🔍 Available cookies:", sessionData.cookies_received);
+
+            // Additional debug for production
+            if (getEnvironment() === "production") {
+              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
+              console.log("   - Check if backend has ENVIRONMENT=production");
+              console.log("   - Verify CORS allows your frontend origin");
+              console.log(
+                "   - Check cookie settings (secure=true, samesite=none)"
+              );
+            }
+            return false;
+          }
+        } catch (error) {
+          console.error("💥 Session test error:", error);
           return false;
         }
       }
 
-      // Enhanced diagnostic function
-      async function runDiagnostics() {
-        console.group("🔍 AUTHENTICATION DIAGNOSTICS");
-        console.log("📍 Environment:", getEnvironment());
-        console.log("🌐 Frontend URL:", window.location.origin);
-        console.log("🔌 Backend URL:", API_BASE_URL);
-        console.log("🍪 Cookies present:", document.cookie);
+      // Toast Notification System (MATCHING SIGNIN PAGE STYLE)
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.className = "toast-container";
+          document.body.appendChild(toastContainer);
+        }
 
-        // Test backend connectivity
-        await verifyBackend();
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
 
-        console.groupEnd();
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
+
+        toast.innerHTML = `
+      <div class="toast-icon">
+        <i class="${icon}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }
 
       // Function to load and display current user info
-      function loadCurrentUserInfo() {
-        // First try to get user from localStorage
-        const userData = localStorage.getItem("user");
-
-        if (userData) {
-          try {
-            const user = JSON.parse(userData);
+      async function loadCurrentUserInfo() {
+        try {
+          // First try to get user from localStorage
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
             updateUserUI(user);
-            return;
-          } catch (e) {
-            console.error("Error parsing user data:", e);
+            return user;
           }
-        }
 
-        // If no user data in localStorage, check auth state
-        checkAuthState().then((user) => {
+          // If no stored user, check session
+          const user = await checkAuthState();
           if (user) {
             updateUserUI(user);
-          } else {
-            // Fallback to default
-            updateUserUI({ email: "Student", username: "Student" });
+            return user;
           }
-        });
+
+          // Fallback to default
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        } catch (error) {
+          console.error("Error loading user info:", error);
+          updateUserUI({ email: "Student", username: "Student" });
+          return null;
+        }
       }
 
       function updateUserUI(user) {
         const userNameElement = document.getElementById("currentUserName");
         const userAvatarElement = document.getElementById("currentUserAvatar");
 
+        const displayName =
+          user.full_name || user.username || user.email || "Student";
+
         if (userNameElement) {
-          userNameElement.textContent =
-            user.email || user.username || "Student";
+          userNameElement.textContent = displayName;
         }
 
         if (userAvatarElement) {
-          userAvatarElement.textContent = getInitials(
-            user.email || user.username || "Student"
-          );
+          userAvatarElement.textContent = getInitials(displayName);
         }
       }
 
@@ -2147,29 +2249,19 @@
           return username.charAt(0).toUpperCase();
         }
 
-        // If it's a name, use the first character
+        // If it's a name, use the first character of first and last name
+        const names = text.split(" ");
+        if (names.length > 1) {
+          return (
+            names[0].charAt(0) + names[names.length - 1].charAt(0)
+          ).toUpperCase();
+        }
+
+        // If it's a single name, use the first character
         return text.charAt(0).toUpperCase();
       }
 
-      // Function to check if user is authenticated
-      async function checkAuthentication() {
-        const user = await checkAuthState();
-        if (!user) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view assignments",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = getUrl("/signin.html");
-          }, 2000);
-          return false;
-        }
-        return true;
-      }
-
-      // Function to fetch data from API with proper authentication
+      // Function to fetch data from API with proper authentication - FIXED
       async function fetchData(endpoint) {
         try {
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
@@ -2213,79 +2305,158 @@
         }
       }
 
-      // Function to fetch student assignments
-      async function fetchStudentAssignments() {
-        console.log("🔄 Fetching student assignments...");
+      // Global variables for assignments
+      let allAssignments = [];
+      let currentTab = "all";
+      let uploadedFiles = [];
+      let currentAssignment = null;
+
+      // Modal Elements
+      const submissionModal = document.getElementById("submissionModal");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const cancelSubmissionBtn = document.getElementById(
+        "cancelSubmissionBtn"
+      );
+      const submissionForm = document.getElementById("submissionForm");
+
+      // Filter Elements
+      const filterBtn = document.getElementById("filterBtn");
+      const assignmentFilters = document.getElementById("assignmentFilters");
+
+      // Tab Elements
+      const tabButtons = document.querySelectorAll(".tab-btn");
+
+      // File Upload Elements
+      const fileUploadArea = document.getElementById("fileUploadArea");
+      const fileInput = document.getElementById("fileInput");
+      const filePreview = document.getElementById("filePreview");
+
+      // Logout Confirmation Elements
+      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Function to fetch student-specific assignment data
+      async function fetchStudentAssignmentData() {
+        console.log("🔄 Fetching student assignment data...");
 
         // Check authentication first
-        if (!(await checkAuthentication())) {
+        if (!(await redirectIfUnauthenticated())) {
           return;
         }
 
         try {
-          // Show loading state
-          showLoadingState();
+          // Test cookie session first
+          const cookieTest = await testCookieSession();
+          if (!cookieTest) {
+            console.warn("⚠️ Cookie session test failed, but continuing...");
+          }
 
-          // Fetch assignments from API
-          const assignments = await fetchData("/students/assignments");
+          // Fetch assignment data
+          const [assignments, stats] = await Promise.all([
+            fetchData("/students/assignments"),
+            fetchData("/students/assignment-stats"),
+          ]);
 
-          console.log("📦 Student assignments data:", {
+          console.log("📦 Student assignment data fetched:", {
             assignments: assignments?.length || 0,
+            stats: stats ? "Yes" : "No",
           });
 
-          if (assignments && assignments.length > 0) {
-            updateAssignmentStats(assignments);
-            renderAssignments(assignments);
+          if (assignments === null && stats === null) {
+            // API failed, load mock data
+            loadMockAssignmentData();
           } else {
-            showEmptyState();
+            updateAssignmentUI(assignments, stats);
           }
         } catch (error) {
-          console.error("❌ Error in fetchStudentAssignments:", error);
-          showErrorState("Failed to load assignments. Please try again.");
+          console.error("❌ Error in fetchStudentAssignmentData:", error);
+          showToast(
+            "error",
+            "Data Fetch Error",
+            "Could not load assignment data. Loading demo data.",
+            5000
+          );
 
           // Load mock data for demonstration
-          loadMockData();
+          loadMockAssignmentData();
         }
       }
 
-      // Function to update assignment statistics
-      function updateAssignmentStats(assignments) {
-        const pending = assignments.filter(
-          (a) => a.status === "pending"
-        ).length;
-        const submitted = assignments.filter(
-          (a) => a.status === "submitted"
-        ).length;
-        const graded = assignments.filter((a) => a.status === "graded").length;
-        const overdue = assignments.filter(
-          (a) => a.status === "overdue"
-        ).length;
-        const total = assignments.length;
+      // Function to update UI with assignment data
+      function updateAssignmentUI(assignments, stats) {
+        console.log("🎨 Updating UI with assignment data");
 
-        // Update stat cards
-        updateStatElement("pending-count", pending);
-        updateStatElement("submitted-count", submitted);
-        updateStatElement("graded-count", graded);
-        updateStatElement("overdue-count", overdue);
+        allAssignments = assignments || [];
 
-        // Update tab badges
-        updateStatElement("all-count", total);
-        updateStatElement("pending-tab-count", pending);
-        updateStatElement("submitted-tab-count", submitted);
-        updateStatElement("graded-tab-count", graded);
-        updateStatElement("overdue-tab-count", overdue);
+        // Update stats
+        updateAssignmentStats(stats);
+
+        // Render assignments
+        renderAssignments();
       }
 
-      // Function to render assignments
-      function renderAssignments(assignments) {
+      // Update assignment statistics
+      function updateAssignmentStats(stats) {
+        if (stats) {
+          // Use API stats if available
+          updateStatElement("pending-count", stats.pending || 0);
+          updateStatElement("submitted-count", stats.submitted || 0);
+          updateStatElement("graded-count", stats.graded || 0);
+          updateStatElement("overdue-count", stats.overdue || 0);
+
+          // Update tab badges
+          updateStatElement("all-count", stats.total || 0);
+          updateStatElement("pending-tab-count", stats.pending || 0);
+          updateStatElement("submitted-tab-count", stats.submitted || 0);
+          updateStatElement("graded-tab-count", stats.graded || 0);
+          updateStatElement("overdue-tab-count", stats.overdue || 0);
+        } else {
+          // Calculate from mock data
+          const pending = allAssignments.filter(
+            (a) => a.status === "pending"
+          ).length;
+          const submitted = allAssignments.filter(
+            (a) => a.status === "submitted"
+          ).length;
+          const graded = allAssignments.filter(
+            (a) => a.status === "graded"
+          ).length;
+          const overdue = allAssignments.filter(
+            (a) => a.status === "overdue"
+          ).length;
+          const total = allAssignments.length;
+
+          updateStatElement("pending-count", pending);
+          updateStatElement("submitted-count", submitted);
+          updateStatElement("graded-count", graded);
+          updateStatElement("overdue-count", overdue);
+
+          // Update tab badges
+          updateStatElement("all-count", total);
+          updateStatElement("pending-tab-count", pending);
+          updateStatElement("submitted-tab-count", submitted);
+          updateStatElement("graded-tab-count", graded);
+          updateStatElement("overdue-tab-count", overdue);
+        }
+      }
+
+      // Render assignments to the list
+      function renderAssignments() {
         const assignmentList = document.getElementById("assignmentList");
 
-        if (!assignmentList) return;
+        if (!allAssignments || allAssignments.length === 0) {
+          showEmptyState();
+          return;
+        }
 
         // Filter assignments based on current tab
-        let filteredAssignments = assignments;
+        let filteredAssignments = allAssignments;
         if (currentTab !== "all") {
-          filteredAssignments = assignments.filter(
+          filteredAssignments = allAssignments.filter(
             (assignment) => assignment.status === currentTab
           );
         }
@@ -2328,16 +2499,17 @@
               assignment.status === "overdue";
 
             return `
-        <div class="assignment-card ${urgencyClass} ${statusClass}" data-assignment-id="${
+          <div class="assignment-card ${urgencyClass} ${statusClass}" data-assignment-id="${
               assignment.id
             }">
-          <div class="assignment-header">
-            <div>
-              <div class="assignment-title">${assignment.title}</div>
-              <div class="assignment-course">
-                <i class="fas fa-book"></i>
-                ${assignment.course_name}
-                <span class="course-badge">${assignment.course_code}</span>
+            <div class="assignment-header">
+              <div>
+                <div class="assignment-title">${assignment.title}</div>
+                <div class="assignment-course">
+                  <i class="fas fa-book"></i>
+                  ${assignment.course_name}
+                  <span class="course-badge">${assignment.course_code}</span>
+                </div>
               </div>
             </div>
             <div class="assignment-meta">
@@ -2354,84 +2526,83 @@
                 <span>Weight: ${assignment.weight || 0}%</span>
               </div>
             </div>
-          </div>
-          
-          <div class="assignment-description">
-            ${assignment.description || "No description provided."}
-          </div>
-
-          ${
-            assignment.instructions
-              ? `
-            <div class="assignment-description" style="font-style: italic; color: var(--text-muted);">
-              <strong>Instructions:</strong> ${assignment.instructions}
+            
+            <div class="assignment-description">
+              ${assignment.description || "No description provided."}
             </div>
-          `
-              : ""
-          }
 
-          ${
-            assignment.submission && assignment.submission.feedback
-              ? `
-            <div class="assignment-description" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 6px; border-left: 3px solid var(--success-green);">
-              <strong>Instructor Feedback:</strong> ${assignment.submission.feedback}
-            </div>
-          `
-              : ""
-          }
+            ${
+              assignment.instructions
+                ? `
+              <div class="assignment-description" style="font-style: italic; color: var(--text-muted);">
+                <strong>Instructions:</strong> ${assignment.instructions}
+              </div>
+            `
+                : ""
+            }
 
-          <div class="assignment-footer">
-            <div class="assignment-status">
-              <span class="status-badge ${statusClass}">${
+            ${
+              assignment.submission && assignment.submission.feedback
+                ? `
+              <div class="assignment-description" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 6px; border-left: 3px solid var(--success-green);">
+                <strong>Instructor Feedback:</strong> ${assignment.submission.feedback}
+              </div>
+            `
+                : ""
+            }
+
+            <div class="assignment-footer">
+              <div class="assignment-status">
+                <span class="status-badge ${statusClass}">${
               statusText.charAt(0).toUpperCase() + statusText.slice(1)
             }</span>
-              ${
-                assignment.grade
-                  ? `<span style="color: var(--text-primary); font-weight: 600;">Grade: ${assignment.grade}%</span>`
-                  : ""
-              }
-              ${
-                assignment.submission && assignment.submission.submitted_at
-                  ? `
-                <span style="color: var(--text-muted); font-size: 0.8rem;">
-                  Submitted: ${formatDate(
-                    new Date(assignment.submission.submitted_at)
-                  )}
-                </span>
-              `
-                  : ""
-              }
-            </div>
-            <div class="assignment-actions">
-              ${
-                canSubmit
-                  ? `
-                <button class="btn btn-primary" onclick="openSubmissionModal('${assignment.id}')">
-                  <i class="fas fa-paper-plane"></i> Submit
+                ${
+                  assignment.grade
+                    ? `<span style="color: var(--text-primary); font-weight: 600;">Grade: ${assignment.grade}%</span>`
+                    : ""
+                }
+                ${
+                  assignment.submission && assignment.submission.submitted_at
+                    ? `
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">
+                    Submitted: ${formatDate(
+                      new Date(assignment.submission.submitted_at)
+                    )}
+                  </span>
+                `
+                    : ""
+                }
+              </div>
+              <div class="assignment-actions">
+                ${
+                  canSubmit
+                    ? `
+                  <button class="btn btn-primary" onclick="openSubmissionModal('${assignment.id}')">
+                    <i class="fas fa-paper-plane"></i> Submit
+                  </button>
+                `
+                    : ""
+                }
+                
+                ${
+                  isSubmitted
+                    ? `
+                  <button class="btn btn-outline" onclick="viewSubmission('${assignment.id}')">
+                    <i class="fas fa-eye"></i> View
+                  </button>
+                `
+                    : ""
+                }
+                
+                <button class="btn btn-outline" onclick="downloadAssignment('${
+                  assignment.id
+                }')">
+                  <i class="fas fa-download"></i> Download
                 </button>
-              `
-                  : ""
-              }
-              
-              ${
-                isSubmitted
-                  ? `
-                <button class="btn btn-outline" onclick="viewSubmission('${assignment.id}')">
-                  <i class="fas fa-eye"></i> View
-                </button>
-              `
-                  : ""
-              }
-              
-              <button class="btn btn-outline" onclick="downloadAssignment('${
-                assignment.id
-              }')">
-                <i class="fas fa-download"></i> Download
-              </button>
+              </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
           })
           .join("");
       }
@@ -2467,27 +2638,17 @@
       // Function to open submission modal
       function openSubmissionModal(assignmentId) {
         // Find the assignment in the current data
-        const assignmentList = document.getElementById("assignmentList");
-        const assignmentCard = assignmentList.querySelector(
-          `[data-assignment-id="${assignmentId}"]`
-        );
+        const assignment = allAssignments.find((a) => a.id === assignmentId);
 
-        if (!assignmentCard) {
+        if (!assignment) {
           showToast("error", "Error", "Assignment not found", 3000);
           return;
         }
 
-        // For now, we'll use mock data. In a real implementation, you'd fetch assignment details
-        const mockAssignment = {
-          id: assignmentId,
-          title: "Web Development Final Project",
-          course_name: "Advanced Web Development",
-        };
-
         // Populate modal with assignment details
         document.getElementById(
           "submissionTitle"
-        ).textContent = `Submit: ${mockAssignment.title}`;
+        ).textContent = `Submit: ${assignment.title}`;
         document.getElementById("submissionAssignmentId").value = assignmentId;
 
         // Reset form
@@ -2636,6 +2797,18 @@
             5000
           );
 
+          // Update the assignment status locally
+          const assignmentIndex = allAssignments.findIndex(
+            (a) => a.id === formData.assignmentId
+          );
+          if (assignmentIndex !== -1) {
+            allAssignments[assignmentIndex].status = "submitted";
+            allAssignments[assignmentIndex].submission = {
+              submitted_at: new Date().toISOString(),
+              feedback: null,
+            };
+          }
+
           // Reset form and close modal
           submissionForm.reset();
           filePreview.innerHTML = "";
@@ -2643,8 +2816,9 @@
           uploadedFiles = [];
           submissionModal.style.display = "none";
 
-          // Refresh assignments list
-          fetchStudentAssignments();
+          // Refresh assignments list and stats
+          updateAssignmentStats();
+          renderAssignments();
 
           return true;
         } catch (error) {
@@ -2661,84 +2835,46 @@
 
       // Function to view submission
       function viewSubmission(assignmentId) {
-        showToast(
-          "info",
-          "View Submission",
-          "Opening submission details...",
-          2000
-        );
-        // In a real implementation, you would open a modal or navigate to a submission details page
+        const assignment = allAssignments.find((a) => a.id === assignmentId);
+        if (assignment && assignment.submission) {
+          showToast(
+            "info",
+            "Submission Details",
+            `Submitted on ${formatDate(
+              new Date(assignment.submission.submitted_at)
+            )}`,
+            3000
+          );
+        } else {
+          showToast("error", "Error", "Submission details not found", 3000);
+        }
       }
 
       // Function to download assignment
       function downloadAssignment(assignmentId) {
-        showToast("info", "Download", "Preparing assignment download...", 2000);
-        // In a real implementation, you would trigger a file download
-      }
-
-      // Function to show loading state
-      function showLoadingState() {
-        const assignmentList = document.getElementById("assignmentList");
-
-        if (assignmentList) {
-          assignmentList.innerHTML = `
-        <div class="loading-state">
-          <i class="fas fa-spinner fa-spin"></i>
-          <span class="loading-text">Loading assignments...</span>
-        </div>
-      `;
+        const assignment = allAssignments.find((a) => a.id === assignmentId);
+        if (assignment) {
+          showToast(
+            "info",
+            "Download",
+            `Preparing download for ${assignment.title}`,
+            2000
+          );
+          // In a real implementation, you would trigger a file download
+          setTimeout(() => {
+            showToast(
+              "success",
+              "Download Complete",
+              `${assignment.title} downloaded successfully`,
+              3000
+            );
+          }, 1500);
         }
       }
 
-      // Function to show empty state
-      function showEmptyState(message = "No assignments found.") {
-        const assignmentList = document.getElementById("assignmentList");
-
-        if (assignmentList) {
-          assignmentList.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-tasks"></i>
-          <h3>No Assignments</h3>
-          <p>${message}</p>
-          <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
-            <i class="fas fa-sync-alt"></i> Refresh
-          </button>
-        </div>
-      `;
-        }
-      }
-
-      // Function to show error state
-      function showErrorState(message) {
-        const assignmentList = document.getElementById("assignmentList");
-
-        if (assignmentList) {
-          assignmentList.innerHTML = `
-        <div class="error-state">
-          <i class="fas fa-exclamation-triangle"></i>
-          <h3>Unable to Load Assignments</h3>
-          <p>${message}</p>
-          <button class="btn btn-primary btn-large" onclick="fetchStudentAssignments()">
-            <i class="fas fa-sync-alt"></i> Try Again
-          </button>
-        </div>
-      `;
-        }
-      }
-
-      // Helper function to update stat elements and remove loading state
-      function updateStatElement(elementId, value) {
-        const element = document.getElementById(elementId);
-        if (element) {
-          element.innerHTML = "";
-          element.textContent = value;
-          element.classList.remove("skeleton-loading");
-        }
-      }
-
-      // Load mock data for demonstration
-      function loadMockData() {
-        console.log("📋 Loading mock assignments data for demonstration");
+      // Load mock assignment data for demonstration
+      function loadMockAssignmentData() {
+        console.log("📋 Loading mock assignment data for demonstration");
 
         const mockAssignments = [
           {
@@ -2828,115 +2964,23 @@
           },
         ];
 
-        updateAssignmentStats(mockAssignments);
-        renderAssignments(mockAssignments);
+        const mockStats = {
+          total: mockAssignments.length,
+          pending: mockAssignments.filter((a) => a.status === "pending").length,
+          submitted: mockAssignments.filter((a) => a.status === "submitted")
+            .length,
+          graded: mockAssignments.filter((a) => a.status === "graded").length,
+          overdue: mockAssignments.filter((a) => a.status === "overdue").length,
+        };
+
+        updateAssignmentUI(mockAssignments, mockStats);
 
         showToast(
           "info",
           "Demo Mode",
-          "Using mock data for demonstration. Connect to backend for real assignments.",
+          "Using mock assignment data for demonstration. Connect to backend for real assignments.",
           5000
         );
-      }
-
-      // Toast Notification System
-      function showToast(type, title, message, duration = 5000) {
-        let toastContainer = document.getElementById("toastContainer");
-        if (!toastContainer) {
-          toastContainer = document.createElement("div");
-          toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        max-width: 400px;
-      `;
-          document.body.appendChild(toastContainer);
-        }
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.style.cssText = `
-      background: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 16px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-      pointer-events: all;
-      max-width: 350px;
-      backdrop-filter: blur(10px);
-    `;
-
-        // Set border color based on type
-        const colors = {
-          success: "var(--success-green)",
-          info: "var(--primary-indigo)",
-          warning: "var(--warning-orange)",
-          error: "var(--error-red)",
-        };
-        toast.style.borderLeftColor = colors[type] || colors.info;
-
-        const icons = {
-          success: "fas fa-check",
-          info: "fas fa-info-circle",
-          warning: "fas fa-exclamation-triangle",
-          error: "fas fa-exclamation-circle",
-        };
-
-        toast.innerHTML = `
-      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-        colors[type] || colors.info
-      }">
-        <i class="${icons[type]}"></i>
-      </div>
-      <div class="toast-content" style="flex: 1;">
-        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-      </div>
-      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-
-        toastContainer.appendChild(toast);
-
-        // Show toast with animation
-        setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
-        }, 100);
-
-        // Close button functionality
-        const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
-
-        // Auto-hide after duration
-        if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
-        }
-
-        return toast;
-      }
-
-      function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-          }
-        }, 300);
       }
 
       // Setup logout confirmation functionality
@@ -2950,20 +2994,29 @@
           logoutConfirmationModal.style.display = "none";
         });
 
-        confirmYes.addEventListener("click", function () {
+        confirmYes.addEventListener("click", async function () {
           showToast(
             "info",
             "Logging Out",
             "You have been logged out successfully",
-            500
+            2000
           );
+
+          try {
+            // Call backend logout endpoint to clear session
+            await apiFetch("/users/logout", {
+              method: "POST",
+            });
+          } catch (error) {
+            console.error("Logout API call failed:", error);
+          }
 
           // Clear authentication data
           clearAuthData();
 
           setTimeout(() => {
             window.location.href = getUrl("/signin.html");
-          }, 500);
+          }, 1000);
         });
 
         // Close logout confirmation modal when clicking outside
@@ -2972,6 +3025,64 @@
             logoutConfirmationModal.style.display = "none";
           }
         });
+      }
+
+      // UI State Management
+      function showLoadingState() {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (assignmentList) {
+          assignmentList.innerHTML = `
+        <div class="loading-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span class="loading-text">Loading assignments...</span>
+        </div>
+      `;
+        }
+      }
+
+      function showEmptyState(message = "No assignments found.") {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (assignmentList) {
+          assignmentList.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-tasks"></i>
+          <h3>No Assignments</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary btn-large" onclick="fetchStudentAssignmentData()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      `;
+        }
+      }
+
+      function showErrorState(message) {
+        const assignmentList = document.getElementById("assignmentList");
+
+        if (assignmentList) {
+          assignmentList.innerHTML = `
+        <div class="error-state">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>Unable to Load Assignments</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary btn-large" onclick="fetchStudentAssignmentData()">
+            <i class="fas fa-sync-alt"></i> Try Again
+          </button>
+        </div>
+      `;
+        }
+      }
+
+      // Helper function to update stat elements and remove loading state
+      function updateStatElement(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.innerHTML = "";
+          element.textContent = value;
+          element.classList.remove("skeleton-loading");
+        }
       }
 
       // Setup modal functionality
@@ -3046,50 +3157,17 @@
             // Update current tab
             currentTab = this.getAttribute("data-tab");
             // Refresh assignments list
-            fetchStudentAssignments();
+            renderAssignments();
           });
         });
       }
 
-      // Global variables
-      let currentTab = "all";
-      let uploadedFiles = [];
-      let currentAssignment = null;
-
-      // Modal Elements
-      const submissionModal = document.getElementById("submissionModal");
-      const closeModalBtn = document.getElementById("closeModalBtn");
-      const cancelSubmissionBtn = document.getElementById(
-        "cancelSubmissionBtn"
-      );
-      const submissionForm = document.getElementById("submissionForm");
-
-      // Filter Elements
-      const filterBtn = document.getElementById("filterBtn");
-      const assignmentFilters = document.getElementById("assignmentFilters");
-
-      // Tab Elements
-      const tabButtons = document.querySelectorAll(".tab-btn");
-
-      // File Upload Elements
-      const fileUploadArea = document.getElementById("fileUploadArea");
-      const fileInput = document.getElementById("fileInput");
-      const filePreview = document.getElementById("filePreview");
-
-      // Logout Confirmation Elements
-      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
-      const logoutConfirmationModal = document.getElementById(
-        "logoutConfirmationModal"
-      );
-      const confirmYes = document.getElementById("confirmYes");
-      const confirmNo = document.getElementById("confirmNo");
-
-      // Initialize dashboard
-      document.addEventListener("DOMContentLoaded", function () {
-        console.log("Student Assignments Dashboard initializing...");
-
-        // Run comprehensive diagnostics
-        runDiagnostics();
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🚀 Student Assignments page initializing...");
+        console.log("📍 Current environment:", window.location.hostname);
+        console.log("🌐 API_BASE_URL:", API_BASE_URL);
+        console.log("📁 Base path:", getBasePath());
 
         // Initialize theme first
         initTheme();
@@ -3100,6 +3178,9 @@
           themeToggleInput.checked = !themeToggleInput.checked;
           toggleTheme();
         });
+
+        // Set up system theme listener
+        setupSystemThemeListener();
 
         // Load current user info first
         loadCurrentUserInfo();
@@ -3119,13 +3200,24 @@
         // Setup tab functionality
         setupTabFunctionality();
 
-        // Check if user is authenticated and load assignments
-        checkAuthentication().then((isAuthenticated) => {
-          if (isAuthenticated) {
-            fetchStudentAssignments();
+        // Setup button event listeners
+        setupEventListeners();
+
+        // Load data immediately
+        fetchStudentAssignmentData();
+
+        // Update sidebar navigation links
+        const sidebarLinks = document.querySelectorAll(".sidebar-menu a");
+        sidebarLinks.forEach((link) => {
+          const href = link.getAttribute("href");
+          if (href && !href.startsWith("http")) {
+            link.href = getUrl("/dashboards/" + href);
           }
         });
+      });
 
+      // Setup button event listeners
+      function setupEventListeners() {
         // Add active class to clicked sidebar items
         const sidebarItems = document.querySelectorAll(".sidebar-menu a");
         sidebarItems.forEach((item) => {
@@ -3139,7 +3231,7 @@
             }
           });
         });
-      });
+      }
     </script>
   </body>
 </html>
