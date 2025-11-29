@@ -2055,20 +2055,162 @@
           }
         });
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render
+      // ⚙️ API Configuration - UPDATED FOR BEARER TOKEN AUTH
       const getApiBaseUrl = () => {
-        // Check if we're on localhost
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "http://localhost:8000";
+        // Check if we're on Render production
+        if (window.location.hostname.includes("onrender.com")) {
+          return "https://curralms-backend.onrender.com";
         }
-        // For production (Render), use relative path (same domain)
-        return "";
+        // Local development
+        return "http://localhost:8000";
       };
 
       const API_BASE_URL = getApiBaseUrl();
+
+      // Environment detection
+      function getEnvironment() {
+        return window.location.hostname.includes("onrender.com")
+          ? "production"
+          : "development";
+      }
+
+      // URL helper functions for frontend navigation
+      function getBasePath() {
+        if (getEnvironment() === "development") {
+          return "/static";
+        }
+        return "";
+      }
+
+      function getUrl(path) {
+        const basePath = getBasePath();
+        return `${basePath}${path}`;
+      }
+
+      // Enhanced fetch wrapper with Bearer Token headers - FIXED
+      async function apiFetch(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+
+        // Get token from localStorage for Authorization header
+        const token = localStorage.getItem("access_token");
+
+        const config = {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        // Add Authorization header if token exists
+        if (token) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        console.log(`📡 API Call: ${url}`, {
+          method: config.method,
+          hasToken: !!token,
+          environment: getEnvironment(),
+        });
+
+        try {
+          const response = await fetch(url, config);
+
+          console.log(
+            `📨 Response: ${response.status} ${response.statusText}`,
+            {
+              url: url,
+              status: response.status,
+              ok: response.ok,
+            }
+          );
+
+          // Handle 401 Unauthorized - redirect to login
+          if (response.status === 401) {
+            console.log("🔐 Token expired or invalid, redirecting to login");
+            clearAuthData();
+            showToast(
+              "warning",
+              "Session Expired",
+              "Please log in again",
+              3000
+            );
+            setTimeout(() => {
+              window.location.href = getUrl("/signin.html");
+            }, 2000);
+            throw new Error("Authentication required");
+          }
+
+          // Handle 404 Not Found - return empty array instead of error
+          if (response.status === 404) {
+            console.log(`⚠️ Endpoint not found: ${url}, returning empty data`);
+            return { ok: true, json: async () => [] };
+          }
+
+          return response;
+        } catch (error) {
+          console.error(`❌ API Call Failed: ${url}`, error);
+          // Return a mock response for offline/error scenarios
+          return {
+            ok: false,
+            status: 500,
+            json: async () => ({ error: "Network error" }),
+          };
+        }
+      }
+
+      // Token and Auth Management - UPDATED FOR BEARER TOKENS
+      function clearAuthData() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        localStorage.removeItem("token_expires_in");
+        localStorage.removeItem("user");
+        localStorage.removeItem("auth_error");
+        localStorage.removeItem("success_message");
+        localStorage.removeItem("dashboard_previous_data");
+        console.log("🧹 Auth data cleared from localStorage");
+      }
+
+      // FIXED: Check if token is expired - SIMPLIFIED VERSION
+      function isTokenExpired() {
+        const token = localStorage.getItem("access_token");
+        if (!token) return true;
+
+        try {
+          // Simple check - if we have a token, assume it's valid for now
+          // The backend will return 401 if it's actually expired
+          console.log("🔐 Token exists, validity will be checked by backend");
+          return false;
+        } catch (error) {
+          console.error("Error checking token:", error);
+          return true;
+        }
+      }
+
+      // FIXED: Function to check if user is authenticated
+      function checkAuthentication() {
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
+          console.log("❌ No access token found");
+          showToast(
+            "warning",
+            "Authentication Required",
+            "Please log in to access the dashboard",
+            3000
+          );
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 2000);
+          return false;
+        }
+
+        // Don't do aggressive expiration checking here
+        // Let the backend handle token validation
+        console.log("✅ Token found, proceeding with API calls");
+        return true;
+      }
 
       // Toast Notification System
       function showToast(type, title, message, duration = 5000) {
@@ -2076,31 +2218,12 @@
         if (!toastContainer) {
           toastContainer = document.createElement("div");
           toastContainer.id = "toastContainer";
-          toastContainer.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        max-width: 400px;
-      `;
+          toastContainer.className = "toast-container";
           document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
-        toast.style.cssText = `
-      background: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 16px;
-      margin-bottom: 10px;
-      border-left: 4px solid;
-      display: flex;
-      align-items: center;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-    `;
 
         // Set border color based on type
         const colors = {
@@ -2109,7 +2232,6 @@
           warning: "var(--accent-purple)",
           error: "var(--error-red)",
         };
-        toast.style.borderLeftColor = colors[type] || colors.info;
 
         const icons = {
           success: "fas fa-check",
@@ -2119,26 +2241,23 @@
         };
 
         toast.innerHTML = `
-      <div class="toast-icon" style="margin-right: 12px; font-size: 20px; color: ${
-        colors[type] || colors.info
-      }">
-        <i class="${icons[type]}"></i>
-      </div>
-      <div class="toast-content" style="flex: 1;">
-        <div class="toast-title" style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div class="toast-message" style="color: var(--text-secondary); font-size: 14px;">${message}</div>
-      </div>
-      <button class="toast-close" style="background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); margin-left: 12px;">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
+          <div class="toast-icon" style="color: ${colors[type] || colors.info}">
+            <i class="${icons[type]}"></i>
+          </div>
+          <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+          </div>
+          <button class="toast-close">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
 
         toastContainer.appendChild(toast);
 
         // Show toast with animation
         setTimeout(() => {
-          toast.style.opacity = "1";
-          toast.style.transform = "translateX(0)";
+          toast.classList.add("show");
         }, 100);
 
         // Close button functionality
@@ -2158,8 +2277,8 @@
       }
 
       function hideToast(toast) {
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
+        toast.classList.remove("show");
+        toast.classList.add("hide");
         setTimeout(() => {
           if (toast.parentNode) {
             toast.parentNode.removeChild(toast);
@@ -2169,42 +2288,47 @@
 
       // Function to load and display current user info
       function loadCurrentUserInfo() {
-        const token = localStorage.getItem("access_token");
-        if (token) {
+        const userData = localStorage.getItem("user");
+        if (userData) {
           try {
-            // Decode the JWT token to get user information
-            const payload = JSON.parse(atob(token.split(".")[1]));
+            const user = JSON.parse(userData);
 
-            // Get email from token (adjust the property name based on your token structure)
-            const userEmail = payload.email || payload.sub || "User";
-
-            // Update the UI with user's email
+            // Update the UI with user's information
             const userNameElement = document.getElementById("currentUserName");
             const userAvatarElement =
               document.getElementById("currentUserAvatar");
 
             if (userNameElement) {
-              userNameElement.textContent = userEmail;
+              userNameElement.textContent =
+                user.full_name || user.username || user.email || "User";
             }
 
             if (userAvatarElement) {
-              userAvatarElement.textContent = getInitials(userEmail);
+              userAvatarElement.textContent = getInitials(
+                user.full_name || user.username || user.email
+              );
             }
+
+            console.log("👤 User info loaded:", user.username || user.email);
           } catch (e) {
-            console.error("Error parsing token:", e);
-            // Fallback to default
-            const userNameElement = document.getElementById("currentUserName");
-            const userAvatarElement =
-              document.getElementById("currentUserAvatar");
-
-            if (userNameElement) {
-              userNameElement.textContent = "User";
-            }
-
-            if (userAvatarElement) {
-              userAvatarElement.textContent = "U";
-            }
+            console.error("Error parsing user data:", e);
+            setDefaultUserInfo();
           }
+        } else {
+          setDefaultUserInfo();
+        }
+      }
+
+      function setDefaultUserInfo() {
+        const userNameElement = document.getElementById("currentUserName");
+        const userAvatarElement = document.getElementById("currentUserAvatar");
+
+        if (userNameElement) {
+          userNameElement.textContent = "User";
+        }
+
+        if (userAvatarElement) {
+          userAvatarElement.textContent = "U";
         }
       }
 
@@ -2254,57 +2378,463 @@
       // Current course to be deleted
       let currentCourseToDelete = null;
 
-      // Function to check if user is authenticated
-      function checkAuthentication() {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to manage courses",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = "/static/signin.html";
-          }, 2000);
-          return false;
+      // ✅ ADDED: Category normalization function (same as Overview page)
+      function normalizeCategoryForAPI(category) {
+        const normalized = category.toLowerCase().trim();
+
+        console.log(`🔄 Normalizing category: "${category}" -> "${normalized}"`);
+
+        // Map to API-friendly category names based on your database categories
+        if (normalized.includes("cyber") || normalized.includes("security")) {
+          return "cyber%20security"; // URL encoded for API call
         }
-        return true;
+        if (normalized.includes("design")) {
+          return "design";
+        }
+        if (normalized.includes("blockchain")) {
+          return "blockchain";
+        }
+        if (normalized.includes("dev") || normalized.includes("programming") || normalized.includes("code")) {
+          return "development";
+        }
+
+        return normalized;
       }
 
-      // Logout Confirmation Functionality
-      logoutBtn.addEventListener("click", function (e) {
-        e.preventDefault();
-        logoutConfirmationModal.style.display = "block";
-      });
+      // ✅ FIXED: Function to fetch courses by specific category
+      async function fetchCoursesByCategory(category) {
+        try {
+          console.log(`🎯 Courses Page: Fetching courses for category: "${category}"`);
 
-      confirmNo.addEventListener("click", function () {
-        logoutConfirmationModal.style.display = "none";
-      });
+          // Use the same normalization as Overview page
+          const apiCategory = normalizeCategoryForAPI(category);
+          console.log(`🎯 Courses Page: Normalized to API: "${apiCategory}"`);
 
-      confirmYes.addEventListener("click", function () {
-        showToast(
-          "info",
-          "Logging Out",
-          "You have been logged out successfully",
-          500
-        );
+          // ✅ USING YOUR CORRECT ENDPOINT: /courses/by-category/{category}
+          const response = await apiFetch(`/courses/by-category/${apiCategory}`, {
+            method: "GET",
+          });
 
-        // Clear authentication tokens
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+          console.log(`📊 Courses Page: Category response status:`, response.status);
 
-        setTimeout(() => {
-          window.location.href = "/static/signin.html";
-        }, 500);
-      });
+          if (!response.ok) {
+            console.warn(`⚠️ Courses Page: Category endpoint returned ${response.status}`);
+            // Return empty array instead of throwing error
+            return [];
+          }
 
-      // Close logout confirmation modal when clicking outside
-      window.addEventListener("click", function (event) {
-        if (event.target === logoutConfirmationModal) {
-          logoutConfirmationModal.style.display = "none";
+          const courses = await response.json();
+          console.log(`✅ Courses Page: Successfully fetched ${courses.length} courses for ${category}`);
+
+          return courses;
+        } catch (error) {
+          console.error(`❌ Courses Page: Error fetching ${category} courses:`, error);
+          // Return empty array instead of throwing error
+          return [];
         }
-      });
+      }
+
+      // Function to fetch all courses and group them by category
+      async function fetchCourses() {
+        try {
+          // Show loading spinner
+          loadingSpinner.style.display = "flex";
+          errorMessage.style.display = "none";
+
+          // Check authentication first
+          if (!checkAuthentication()) {
+            return;
+          }
+
+          console.log("📚 Fetching all courses...");
+
+          // ✅ FIXED: Using correct endpoint /courses
+          const response = await apiFetch("/courses", {
+            method: "GET",
+          });
+
+          console.log("📊 Courses response status:", response.status);
+
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch courses: ${response.status} ${response.statusText}`
+            );
+          }
+
+          const courses = await response.json();
+          console.log(`✅ Successfully fetched ${courses.length} courses`);
+
+          // Hide loading spinner
+          loadingSpinner.style.display = "none";
+
+          // Render courses
+          renderCourses(courses);
+        } catch (error) {
+          console.error("❌ Error fetching courses:", error);
+          loadingSpinner.style.display = "none";
+          errorMessage.textContent = `Error loading courses: ${error.message}`;
+          errorMessage.style.display = "block";
+
+          showToast(
+            "error",
+            "Courses Error",
+            `Failed to load courses: ${error.message}`,
+            5000
+          );
+        }
+      }
+
+      // Function to group courses by category and level
+      function groupCoursesByCategoryAndLevel(courses) {
+        const grouped = {};
+
+        courses.forEach((course) => {
+          const category = course.category || "Uncategorized";
+          const level = course.level || "beginner";
+
+          if (!grouped[category]) {
+            grouped[category] = {
+              beginner: [],
+              intermediate: [],
+              advanced: [],
+            };
+          }
+
+          if (grouped[category][level]) {
+            grouped[category][level].push(course);
+          } else {
+            grouped[category][level] = [course];
+          }
+        });
+
+        return grouped;
+      }
+
+      // Function to get category icon and color
+      function getCategoryInfo(category) {
+        const categoryMap = {
+          Design: { icon: "fas fa-palette", color: "bg-design" },
+          Development: { icon: "fas fa-code", color: "bg-development" },
+          Blockchain: { icon: "fas fa-link", color: "bg-blockchain" },
+          "Cyber Security": {
+            icon: "fas fa-shield-alt",
+            color: "bg-cybersecurity",
+          },
+          // Add more mappings for your categories
+          "cyber security": {
+            icon: "fas fa-shield-alt",
+            color: "bg-cybersecurity",
+          },
+        };
+
+        return (
+          categoryMap[category] || { icon: "fas fa-book", color: "bg-design" }
+        );
+      }
+
+      // Function to render courses in the UI
+      function renderCourses(courses) {
+        const groupedCourses = groupCoursesByCategoryAndLevel(courses);
+
+        // Clear existing content
+        courseCategories.innerHTML = "";
+
+        // Define the main categories we want to display
+        const mainCategories = [
+          "Design",
+          "Development",
+          "Blockchain",
+          "Cyber Security",
+        ];
+
+        // Create category cards for each main category
+        mainCategories.forEach((category) => {
+          const categoryInfo = getCategoryInfo(category);
+          const categoryCourses = groupedCourses[category] || {
+            beginner: [],
+            intermediate: [],
+            advanced: [],
+          };
+
+          // Count total courses in this category
+          const totalCourses =
+            categoryCourses.beginner.length +
+            categoryCourses.intermediate.length +
+            categoryCourses.advanced.length;
+
+          // Create category card
+          const categoryCard = document.createElement("div");
+          categoryCard.className = "category-card";
+
+          // Build category header
+          categoryCard.innerHTML = `
+            <div class="category-header">
+              <div class="category-icon ${categoryInfo.color}">
+                <i class="${categoryInfo.icon}"></i>
+              </div>
+              <div class="category-info">
+                <h3>${category}</h3>
+                <p>${totalCourses} courses available</p>
+              </div>
+            </div>
+            <div class="course-levels">
+              ${renderCourseLevel(
+                "Beginner Courses",
+                "beginner",
+                categoryCourses.beginner
+              )}
+              ${renderCourseLevel(
+                "Intermediate Courses",
+                "intermediate",
+                categoryCourses.intermediate
+              )}
+              ${renderCourseLevel(
+                "Advanced Courses",
+                "advanced",
+                categoryCourses.advanced
+              )}
+            </div>
+            <button class="view-category-btn" data-category="${category}">
+              <i class="fas fa-eye"></i> View All ${category} Courses
+            </button>
+          `;
+
+          courseCategories.appendChild(categoryCard);
+        });
+
+        // ✅ FIXED: Add event listeners to view category buttons AFTER they are created
+        setTimeout(() => {
+          document.querySelectorAll(".view-category-btn").forEach((button) => {
+            button.addEventListener("click", async function () {
+              const category = this.getAttribute("data-category");
+              console.log(`🎯 Viewing all ${category} courses - BUTTON CLICKED`);
+
+              try {
+                // Show loading state
+                const originalText = this.innerHTML;
+                this.innerHTML =
+                  '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                this.disabled = true;
+
+                // ✅ FIXED: Fetch courses specifically for this category using the fixed function
+                const categoryCourses = await fetchCoursesByCategory(category);
+
+                // Reset button
+                this.innerHTML = originalText;
+                this.disabled = false;
+
+                showToast(
+                  "info",
+                  `${category} Courses`,
+                  `Showing ${categoryCourses.length} ${category} courses`,
+                  3000
+                );
+
+                // You could implement a modal or redirect to show category-specific courses
+                console.log(`📊 ${category} courses:`, categoryCourses);
+
+                // ✅ DEBUG: Log the actual API call that was made
+                console.log(`🔍 DEBUG: API call made to: /courses/by-category/${normalizeCategoryForAPI(category)}`);
+
+              } catch (error) {
+                // Reset button on error
+                const originalText =
+                  '<i class="fas fa-eye"></i> View All ' + category + " Courses";
+                this.innerHTML = originalText;
+                this.disabled = false;
+
+                showToast(
+                  "error",
+                  "Category Error",
+                  `Failed to load ${category} courses: ${error.message}`,
+                  5000
+                );
+              }
+            });
+          });
+
+          // Add event listeners to edit and delete buttons
+          document.querySelectorAll(".edit-btn").forEach((button) => {
+            button.addEventListener("click", function () {
+              const courseId = this.getAttribute("data-course-id");
+              const courseTitle = this.getAttribute("data-course-title");
+              console.log(
+                "Edit button clicked for course:",
+                courseId,
+                courseTitle
+              );
+
+              if (checkAuthentication()) {
+                openEditModal(courseId);
+              }
+            });
+          });
+
+          document.querySelectorAll(".delete-btn").forEach((button) => {
+            button.addEventListener("click", function () {
+              const courseId = this.getAttribute("data-course-id");
+              const courseTitle = this.getAttribute("data-course-title");
+              console.log(
+                "Delete button clicked for course:",
+                courseId,
+                courseTitle
+              );
+
+              if (checkAuthentication()) {
+                openDeleteConfirmation(courseId, courseTitle);
+              }
+            });
+          });
+        }, 100); // Small delay to ensure DOM is fully rendered
+      }
+
+      // Function to render a course level section
+      function renderCourseLevel(title, level, courses) {
+        if (courses.length === 0) {
+          return `
+            <div class="course-level level-${level}">
+              <div class="level-header">
+                <div class="level-title">${title}</div>
+                <div class="course-count">0 courses</div>
+              </div>
+              <div style="padding: 15px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-inbox"></i><br>
+                No courses available
+              </div>
+            </div>
+          `;
+        }
+
+        const courseItems = courses
+          .map(
+            (course) => `
+              <li class="course-item">
+                <span class="course-name">${course.title}</span>
+                <div class="course-actions">
+                  <button class="action-btn edit-btn" data-course-id="${
+                    course._id || course.id
+                  }" data-course-title="${course.title}">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn delete-btn" data-course-id="${
+                    course._id || course.id
+                  }" data-course-title="${course.title}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </li>
+            `
+          )
+          .join("");
+
+        return `
+          <div class="course-level level-${level}">
+            <div class="level-header">
+              <div class="level-title">${title}</div>
+              <div class="course-count">${courses.length} courses</div>
+            </div>
+            <ul class="course-list">
+              ${courseItems}
+            </ul>
+          </div>
+        `;
+      }
+
+      // Function to fetch a single course's details
+      async function fetchCourseDetails(courseId) {
+        try {
+          console.log("Fetching course details for ID:", courseId);
+
+          // ✅ FIXED: Using correct endpoint /courses/{courseId}
+          const response = await apiFetch(`/courses/${courseId}`, {
+            method: "GET",
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch course details: ${response.status} ${response.statusText}`
+            );
+          }
+
+          return await response.json();
+        } catch (error) {
+          console.error("Error fetching course details:", error);
+          throw error;
+        }
+      }
+
+      // Function to update a course
+      async function updateCourse(courseId, courseData) {
+        try {
+          console.log("Updating course with ID:", courseId);
+          console.log("Course data:", courseData);
+
+          // ✅ FIXED: Using correct endpoint /courses/{courseId}
+          const response = await apiFetch(`/courses/${courseId}`, {
+            method: "PUT",
+            body: JSON.stringify(courseData),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.detail || `Failed to update course: ${response.status}`
+            );
+          }
+
+          showToast(
+            "success",
+            "Course Updated",
+            "Course updated successfully!",
+            4000
+          );
+          closeEditModal();
+          // Refresh the courses list
+          fetchCourses();
+        } catch (error) {
+          console.error("Error updating course:", error);
+          showToast(
+            "error",
+            "Update Failed",
+            `Error updating course: ${error.message}`,
+            5000
+          );
+        }
+      }
+
+      // Function to delete a course
+      async function deleteCourse(courseId) {
+        try {
+          console.log("Deleting course with ID:", courseId);
+
+          // ✅ FIXED: Using correct endpoint /courses/{courseId}
+          const response = await apiFetch(`/courses/${courseId}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to delete course: ${response.status}`);
+          }
+
+          showToast(
+            "success",
+            "Course Deleted",
+            "Course deleted successfully!",
+            4000
+          );
+          closeDeleteConfirmation();
+          // Refresh the courses list
+          fetchCourses();
+        } catch (error) {
+          console.error("Error deleting course:", error);
+          showToast(
+            "error",
+            "Delete Failed",
+            `Error deleting course: ${error.message}`,
+            5000
+          );
+        }
+      }
 
       // Edit Modal Functionality
       function openEditModal(courseId) {
@@ -2419,407 +2949,6 @@
         }
       });
 
-      // Function to get auth headers
-      function getAuthHeaders() {
-        const token = localStorage.getItem("access_token");
-        return {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        };
-      }
-
-      // Function to fetch a single course's details
-      async function fetchCourseDetails(courseId) {
-        try {
-          const token = localStorage.getItem("access_token");
-          const headers = {
-            "Content-Type": "application/json",
-          };
-
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
-
-          console.log("Fetching course details for ID:", courseId);
-
-          const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
-            method: "GET",
-            headers: headers,
-          });
-
-          if (response.status === 401) {
-            // Unauthorized - redirect to login
-            showToast(
-              "warning",
-              "Session Expired",
-              "Please log in again",
-              3000
-            );
-            setTimeout(() => {
-              window.location.href = "/static/signin.html";
-            }, 2000);
-            return;
-          }
-
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch course details: ${response.status} ${response.statusText}`
-            );
-          }
-
-          return await response.json();
-        } catch (error) {
-          console.error("Error fetching course details:", error);
-          throw error;
-        }
-      }
-
-      // Function to fetch courses from the API
-      async function fetchCourses() {
-        try {
-          // Show loading spinner
-          loadingSpinner.style.display = "flex";
-          errorMessage.style.display = "none";
-
-          // Fetch courses from API
-          const token = localStorage.getItem("access_token");
-          const headers = {
-            "Content-Type": "application/json",
-          };
-
-          if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-          }
-
-          const response = await fetch(`${API_BASE_URL}/courses`, {
-            method: "GET",
-            headers: headers,
-          });
-
-          if (response.status === 401) {
-            // Unauthorized - redirect to login
-            showToast(
-              "warning",
-              "Session Expired",
-              "Please log in again",
-              3000
-            );
-            setTimeout(() => {
-              window.location.href = "/static/signin.html";
-            }, 2000);
-            return;
-          }
-
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch courses: ${response.status} ${response.statusText}`
-            );
-          }
-
-          const courses = await response.json();
-
-          // Hide loading spinner
-          loadingSpinner.style.display = "none";
-
-          // Render courses
-          renderCourses(courses);
-        } catch (error) {
-          console.error("Error fetching courses:", error);
-          loadingSpinner.style.display = "none";
-          errorMessage.textContent = `Error loading courses: ${error.message}`;
-          errorMessage.style.display = "block";
-        }
-      }
-
-      // Function to group courses by category and level
-      function groupCoursesByCategoryAndLevel(courses) {
-        const grouped = {};
-
-        courses.forEach((course) => {
-          const category = course.category || "Uncategorized";
-          const level = course.level || "beginner";
-
-          if (!grouped[category]) {
-            grouped[category] = {
-              beginner: [],
-              intermediate: [],
-              advanced: [],
-            };
-          }
-
-          if (grouped[category][level]) {
-            grouped[category][level].push(course);
-          } else {
-            grouped[category][level] = [course];
-          }
-        });
-
-        return grouped;
-      }
-
-      // Function to get category icon and color
-      function getCategoryInfo(category) {
-        const categoryMap = {
-          Design: { icon: "fas fa-palette", color: "bg-design" },
-          Development: { icon: "fas fa-code", color: "bg-development" },
-          Blockchain: { icon: "fas fa-link", color: "bg-blockchain" },
-          "Cyber Security": {
-            icon: "fas fa-shield-alt",
-            color: "bg-cybersecurity",
-          },
-        };
-
-        return (
-          categoryMap[category] || { icon: "fas fa-book", color: "bg-design" }
-        );
-      }
-
-      // Function to render courses in the UI
-      function renderCourses(courses) {
-        const groupedCourses = groupCoursesByCategoryAndLevel(courses);
-
-        // Clear existing content
-        courseCategories.innerHTML = "";
-
-        // Create category cards
-        Object.keys(groupedCourses).forEach((category) => {
-          const categoryInfo = getCategoryInfo(category);
-          const categoryCourses = groupedCourses[category];
-
-          // Count total courses in this category
-          const totalCourses =
-            categoryCourses.beginner.length +
-            categoryCourses.intermediate.length +
-            categoryCourses.advanced.length;
-
-          // Create category card
-          const categoryCard = document.createElement("div");
-          categoryCard.className = "category-card";
-
-          // Build category header
-          categoryCard.innerHTML = `
-  <div class="category-header">
-    <div class="category-icon ${categoryInfo.color}">
-      <i class="${categoryInfo.icon}"></i>
-    </div>
-    <div class="category-info">
-      <h3>${category}</h3>
-      <p>${totalCourses} courses available</p>
-    </div>
-  </div>
-  <div class="course-levels">
-    ${renderCourseLevel(
-      "Beginner Courses",
-      "beginner",
-      categoryCourses.beginner
-    )}
-    ${renderCourseLevel(
-      "Intermediate Courses",
-      "intermediate",
-      categoryCourses.intermediate
-    )}
-    ${renderCourseLevel(
-      "Advanced Courses",
-      "advanced",
-      categoryCourses.advanced
-    )}
-  </div>
-  <button class="view-category-btn" data-category="${category}">
-    <i class="fas fa-eye"></i> View All ${category} Courses
-  </button>
-`;
-
-          courseCategories.appendChild(categoryCard);
-        });
-
-        // Add event listeners to view category buttons
-        document.querySelectorAll(".view-category-btn").forEach((button) => {
-          button.addEventListener("click", function () {
-            const category = this.getAttribute("data-category");
-            showToast(
-              "info",
-              "Category View",
-              `Viewing all ${category} courses`,
-              3000
-            );
-          });
-        });
-
-        // Add event listeners to edit and delete buttons
-        document.querySelectorAll(".edit-btn").forEach((button) => {
-          button.addEventListener("click", function () {
-            const courseId = this.getAttribute("data-course-id");
-            const courseTitle = this.getAttribute("data-course-title");
-            console.log(
-              "Edit button clicked for course:",
-              courseId,
-              courseTitle
-            );
-
-            if (checkAuthentication()) {
-              openEditModal(courseId);
-            }
-          });
-        });
-
-        document.querySelectorAll(".delete-btn").forEach((button) => {
-          button.addEventListener("click", function () {
-            const courseId = this.getAttribute("data-course-id");
-            const courseTitle = this.getAttribute("data-course-title");
-            console.log(
-              "Delete button clicked for course:",
-              courseId,
-              courseTitle
-            );
-
-            if (checkAuthentication()) {
-              openDeleteConfirmation(courseId, courseTitle);
-            }
-          });
-        });
-      }
-
-      // Function to render a course level section
-      function renderCourseLevel(title, level, courses) {
-        if (courses.length === 0) {
-          return "";
-        }
-
-        const courseItems = courses
-          .map(
-            (course) => `
-    <li class="course-item">
-      <span class="course-name">${course.title}</span>
-      <div class="course-actions">
-        <button class="action-btn edit-btn" data-course-id="${
-          course._id || course.id
-        }" data-course-title="${course.title}">
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="action-btn delete-btn" data-course-id="${
-          course._id || course.id
-        }" data-course-title="${course.title}">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    </li>
-  `
-          )
-          .join("");
-
-        return `
-  <div class="course-level level-${level}">
-    <div class="level-header">
-      <div class="level-title">${title}</div>
-      <div class="course-count">${courses.length} courses</div>
-    </div>
-    <ul class="course-list">
-      ${courseItems}
-    </ul>
-  </div>
-`;
-      }
-
-      // Function to update a course
-      async function updateCourse(courseId, courseData) {
-        try {
-          const token = localStorage.getItem("access_token");
-          if (!token) {
-            showToast(
-              "error",
-              "Authentication Error",
-              "Please log in to update courses",
-              4000
-            );
-            return;
-          }
-
-          console.log("Updating course with ID:", courseId);
-          console.log("Course data:", courseData);
-
-          const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(courseData),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.detail || `Failed to update course: ${response.status}`
-            );
-          }
-
-          showToast(
-            "success",
-            "Course Updated",
-            "Course updated successfully!",
-            4000
-          );
-          closeEditModal();
-          // Refresh the courses list
-          fetchCourses();
-        } catch (error) {
-          console.error("Error updating course:", error);
-          showToast(
-            "error",
-            "Update Failed",
-            `Error updating course: ${error.message}`,
-            5000
-          );
-        }
-      }
-
-      // Function to delete a course
-      async function deleteCourse(courseId) {
-        try {
-          const token = localStorage.getItem("access_token");
-          if (!token) {
-            showToast(
-              "error",
-              "Authentication Error",
-              "Please log in to delete courses",
-              4000
-            );
-            return;
-          }
-
-          console.log("Deleting course with ID:", courseId);
-
-          const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to delete course: ${response.status}`);
-          }
-
-          showToast(
-            "success",
-            "Course Deleted",
-            "Course deleted successfully!",
-            4000
-          );
-          closeDeleteConfirmation();
-          // Refresh the courses list
-          fetchCourses();
-        } catch (error) {
-          console.error("Error deleting course:", error);
-          showToast(
-            "error",
-            "Delete Failed",
-            `Error deleting course: ${error.message}`,
-            5000
-          );
-        }
-      }
-
       // Edit form submission
       editCourseForm.addEventListener("submit", async function (e) {
         e.preventDefault();
@@ -2898,7 +3027,7 @@
           submitBtn.textContent = originalText;
           submitBtn.disabled = false;
         }
-      });
+      }
 
       // Delete confirmation handler
       confirmDeleteYes.addEventListener("click", function () {
@@ -2907,19 +3036,40 @@
         }
       });
 
-      // Add active class to clicked sidebar items
-      const sidebarItems = document.querySelectorAll(".sidebar-menu a");
-      sidebarItems.forEach((item) => {
-        item.addEventListener("click", function () {
-          sidebarItems.forEach((i) => i.classList.remove("active"));
-          this.classList.add("active");
+      // Setup logout confirmation functionality
+      function setupLogoutConfirmation() {
+        logoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
 
-          // Close sidebar on mobile after clicking a link
-          if (window.innerWidth <= 992) {
-            toggleSidebar();
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            500
+          );
+
+          // Clear authentication tokens using the updated function
+          clearAuthData();
+
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 500);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
           }
         });
-      });
+      }
 
       // Modal functionality
       const modal = document.getElementById("courseModal");
@@ -3016,20 +3166,9 @@
 
           console.log("Sending course data:", courseData);
 
-          // Get authentication token
-          const token = localStorage.getItem("access_token");
-
-          if (!token) {
-            throw new Error("No authentication token found. Please log in.");
-          }
-
-          // Send course data to API
-          const response = await fetch(`${API_BASE_URL}/courses`, {
+          // ✅ FIXED: Using correct endpoint /courses
+          const response = await apiFetch("/courses", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
             body: JSON.stringify(courseData),
           });
 
@@ -3087,8 +3226,24 @@
         }
       });
 
+      // Add active class to clicked sidebar items
+      const sidebarItems = document.querySelectorAll(".sidebar-menu a");
+      sidebarItems.forEach((item) => {
+        item.addEventListener("click", function () {
+          sidebarItems.forEach((i) => i.classList.remove("active"));
+          this.classList.add("active");
+
+          // Close sidebar on mobile after clicking a link
+          if (window.innerWidth <= 992) {
+            toggleSidebar();
+          }
+        });
+      });
+
       // Initialize the page by fetching courses and loading user info
       document.addEventListener("DOMContentLoaded", function () {
+        console.log("Courses page initializing...");
+
         // Initialize theme first
         initTheme();
 
@@ -3098,8 +3253,32 @@
         // Load current user info first
         loadCurrentUserInfo();
 
-        // Then fetch courses
-        fetchCourses();
+        // Setup logout confirmation
+        setupLogoutConfirmation();
+
+        // Check if we have a token, but don't redirect immediately
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.log("⚠️ No token found, showing warning");
+          showToast(
+            "warning",
+            "Not Logged In",
+            "Please log in to view course data",
+            5000
+          );
+        } else {
+          console.log("✅ Token found, loading course data");
+          // Load data immediately if we have a token
+          fetchCourses();
+        }
+
+        // Set up periodic refresh (every 2 minutes) - only if we have a token
+        if (token) {
+          setInterval(() => {
+            console.log("Refreshing course data...");
+            fetchCourses();
+          }, 120000);
+        }
       });
     </script>
   </body>

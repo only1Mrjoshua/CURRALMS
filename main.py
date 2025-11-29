@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Depends, Request, Response
+from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
 from fastapi.responses import FileResponse
+from contextlib import asynccontextmanager
 from database import create_indexes, close_mongo_connection
 from routers import courses, users, auth, lesson, assignment, quiz
-from dependencies import oauth2_scheme
 import os
 
 @asynccontextmanager
@@ -17,16 +16,21 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await close_mongo_connection()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Curra LMS API",
+    description="Curra Learning Management System Backend API",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
-# Enhanced CORS configuration - UPDATED FOR AUTHORIZATION HEADERS
+# Enhanced CORS configuration
 def get_allowed_origins():
     """Get allowed origins based on environment"""
     env_origins = os.getenv("ALLOWED_ORIGINS", "")
     if env_origins:
         return [origin.strip() for origin in env_origins.split(",") if origin.strip()]
     
-    # Default origins - UPDATED FOR RENDER
+    # Default origins
     environment = os.getenv("ENVIRONMENT", "development")
     
     if environment == "production":
@@ -49,17 +53,20 @@ def get_allowed_origins():
             "http://127.0.0.1:5173",
         ]
 
-# CORS middleware - UPDATED FOR AUTHORIZATION HEADERS
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),
-    allow_credentials=True,  # Keep this True for other cookies if needed
+    allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*", "Authorization"],  # Ensure Authorization header is allowed
+    allow_headers=["*", "Authorization"],
     expose_headers=["*"]
 )
 
-# Include routers
+# Serve static files (for avatars and frontend)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Include API routers WITHOUT /api prefix
 app.include_router(courses.router)
 app.include_router(users.router)
 app.include_router(auth.router)
@@ -67,30 +74,31 @@ app.include_router(lesson.router)
 app.include_router(assignment.router)
 app.include_router(quiz.router)
 
-# Serve static files (for avatars)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# Root endpoint
 @app.get("/")
 async def read_root():
-    return {"message": "Curra LMS API is running", "version": "1.0.0"}
+    return {
+        "message": "Curra LMS API is running", 
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
+# Health check endpoint
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "message": "API is running smoothly"}
 
-# UPDATED CORS Debug Endpoint - Removed cookie testing
+# CORS Debug Endpoint
 @app.get("/debug/cors-test")
 async def cors_test(request: Request):
     """Test CORS and Authorization header functionality"""
     origin = request.headers.get("origin")
     auth_header = request.headers.get("authorization")
     
-    # Get environment
-    environment = os.getenv("ENVIRONMENT", "development")
-    
     return {
         "message": "CORS Test Endpoint - Authorization Headers",
-        "environment": environment,
+        "environment": os.getenv("ENVIRONMENT", "development"),
         "request_origin": origin,
         "authorization_header_received": auth_header is not None,
         "cors_configuration": {
@@ -100,56 +108,75 @@ async def cors_test(request: Request):
         }
     }
 
-# UPDATED Auth Debug Endpoint
+# Auth Debug Endpoint
 @app.get("/debug/auth")
 async def debug_auth(request: Request):
     """Debug authentication headers"""
     auth_header = request.headers.get("authorization")
-    headers = dict(request.headers)
     
     return {
         "authorization_header": auth_header,
         "headers_received": {
-            "origin": headers.get("origin"),
+            "origin": request.headers.get("origin"),
             "authorization": auth_header,
-            "content_type": headers.get("content-type")
+            "content_type": request.headers.get("content-type")
         },
         "environment": os.getenv("ENVIRONMENT", "development"),
         "message": "Check if Authorization header exists"
     }
 
+# FIXED: Catch-all route for frontend SPA - PROPERLY excludes API routes
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
     """
     Serve frontend files for SPA routing in production
+    This route ONLY handles frontend routes, NOT API routes
     """
-    # List of API route prefixes that should NOT be handled by this route
+    # List of API routes that should NEVER be handled by this route
     api_routes = [
-        "students/", "users/", "courses/", "lessons/", 
-        "assignments/", "quizzes/", "auth/", "debug/"
+        "courses", "users", "auth", "lessons", "assignments", "quizzes",
+        "docs", "redoc", "openapi.json", "debug", "health"
     ]
     
-    # If it's an API route, return 404
-    if any(full_path.startswith(api_route) for api_route in api_routes):
-        return {"error": "API endpoint not found"}
+    # Split the path to get the first segment
+    first_segment = full_path.split('/')[0] if full_path else ""
     
+    # If it's an API route or docs, let FastAPI handle it or return 404
+    if first_segment in api_routes:
+        # Let FastAPI handle the API route - if no route matches, it will return 404
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    
+    # Frontend routes that should be served
     frontend_paths = [
-        "", "signin.html", "signup.html", "index.html",
-        "dashboards/", "courses/", "profile/"
+        "", "signin", "signup", "dashboard", "courses", 
+        "profile", "admin", "student", "dashboards"
     ]
     
     # Check if this is a frontend route
-    if any(full_path.startswith(path) for path in frontend_paths) or '.' not in full_path:
+    is_frontend_route = (
+        first_segment in frontend_paths or 
+        '.' not in full_path or
+        full_path in ['', 'index.html', 'signin.html', 'signup.html'] or
+        any(full_path.startswith(path) for path in frontend_paths if path)
+    )
+    
+    if is_frontend_route:
         try:
-            # Try to serve static files first
-            return FileResponse(f"static/{full_path}" if full_path else "static/index.html")
-        except:
-            # Fallback to index.html for SPA routing
+            # Try to serve the specific file
+            if full_path and '.' in full_path and not full_path.endswith('/'):
+                return FileResponse(f"static/{full_path}")
+            else:
+                # For SPA routes, serve index.html
+                return FileResponse("static/index.html")
+        except Exception as e:
+            print(f"Frontend serving error: {e}")
+            # Fallback to index.html
             return FileResponse("static/index.html")
     
-    # Return 404 for other routes that don't exist
-    return {"error": "Endpoint not found"}
+    # If not a recognized frontend route and not an API route, return 404
+    raise HTTPException(status_code=404, detail="Endpoint not found")
 
+# Custom OpenAPI configuration
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -165,24 +192,19 @@ def custom_openapi():
     
     # Add OAuth2 security scheme
     openapi_schema["components"]["securitySchemes"] = {
-        "OAuth2PasswordBearer": {
-            "type": "oauth2",
-            "flows": {
-                "password": {
-                    "tokenUrl": "users/login",
-                    "scopes": {}
-                }
-            }
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
         }
     }
     
-    # Apply security to all endpoints that have authentication dependencies
+    # Apply security to endpoints that require authentication
     for path, methods in openapi_schema["paths"].items():
         for method, details in methods.items():
-            # Check if this endpoint requires authentication
             if endpoint_requires_auth(path, method.upper()):
                 if "security" not in details:
-                    details["security"] = [{"OAuth2PasswordBearer": []}]
+                    details["security"] = [{"BearerAuth": []}]
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -193,6 +215,8 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
     public_endpoints = [
         ("/", "GET"),
         ("/health", "GET"),
+        ("/debug/cors-test", "GET"),
+        ("/debug/auth", "GET"),
         ("/users/signup", "POST"),
         ("/users/login", "POST"),
         ("/users/logout", "POST"),
@@ -202,8 +226,6 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
         ("/auth/google/setup", "GET"),
         ("/auth/google/test", "GET"),
         ("/auth/google", "POST"),
-        ("/debug/cors-test", "GET"),
-        ("/debug/auth", "GET"),
     ]
     
     if (path, method) in public_endpoints:
@@ -220,6 +242,16 @@ def endpoint_requires_auth(path: str, method: str) -> bool:
                 if hasattr(route, 'endpoint') and hasattr(route.endpoint, 'dependencies'):
                     if route.endpoint.dependencies:
                         return True
-    return True  # Default to requiring auth for security
+    return False  # Default to not requiring auth for better UX
 
 app.openapi = custom_openapi
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        log_level="info"
+    )
