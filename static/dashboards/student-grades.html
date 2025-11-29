@@ -1528,7 +1528,7 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // URL helper functions - FIXED FOR RENDER
+      // URL helper functions
       function getBasePath() {
         // Check if we're on localhost
         if (
@@ -1546,7 +1546,7 @@
         return `${basePath}${path}`;
       }
 
-      // Theme Management - MATCHING OVERVIEW PAGE
+      // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1615,7 +1615,7 @@
           });
       }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1624,7 +1624,7 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain) - FIXED
+        // For production (Render), use relative path (same domain)
         return "https://curralms-backend.onrender.com";
       };
 
@@ -1637,11 +1637,14 @@
           : "development";
       }
 
-      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      // Enhanced fetch wrapper with Authorization headers - UPDATED
       async function apiFetch(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
+
+        // Get token from localStorage for Authorization header
+        const token = localStorage.getItem("access_token");
+
         const config = {
-          credentials: "include", // ALWAYS include cookies - CRITICAL
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
@@ -1650,9 +1653,14 @@
           ...options,
         };
 
+        // Add Authorization header if token exists - UPDATED
+        if (token) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
         console.log(`📡 API Call: ${url}`, {
           method: config.method,
-          credentials: config.credentials,
+          hasToken: !!token,
           environment: getEnvironment(),
         });
 
@@ -1665,16 +1673,8 @@
               url: url,
               status: response.status,
               ok: response.ok,
-              environment: getEnvironment(),
             }
           );
-
-          // Debug cookie info for auth endpoints
-          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
-            console.log("🍪 Cookie debug for endpoint:", endpoint);
-            console.log("📍 Current domain:", window.location.hostname);
-            console.log("🔗 API base URL:", API_BASE_URL);
-          }
 
           return response;
         } catch (error) {
@@ -1683,14 +1683,25 @@
         }
       }
 
-      // Enhanced authentication state management with cookie support (MATCHING OVERVIEW)
+      // Enhanced authentication state management with Authorization headers - UPDATED
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
           console.log("📍 Environment:", getEnvironment());
-          console.log("🍪 Current cookies:", document.cookie);
+          console.log(
+            "🔑 Token in localStorage:",
+            !!localStorage.getItem("access_token")
+          );
 
-          // Check session with credentials (cookies will be sent automatically)
+          // Get token from localStorage
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            console.log("❌ No access token found in localStorage");
+            clearAuthData();
+            return null;
+          }
+
+          // Check session with Authorization header
           const response = await apiFetch("/users/session", {
             method: "GET",
           });
@@ -1706,7 +1717,7 @@
             return data.user;
           } else if (response.status === 401) {
             // Session invalid - this is normal for logged out users
-            console.log("🔐 No valid session found (user not logged in)");
+            console.log("🔐 Authorization failed - token invalid or expired");
             clearAuthData();
             return null;
           } else {
@@ -1760,10 +1771,10 @@
         return true;
       }
 
-      // Function to test cookie session - ENHANCED
-      async function testCookieSession() {
+      // Function to test Authorization header session - UPDATED
+      async function testAuthSession() {
         try {
-          console.log("🧪 Testing cookie session...");
+          console.log("🧪 Testing Authorization header session...");
 
           const sessionResponse = await apiFetch("/debug/session");
           const sessionData = await sessionResponse.json();
@@ -1771,25 +1782,10 @@
           console.log("🎯 Session test result:", sessionData);
 
           if (sessionData.has_access_token) {
-            console.log("✅ Cookie session is working!");
-            console.log(
-              "🍪 Cookies received by backend:",
-              sessionData.cookies_received
-            );
+            console.log("✅ Authorization header session is working!");
             return true;
           } else {
-            console.log("❌ No access_token cookie found");
-            console.log("🔍 Available cookies:", sessionData.cookies_received);
-
-            // Additional debug for production
-            if (getEnvironment() === "production") {
-              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
-              console.log("   - Check if backend has ENVIRONMENT=production");
-              console.log("   - Verify CORS allows your frontend origin");
-              console.log(
-                "   - Check cookie settings (secure=true, samesite=none)"
-              );
-            }
+            console.log("❌ No access_token found in Authorization header");
             return false;
           }
         } catch (error) {
@@ -1864,7 +1860,7 @@
         return text.charAt(0).toUpperCase();
       }
 
-      // Function to fetch data from API with proper authentication - FIXED
+      // Function to fetch data from API with proper authentication - UPDATED
       async function fetchData(endpoint) {
         try {
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
@@ -1908,7 +1904,7 @@
         }
       }
 
-      // Function to fetch student grades data - USING MOCK DATA
+      // Function to fetch student grades data
       async function fetchStudentGrades() {
         console.log("🔄 Fetching student grades data...");
 
@@ -1918,36 +1914,29 @@
         }
 
         try {
-          // Test cookie session first
-          const cookieTest = await testCookieSession();
-          if (!cookieTest) {
-            console.warn("⚠️ Cookie session test failed, but continuing...");
+          // Test Authorization header session first
+          const authTest = await testAuthSession();
+          if (!authTest) {
+            console.warn(
+              "⚠️ Authorization header test failed, but continuing..."
+            );
           }
 
-          // TEMPORARY: Always use mock data until backend is fixed
-          console.log("📋 Using mock grades data for demonstration");
-          loadMockGradesData();
-          return;
+          // Fetch student grades data
+          const grades = await fetchData("/students/grades");
 
-          // Original API call commented out for now
-          /*
-      // Fetch student grades data
-      const grades = await fetchData("/students/grades");
+          console.log("📦 Student grades data fetched:", {
+            grades: grades?.length || 0,
+          });
 
-      console.log("📦 Student grades data fetched:", {
-        grades: grades?.length || 0,
-      });
-
-      updateGradesUI(grades);
-      */
+          if (grades) {
+            updateGradesUI(grades);
+          } else {
+            // If no grades from API, use mock data
+            loadMockGradesData();
+          }
         } catch (error) {
           console.error("❌ Error in fetchStudentGrades:", error);
-          showToast(
-            "error",
-            "Data Fetch Error",
-            "Could not load student grades data. Please try again.",
-            5000
-          );
 
           // Load mock data for demonstration
           loadMockGradesData();
@@ -2480,7 +2469,7 @@
         gradesCount.textContent = "No grades found";
       }
 
-      // Toast Notification System (MATCHING OVERVIEW PAGE STYLE)
+      // Toast Notification System
       function showToast(type, title, message, duration = 5000) {
         let toastContainer = document.getElementById("toastContainer");
         if (!toastContainer) {
@@ -2565,7 +2554,7 @@
         }, 300);
       }
 
-      // Setup logout confirmation functionality
+      // Setup logout confirmation functionality - UPDATED FOR AUTHORIZATION HEADERS
       function setupLogoutConfirmation() {
         sidebarLogoutBtn.addEventListener("click", function (e) {
           e.preventDefault();
@@ -2585,7 +2574,7 @@
           );
 
           try {
-            // Call backend logout endpoint to clear session
+            // Call backend logout endpoint with Authorization header
             await apiFetch("/users/logout", {
               method: "POST",
             });
@@ -2593,7 +2582,7 @@
             console.error("Logout API call failed:", error);
           }
 
-          // Clear authentication data
+          // Clear authentication data from localStorage
           clearAuthData();
 
           setTimeout(() => {
@@ -2813,7 +2802,7 @@
         // Setup button event listeners
         setupEventListeners();
 
-        // Load data immediately - USING MOCK DATA
+        // Load data immediately
         await fetchStudentGrades();
       });
     </script>

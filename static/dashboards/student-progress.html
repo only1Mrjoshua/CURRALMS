@@ -1705,33 +1705,6 @@
     </div>
 
     <script>
-      // Immediately apply theme based on device preference or saved setting
-      (function () {
-        const savedTheme = localStorage.getItem("theme");
-        const systemPrefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-
-        // Priority: saved theme > device preference > light (default)
-        const theme = savedTheme || (systemPrefersDark ? "dark" : "light");
-
-        // Apply immediately to prevent flash
-        document.documentElement.setAttribute("data-theme", theme);
-        document.documentElement.classList.add(
-          "theme-loading",
-          `theme-loading-${theme}`
-        );
-      })();
-
-      // Clean up loading classes once proper CSS is loaded
-      document.addEventListener("DOMContentLoaded", function () {
-        document.documentElement.classList.remove(
-          "theme-loading",
-          "theme-loading-dark",
-          "theme-loading-light"
-        );
-      });
-
       // Mobile Sidebar Toggle Functionality
       const sidebar = document.getElementById("sidebar");
       const mobileMenuBtn = document.getElementById("mobileMenuBtn");
@@ -1750,7 +1723,7 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // URL helper functions - FIXED FOR RENDER
+      // URL helper functions
       function getBasePath() {
         // Check if we're on localhost
         if (
@@ -1768,7 +1741,7 @@
         return `${basePath}${path}`;
       }
 
-      // Theme Management - MATCHING SIGNIN PAGE
+      // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
       const htmlElement = document.documentElement;
@@ -1837,7 +1810,7 @@
           });
       }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1846,7 +1819,7 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain) - FIXED
+        // For production (Render), use relative path (same domain)
         return "https://curralms-backend.onrender.com";
       };
 
@@ -1859,11 +1832,14 @@
           : "development";
       }
 
-      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      // Enhanced fetch wrapper with Authorization headers - UPDATED
       async function apiFetch(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
+
+        // Get token from localStorage for Authorization header
+        const token = localStorage.getItem("access_token");
+
         const config = {
-          credentials: "include", // ALWAYS include cookies - CRITICAL
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
@@ -1872,9 +1848,14 @@
           ...options,
         };
 
+        // Add Authorization header if token exists - UPDATED
+        if (token) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
         console.log(`📡 API Call: ${url}`, {
           method: config.method,
-          credentials: config.credentials,
+          hasToken: !!token,
           environment: getEnvironment(),
         });
 
@@ -1887,16 +1868,8 @@
               url: url,
               status: response.status,
               ok: response.ok,
-              environment: getEnvironment(),
             }
           );
-
-          // Debug cookie info for auth endpoints
-          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
-            console.log("🍪 Cookie debug for endpoint:", endpoint);
-            console.log("📍 Current domain:", window.location.hostname);
-            console.log("🔗 API base URL:", API_BASE_URL);
-          }
 
           return response;
         } catch (error) {
@@ -1905,14 +1878,25 @@
         }
       }
 
-      // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
+      // Enhanced authentication state management with Authorization headers - UPDATED
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
           console.log("📍 Environment:", getEnvironment());
-          console.log("🍪 Current cookies:", document.cookie);
+          console.log(
+            "🔑 Token in localStorage:",
+            !!localStorage.getItem("access_token")
+          );
 
-          // Check session with credentials (cookies will be sent automatically)
+          // Get token from localStorage
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            console.log("❌ No access token found in localStorage");
+            clearAuthData();
+            return null;
+          }
+
+          // Check session with Authorization header
           const response = await apiFetch("/users/session", {
             method: "GET",
           });
@@ -1928,7 +1912,7 @@
             return data.user;
           } else if (response.status === 401) {
             // Session invalid - this is normal for logged out users
-            console.log("🔐 No valid session found (user not logged in)");
+            console.log("🔐 Authorization failed - token invalid or expired");
             clearAuthData();
             return null;
           } else {
@@ -1964,7 +1948,7 @@
           // If we're on a dashboard page, redirect to signin
           if (
             window.location.pathname.includes("dashboard") ||
-            window.location.pathname.includes("student-")
+            window.location.pathname.includes("student")
           ) {
             showToast(
               "warning",
@@ -1982,10 +1966,10 @@
         return true;
       }
 
-      // Function to test cookie session - ENHANCED (MATCHING SIGNIN)
-      async function testCookieSession() {
+      // Function to test Authorization header session - UPDATED
+      async function testAuthSession() {
         try {
-          console.log("🧪 Testing cookie session...");
+          console.log("🧪 Testing Authorization header session...");
 
           const sessionResponse = await apiFetch("/debug/session");
           const sessionData = await sessionResponse.json();
@@ -1993,25 +1977,10 @@
           console.log("🎯 Session test result:", sessionData);
 
           if (sessionData.has_access_token) {
-            console.log("✅ Cookie session is working!");
-            console.log(
-              "🍪 Cookies received by backend:",
-              sessionData.cookies_received
-            );
+            console.log("✅ Authorization header session is working!");
             return true;
           } else {
-            console.log("❌ No access_token cookie found");
-            console.log("🔍 Available cookies:", sessionData.cookies_received);
-
-            // Additional debug for production
-            if (getEnvironment() === "production") {
-              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
-              console.log("   - Check if backend has ENVIRONMENT=production");
-              console.log("   - Verify CORS allows your frontend origin");
-              console.log(
-                "   - Check cookie settings (secure=true, samesite=none)"
-              );
-            }
+            console.log("❌ No access_token found in Authorization header");
             return false;
           }
         } catch (error) {
@@ -2086,216 +2055,7 @@
         return text.charAt(0).toUpperCase();
       }
 
-      // Toast Notification System (MATCHING SIGNIN PAGE STYLE)
-      function showToast(type, title, message, duration = 5000) {
-        let toastContainer = document.getElementById("toastContainer");
-        if (!toastContainer) {
-          toastContainer = document.createElement("div");
-          toastContainer.id = "toastContainer";
-          toastContainer.className = "toast-container";
-          document.body.appendChild(toastContainer);
-        }
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-
-        // Set appropriate colors based on type
-        let bgColor, icon;
-        switch (type) {
-          case "success":
-            bgColor = "var(--success-green)";
-            icon = "fas fa-check-circle";
-            break;
-          case "error":
-            bgColor = "var(--error-red)";
-            icon = "fas fa-exclamation-circle";
-            break;
-          case "warning":
-            bgColor = "var(--warning-orange)";
-            icon = "fas fa-exclamation-triangle";
-            break;
-          case "info":
-          default:
-            bgColor = "var(--primary-indigo)";
-            icon = "fas fa-info-circle";
-            break;
-        }
-
-        toast.innerHTML = `
-      <div class="toast-icon">
-        <i class="${icon}"></i>
-      </div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-
-        // Apply background color
-        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
-        toast.style.color = "white";
-
-        toastContainer.appendChild(toast);
-
-        // Show toast with animation
-        setTimeout(() => {
-          toast.classList.add("show");
-        }, 100);
-
-        // Close button functionality
-        const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
-
-        // Auto-hide after duration
-        if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
-        }
-
-        return toast;
-      }
-
-      function hideToast(toast) {
-        toast.classList.remove("show");
-        toast.classList.add("hide");
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-          }
-        }, 300);
-      }
-
-      // Logout Confirmation Elements
-      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
-      const logoutConfirmationModal = document.getElementById(
-        "logoutConfirmationModal"
-      );
-      const confirmYes = document.getElementById("confirmYes");
-      const confirmNo = document.getElementById("confirmNo");
-
-      // Setup logout confirmation functionality
-      function setupLogoutConfirmation() {
-        sidebarLogoutBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          logoutConfirmationModal.style.display = "block";
-        });
-
-        confirmNo.addEventListener("click", function () {
-          logoutConfirmationModal.style.display = "none";
-        });
-
-        confirmYes.addEventListener("click", async function () {
-          showToast(
-            "info",
-            "Logging Out",
-            "You have been logged out successfully",
-            2000
-          );
-
-          try {
-            // Call backend logout endpoint to clear session
-            await apiFetch("/users/logout", {
-              method: "POST",
-            });
-          } catch (error) {
-            console.error("Logout API call failed:", error);
-          }
-
-          // Clear authentication data
-          clearAuthData();
-
-          setTimeout(() => {
-            window.location.href = getUrl("/signin.html");
-          }, 1000);
-        });
-
-        // Close logout confirmation modal when clicking outside
-        window.addEventListener("click", function (event) {
-          if (event.target === logoutConfirmationModal) {
-            logoutConfirmationModal.style.display = "none";
-          }
-        });
-      }
-
-      // Global variables for charts
-      let progressChart = null;
-      let timeChart = null;
-      let activityChart = null;
-      let performanceChart = null;
-
-      // Function to check if user is authenticated
-      async function checkAuthentication() {
-        const user = await checkAuthState();
-        if (!user) {
-          showToast(
-            "warning",
-            "Authentication Required",
-            "Please log in to view progress",
-            4000
-          );
-          setTimeout(() => {
-            window.location.href = getUrl("/signin.html");
-          }, 2000);
-          return false;
-        }
-        return true;
-      }
-
-      // Load progress data
-      async function loadProgressData() {
-        try {
-          console.log("📊 Loading progress data...");
-
-          // Check authentication first
-          if (!(await redirectIfUnauthenticated())) {
-            return;
-          }
-
-          // Test cookie session first
-          const cookieTest = await testCookieSession();
-          if (!cookieTest) {
-            console.warn("⚠️ Cookie session test failed, but continuing...");
-          }
-
-          // Fetch student progress data
-          const progressData = await fetchData("/students/progress");
-
-          if (progressData) {
-            // Update stats
-            updateProgressStats(progressData);
-
-            // Render progress cards
-            renderProgressCards(progressData.courses || []);
-
-            // Initialize charts
-            initializeCharts(progressData);
-
-            console.log("✅ Progress data loaded successfully");
-          } else {
-            // Load mock data if API fails
-            loadMockProgressData();
-          }
-        } catch (error) {
-          console.error("❌ Error loading progress data:", error);
-          showToast(
-            "error",
-            "Load Error",
-            "Failed to load progress data. Please try again.",
-            5000
-          );
-
-          // Load mock data for demonstration
-          loadMockProgressData();
-        }
-      }
-
-      // Function to fetch data from API with proper authentication - FIXED
+      // Function to fetch data from API with proper authentication - UPDATED
       async function fetchData(endpoint) {
         try {
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
@@ -2336,6 +2096,56 @@
         } catch (error) {
           console.error(`❌ Error fetching data from ${endpoint}:`, error);
           return null;
+        }
+      }
+
+      // Load progress data
+      async function loadProgressData() {
+        try {
+          console.log("📊 Loading progress data...");
+
+          // Check authentication first
+          if (!(await redirectIfUnauthenticated())) {
+            return;
+          }
+
+          // Test Authorization header session first
+          const authTest = await testAuthSession();
+          if (!authTest) {
+            console.warn(
+              "⚠️ Authorization header test failed, but continuing..."
+            );
+          }
+
+          // Fetch student progress data
+          const progressData = await fetchData("/students/progress");
+
+          if (progressData) {
+            // Update stats
+            updateProgressStats(progressData);
+
+            // Render progress cards
+            renderProgressCards(progressData.courses || []);
+
+            // Initialize charts
+            initializeCharts(progressData);
+
+            console.log("✅ Progress data loaded successfully");
+          } else {
+            // Load mock data if API fails
+            loadMockProgressData();
+          }
+        } catch (error) {
+          console.error("❌ Error loading progress data:", error);
+          showToast(
+            "error",
+            "Load Error",
+            "Failed to load progress data. Please try again.",
+            5000
+          );
+
+          // Load mock data for demonstration
+          loadMockProgressData();
         }
       }
 
@@ -2749,6 +2559,143 @@
         return classMap[category] || "bg-design";
       }
 
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.className = "toast-container";
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
+
+        toast.innerHTML = `
+      <div class="toast-icon">
+        <i class="${icon}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Logout Confirmation Elements
+      const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+      const logoutConfirmationModal = document.getElementById(
+        "logoutConfirmationModal"
+      );
+      const confirmYes = document.getElementById("confirmYes");
+      const confirmNo = document.getElementById("confirmNo");
+
+      // Setup logout confirmation functionality - UPDATED FOR AUTHORIZATION HEADERS
+      function setupLogoutConfirmation() {
+        sidebarLogoutBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          logoutConfirmationModal.style.display = "block";
+        });
+
+        confirmNo.addEventListener("click", function () {
+          logoutConfirmationModal.style.display = "none";
+        });
+
+        confirmYes.addEventListener("click", async function () {
+          showToast(
+            "info",
+            "Logging Out",
+            "You have been logged out successfully",
+            2000
+          );
+
+          try {
+            // Call backend logout endpoint with Authorization header
+            await apiFetch("/users/logout", {
+              method: "POST",
+            });
+          } catch (error) {
+            console.error("Logout API call failed:", error);
+          }
+
+          // Clear authentication data from localStorage
+          clearAuthData();
+
+          setTimeout(() => {
+            window.location.href = getUrl("/signin.html");
+          }, 1000);
+        });
+
+        // Close logout confirmation modal when clicking outside
+        window.addEventListener("click", function (event) {
+          if (event.target === logoutConfirmationModal) {
+            logoutConfirmationModal.style.display = "none";
+          }
+        });
+      }
+
       // Event Listeners Setup
       function setupEventListeners() {
         console.log("🔧 Setting up event listeners...");
@@ -2817,7 +2764,7 @@
         setupSystemThemeListener();
 
         // Load current user info first
-        loadCurrentUserInfo();
+        await loadCurrentUserInfo();
 
         // Setup logout confirmation
         setupLogoutConfirmation();

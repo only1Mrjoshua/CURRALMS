@@ -318,6 +318,47 @@
         transform: translateX(26px);
       }
 
+      /* Reset to Device Theme Button */
+      .reset-theme-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+
+      .reset-theme-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
+        z-index: -1;
+      }
+
+      .reset-theme-item:hover::before {
+        left: 0;
+      }
+
+      .reset-theme-item:hover {
+        color: var(--white);
+        border-left: 4px solid var(--white);
+      }
+
+      .reset-theme-item i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+      }
+
       /* Hamburger Menu Button */
       .hamburger-menu {
         display: none;
@@ -416,6 +457,7 @@
         color: var(--white);
         font-weight: bold;
         margin-right: 10px;
+        text-decoration: none;
       }
 
       /* Page Header */
@@ -1469,6 +1511,11 @@
               <span class="toggle-slider"></span>
             </label>
           </li>
+          <!-- Reset to Device Theme -->
+          <li class="reset-theme-item" id="resetThemeBtn">
+            <i class="fas fa-sync-alt"></i>
+            <span>Reset to Device Theme</span>
+          </li>
         </ul>
       </div>
 
@@ -1772,7 +1819,7 @@
       hamburgerMenu.addEventListener("click", toggleSidebar);
       overlay.addEventListener("click", toggleSidebar);
 
-      // URL helper functions - FIXED FOR RENDER
+      // URL helper functions
       function getBasePath() {
         // Check if we're on localhost
         if (
@@ -1790,9 +1837,10 @@
         return `${basePath}${path}`;
       }
 
-      // Theme Management - MATCHING SIGNIN PAGE
+      // Theme Management
       const themeToggleInput = document.getElementById("themeToggleInput");
       const sidebarThemeToggle = document.getElementById("sidebarThemeToggle");
+      const resetThemeBtn = document.getElementById("resetThemeBtn");
       const htmlElement = document.documentElement;
 
       // Function to set theme
@@ -1840,6 +1888,22 @@
         );
       }
 
+      // Reset to device theme
+      function resetToDeviceTheme() {
+        localStorage.removeItem("theme");
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const deviceTheme = systemPrefersDark ? "dark" : "light";
+        setTheme(deviceTheme);
+        showToast(
+          "success",
+          "Theme Reset",
+          `Now using device theme (${deviceTheme})`,
+          3000
+        );
+      }
+
       // Listen for system theme changes and update if no manual preference is set
       function setupSystemThemeListener() {
         window
@@ -1859,7 +1923,7 @@
           });
       }
 
-      // ⚙️ API Configuration - Dynamic URL for localhost and Render (FIXED)
+      // ⚙️ API Configuration - Dynamic URL for localhost and Render
       const getApiBaseUrl = () => {
         // Check if we're on localhost
         if (
@@ -1868,7 +1932,7 @@
         ) {
           return "http://localhost:8000";
         }
-        // For production (Render), use relative path (same domain) - FIXED
+        // For production (Render), use relative path (same domain)
         return "https://curralms-backend.onrender.com";
       };
 
@@ -1881,11 +1945,14 @@
           : "development";
       }
 
-      // Enhanced fetch wrapper with debugging - FIXED FOR RENDER
+      // Enhanced fetch wrapper with Authorization headers - UPDATED
       async function apiFetch(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
+
+        // Get token from localStorage for Authorization header
+        const token = localStorage.getItem("access_token");
+
         const config = {
-          credentials: "include", // ALWAYS include cookies - CRITICAL
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
@@ -1894,9 +1961,14 @@
           ...options,
         };
 
+        // Add Authorization header if token exists - UPDATED
+        if (token) {
+          config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
         console.log(`📡 API Call: ${url}`, {
           method: config.method,
-          credentials: config.credentials,
+          hasToken: !!token,
           environment: getEnvironment(),
         });
 
@@ -1909,16 +1981,8 @@
               url: url,
               status: response.status,
               ok: response.ok,
-              environment: getEnvironment(),
             }
           );
-
-          // Debug cookie info for auth endpoints
-          if (endpoint.includes("/session") || endpoint.includes("/debug")) {
-            console.log("🍪 Cookie debug for endpoint:", endpoint);
-            console.log("📍 Current domain:", window.location.hostname);
-            console.log("🔗 API base URL:", API_BASE_URL);
-          }
 
           return response;
         } catch (error) {
@@ -1927,14 +1991,25 @@
         }
       }
 
-      // Enhanced authentication state management with cookie support (MATCHING SIGNIN)
+      // Enhanced authentication state management with Authorization headers - UPDATED
       async function checkAuthState() {
         try {
           console.log("🔐 Checking authentication state...");
           console.log("📍 Environment:", getEnvironment());
-          console.log("🍪 Current cookies:", document.cookie);
+          console.log(
+            "🔑 Token in localStorage:",
+            !!localStorage.getItem("access_token")
+          );
 
-          // Check session with credentials (cookies will be sent automatically)
+          // Get token from localStorage
+          const token = localStorage.getItem("access_token");
+          if (!token) {
+            console.log("❌ No access token found in localStorage");
+            clearAuthData();
+            return null;
+          }
+
+          // Check session with Authorization header
           const response = await apiFetch("/users/session", {
             method: "GET",
           });
@@ -1950,7 +2025,7 @@
             return data.user;
           } else if (response.status === 401) {
             // Session invalid - this is normal for logged out users
-            console.log("🔐 No valid session found (user not logged in)");
+            console.log("🔐 Authorization failed - token invalid or expired");
             clearAuthData();
             return null;
           } else {
@@ -2004,10 +2079,10 @@
         return true;
       }
 
-      // Function to test cookie session - ENHANCED (MATCHING SIGNIN)
-      async function testCookieSession() {
+      // Function to test Authorization header session - UPDATED
+      async function testAuthSession() {
         try {
-          console.log("🧪 Testing cookie session...");
+          console.log("🧪 Testing Authorization header session...");
 
           const sessionResponse = await apiFetch("/debug/session");
           const sessionData = await sessionResponse.json();
@@ -2015,116 +2090,16 @@
           console.log("🎯 Session test result:", sessionData);
 
           if (sessionData.has_access_token) {
-            console.log("✅ Cookie session is working!");
-            console.log(
-              "🍪 Cookies received by backend:",
-              sessionData.cookies_received
-            );
+            console.log("✅ Authorization header session is working!");
             return true;
           } else {
-            console.log("❌ No access_token cookie found");
-            console.log("🔍 Available cookies:", sessionData.cookies_received);
-
-            // Additional debug for production
-            if (getEnvironment() === "production") {
-              console.log("🔧 PRODUCTION TROUBLESHOOTING:");
-              console.log("   - Check if backend has ENVIRONMENT=production");
-              console.log("   - Verify CORS allows your frontend origin");
-              console.log(
-                "   - Check cookie settings (secure=true, samesite=none)"
-              );
-            }
+            console.log("❌ No access_token found in Authorization header");
             return false;
           }
         } catch (error) {
           console.error("💥 Session test error:", error);
           return false;
         }
-      }
-
-      // Toast Notification System (MATCHING SIGNIN PAGE STYLE)
-      function showToast(type, title, message, duration = 5000) {
-        let toastContainer = document.getElementById("toastContainer");
-        if (!toastContainer) {
-          toastContainer = document.createElement("div");
-          toastContainer.id = "toastContainer";
-          toastContainer.className = "toast-container";
-          document.body.appendChild(toastContainer);
-        }
-
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-
-        // Set appropriate colors based on type
-        let bgColor, icon;
-        switch (type) {
-          case "success":
-            bgColor = "var(--success-green)";
-            icon = "fas fa-check-circle";
-            break;
-          case "error":
-            bgColor = "var(--error-red)";
-            icon = "fas fa-exclamation-circle";
-            break;
-          case "warning":
-            bgColor = "var(--warning-orange)";
-            icon = "fas fa-exclamation-triangle";
-            break;
-          case "info":
-          default:
-            bgColor = "var(--primary-indigo)";
-            icon = "fas fa-info-circle";
-            break;
-        }
-
-        toast.innerHTML = `
-      <div class="toast-icon">
-        <i class="${icon}"></i>
-      </div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-
-        // Apply background color
-        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
-        toast.style.color = "white";
-
-        toastContainer.appendChild(toast);
-
-        // Show toast with animation
-        setTimeout(() => {
-          toast.classList.add("show");
-        }, 100);
-
-        // Close button functionality
-        const closeBtn = toast.querySelector(".toast-close");
-        closeBtn.addEventListener("click", () => {
-          hideToast(toast);
-        });
-
-        // Auto-hide after duration
-        if (duration > 0) {
-          setTimeout(() => {
-            hideToast(toast);
-          }, duration);
-        }
-
-        return toast;
-      }
-
-      function hideToast(toast) {
-        toast.classList.remove("show");
-        toast.classList.add("hide");
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-          }
-        }, 300);
       }
 
       // Function to load and display current user info
@@ -2193,7 +2168,7 @@
         return text.charAt(0).toUpperCase();
       }
 
-      // Function to fetch data from API with proper authentication - FIXED
+      // Function to fetch data from API with proper authentication - UPDATED
       async function fetchData(endpoint) {
         try {
           console.log(`🔍 Fetching from: ${API_BASE_URL}${endpoint}`);
@@ -2288,10 +2263,12 @@
         }
 
         try {
-          // Test cookie session first
-          const cookieTest = await testCookieSession();
-          if (!cookieTest) {
-            console.warn("⚠️ Cookie session test failed, but continuing...");
+          // Test Authorization header session first
+          const authTest = await testAuthSession();
+          if (!authTest) {
+            console.warn(
+              "⚠️ Authorization header test failed, but continuing..."
+            );
           }
 
           // Fetch resource data
@@ -2826,7 +2803,92 @@
         );
       }
 
-      // Setup logout confirmation functionality
+      // Toast Notification System
+      function showToast(type, title, message, duration = 5000) {
+        let toastContainer = document.getElementById("toastContainer");
+        if (!toastContainer) {
+          toastContainer = document.createElement("div");
+          toastContainer.id = "toastContainer";
+          toastContainer.className = "toast-container";
+          document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        // Set appropriate colors based on type
+        let bgColor, icon;
+        switch (type) {
+          case "success":
+            bgColor = "var(--success-green)";
+            icon = "fas fa-check-circle";
+            break;
+          case "error":
+            bgColor = "var(--error-red)";
+            icon = "fas fa-exclamation-circle";
+            break;
+          case "warning":
+            bgColor = "var(--warning-orange)";
+            icon = "fas fa-exclamation-triangle";
+            break;
+          case "info":
+          default:
+            bgColor = "var(--primary-indigo)";
+            icon = "fas fa-info-circle";
+            break;
+        }
+
+        toast.innerHTML = `
+      <div class="toast-icon">
+        <i class="${icon}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+        // Apply background color
+        toast.style.background = `linear-gradient(135deg, ${bgColor}, ${bgColor})`;
+        toast.style.color = "white";
+
+        toastContainer.appendChild(toast);
+
+        // Show toast with animation
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Close button functionality
+        const closeBtn = toast.querySelector(".toast-close");
+        closeBtn.addEventListener("click", () => {
+          hideToast(toast);
+        });
+
+        // Auto-hide after duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideToast(toast);
+          }, duration);
+        }
+
+        return toast;
+      }
+
+      function hideToast(toast) {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+
+      // Setup logout confirmation functionality - UPDATED FOR AUTHORIZATION HEADERS
       function setupLogoutConfirmation() {
         sidebarLogoutBtn.addEventListener("click", function (e) {
           e.preventDefault();
@@ -2846,7 +2908,7 @@
           );
 
           try {
-            // Call backend logout endpoint to clear session
+            // Call backend logout endpoint with Authorization header
             await apiFetch("/users/logout", {
               method: "POST",
             });
@@ -2854,7 +2916,7 @@
             console.error("Logout API call failed:", error);
           }
 
-          // Clear authentication data
+          // Clear authentication data from localStorage
           clearAuthData();
 
           setTimeout(() => {
@@ -2965,6 +3027,11 @@
           .addEventListener("click", function () {
             showToast("info", "Upload", "Upload feature coming soon", 3000);
           });
+
+        // Reset theme button
+        if (resetThemeBtn) {
+          resetThemeBtn.addEventListener("click", resetToDeviceTheme);
+        }
 
         // Close modals when clicking outside
         window.addEventListener("click", function (e) {
