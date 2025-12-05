@@ -2055,7 +2055,7 @@
           }
         });
 
-      // ⚙️ API Configuration - UPDATED FOR BEARER TOKEN AUTH
+      // ⚙️ API Configuration
       const getApiBaseUrl = () => {
         // Check if we're on Render production
         if (window.location.hostname.includes("onrender.com")) {
@@ -2087,31 +2087,27 @@
         return `${basePath}${path}`;
       }
 
-      // Enhanced fetch wrapper with Bearer Token headers - FIXED
+      // ✅ FIXED: Enhanced fetch wrapper
       async function apiFetch(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
-
-        // Get token from localStorage for Authorization header
         const token = localStorage.getItem("access_token");
 
-        const config = {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            ...options.headers,
-          },
-          ...options,
+        // ✅ FIXED: Proper header construction
+        const headers = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...options.headers,
         };
 
-        // Add Authorization header if token exists
-        if (token) {
-          config.headers["Authorization"] = `Bearer ${token}`;
-        }
+        const config = {
+          ...options,
+          headers: headers,
+        };
 
         console.log(`📡 API Call: ${url}`, {
-          method: config.method,
+          method: config.method || "GET",
           hasToken: !!token,
-          environment: getEnvironment(),
         });
 
         try {
@@ -2126,7 +2122,7 @@
             }
           );
 
-          // Handle 401 Unauthorized - redirect to login
+          // Handle 401 Unauthorized
           if (response.status === 401) {
             console.log("🔐 Token expired or invalid, redirecting to login");
             clearAuthData();
@@ -2142,25 +2138,14 @@
             throw new Error("Authentication required");
           }
 
-          // Handle 404 Not Found - return empty array instead of error
-          if (response.status === 404) {
-            console.log(`⚠️ Endpoint not found: ${url}, returning empty data`);
-            return { ok: true, json: async () => [] };
-          }
-
           return response;
         } catch (error) {
           console.error(`❌ API Call Failed: ${url}`, error);
-          // Return a mock response for offline/error scenarios
-          return {
-            ok: false,
-            status: 500,
-            json: async () => ({ error: "Network error" }),
-          };
+          throw error;
         }
       }
 
-      // Token and Auth Management - UPDATED FOR BEARER TOKENS
+      // Token and Auth Management
       function clearAuthData() {
         localStorage.removeItem("access_token");
         localStorage.removeItem("token_type");
@@ -2172,23 +2157,7 @@
         console.log("🧹 Auth data cleared from localStorage");
       }
 
-      // FIXED: Check if token is expired - SIMPLIFIED VERSION
-      function isTokenExpired() {
-        const token = localStorage.getItem("access_token");
-        if (!token) return true;
-
-        try {
-          // Simple check - if we have a token, assume it's valid for now
-          // The backend will return 401 if it's actually expired
-          console.log("🔐 Token exists, validity will be checked by backend");
-          return false;
-        } catch (error) {
-          console.error("Error checking token:", error);
-          return true;
-        }
-      }
-
-      // FIXED: Function to check if user is authenticated
+      // Function to check if user is authenticated
       function checkAuthentication() {
         const token = localStorage.getItem("access_token");
 
@@ -2206,8 +2175,6 @@
           return false;
         }
 
-        // Don't do aggressive expiration checking here
-        // Let the backend handle token validation
         console.log("✅ Token found, proceeding with API calls");
         return true;
       }
@@ -2241,17 +2208,17 @@
         };
 
         toast.innerHTML = `
-          <div class="toast-icon" style="color: ${colors[type] || colors.info}">
-            <i class="${icons[type]}"></i>
-          </div>
-          <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            <div class="toast-message">${message}</div>
-          </div>
-          <button class="toast-close">
-            <i class="fas fa-times"></i>
-          </button>
-        `;
+      <div class="toast-icon" style="color: ${colors[type] || colors.info}">
+        <i class="${icons[type]}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        <div class="toast-message">${message}</div>
+      </div>
+      <button class="toast-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
 
         toastContainer.appendChild(toast);
 
@@ -2378,63 +2345,68 @@
       // Current course to be deleted
       let currentCourseToDelete = null;
 
-      // ✅ ADDED: Category normalization function (same as Overview page)
+      // ✅ FIXED: Category normalization function
       function normalizeCategoryForAPI(category) {
+        // Match the EXACT category names in your database
+        const categoryMap = {
+          "cyber security": "Cyber Security",
+          cybersecurity: "Cyber Security",
+          design: "Design",
+          blockchain: "Blockchain",
+          development: "Development",
+          dev: "Development",
+          programming: "Development",
+          code: "Development",
+        };
+
         const normalized = category.toLowerCase().trim();
+        console.log(
+          `🔄 Normalizing category: "${category}" -> "${normalized}"`
+        );
 
-        console.log(`🔄 Normalizing category: "${category}" -> "${normalized}"`);
-
-        // Map to API-friendly category names based on your database categories
-        if (normalized.includes("cyber") || normalized.includes("security")) {
-          return "cyber%20security"; // URL encoded for API call
-        }
-        if (normalized.includes("design")) {
-          return "design";
-        }
-        if (normalized.includes("blockchain")) {
-          return "blockchain";
-        }
-        if (normalized.includes("dev") || normalized.includes("programming") || normalized.includes("code")) {
-          return "development";
-        }
-
-        return normalized;
+        // Return the exact database category name
+        return categoryMap[normalized] || category;
       }
 
       // ✅ FIXED: Function to fetch courses by specific category
       async function fetchCoursesByCategory(category) {
         try {
-          console.log(`🎯 Courses Page: Fetching courses for category: "${category}"`);
+          console.log(`🎯 Fetching courses for category: "${category}"`);
 
-          // Use the same normalization as Overview page
-          const apiCategory = normalizeCategoryForAPI(category);
-          console.log(`🎯 Courses Page: Normalized to API: "${apiCategory}"`);
+          // Normalize to match database
+          const normalizedCategory = normalizeCategoryForAPI(category);
+          console.log(`🎯 Normalized to: "${normalizedCategory}"`);
 
-          // ✅ USING YOUR CORRECT ENDPOINT: /courses/by-category/{category}
-          const response = await apiFetch(`/courses/by-category/${apiCategory}`, {
-            method: "GET",
-          });
+          // ✅ FIXED: URL encode the category
+          const encodedCategory = encodeURIComponent(normalizedCategory);
+          console.log(`🎯 URL encoded: "${encodedCategory}"`);
 
-          console.log(`📊 Courses Page: Category response status:`, response.status);
+          const response = await apiFetch(
+            `/courses/by-category/${encodedCategory}`,
+            {
+              method: "GET",
+            }
+          );
+
+          console.log(`📊 Category response status:`, response.status);
 
           if (!response.ok) {
-            console.warn(`⚠️ Courses Page: Category endpoint returned ${response.status}`);
-            // Return empty array instead of throwing error
+            console.warn(`⚠️ Category endpoint returned ${response.status}`);
             return [];
           }
 
           const courses = await response.json();
-          console.log(`✅ Courses Page: Successfully fetched ${courses.length} courses for ${category}`);
-
-          return courses;
+          console.log(
+            `✅ Successfully fetched ${courses.length} courses for ${category}`
+          );
+          return courses || [];
         } catch (error) {
-          console.error(`❌ Courses Page: Error fetching ${category} courses:`, error);
-          // Return empty array instead of throwing error
+          console.error(`❌ Error fetching ${category} courses:`, error);
           return [];
         }
       }
 
-      // Function to fetch all courses and group them by category
+      // ✅ FIXED: Function to fetch all courses - DUAL STRATEGY
       async function fetchCourses() {
         try {
           // Show loading spinner
@@ -2448,27 +2420,71 @@
 
           console.log("📚 Fetching all courses...");
 
-          // ✅ FIXED: Using correct endpoint /courses
-          const response = await apiFetch("/courses", {
-            method: "GET",
-          });
+          let allCourses = [];
 
-          console.log("📊 Courses response status:", response.status);
+          // STRATEGY 1: Try the main /courses endpoint first
+          try {
+            console.log("🔄 Trying /courses endpoint...");
+            const response = await apiFetch("/courses", {
+              method: "GET",
+            });
 
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch courses: ${response.status} ${response.statusText}`
-            );
+            if (response.ok) {
+              allCourses = await response.json();
+              console.log(
+                `✅ Got ${allCourses.length} courses from /courses endpoint`
+              );
+            } else {
+              console.log(
+                `⚠️ /courses returned ${response.status}, trying category endpoints...`
+              );
+              throw new Error(`/courses endpoint returned ${response.status}`);
+            }
+          } catch (error) {
+            console.log("🔄 Falling back to category-based fetching...");
+
+            // STRATEGY 2: Fetch by categories if main endpoint fails
+            const mainCategories = [
+              "Design",
+              "Development",
+              "Blockchain",
+              "Cyber Security",
+            ];
+
+            // Fetch courses for each category
+            for (const category of mainCategories) {
+              try {
+                const courses = await fetchCoursesByCategory(category);
+                console.log(`✅ Fetched ${courses.length} ${category} courses`);
+                allCourses = allCourses.concat(courses);
+              } catch (catError) {
+                console.error(
+                  `⚠️ Could not fetch ${category} courses:`,
+                  catError
+                );
+              }
+            }
           }
 
-          const courses = await response.json();
-          console.log(`✅ Successfully fetched ${courses.length} courses`);
+          console.log(`✅ Total courses fetched: ${allCourses.length}`);
 
           // Hide loading spinner
           loadingSpinner.style.display = "none";
 
+          // If no courses found, show empty state
+          if (allCourses.length === 0) {
+            courseCategories.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 50px;">
+            <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 20px;"></i>
+            <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Courses Found</h3>
+            <p style="color: var(--text-muted);">No courses are currently available. Try creating a new course!</p>
+          </div>
+        `;
+            return;
+          }
+
           // Render courses
-          renderCourses(courses);
+          renderCourses(allCourses);
         } catch (error) {
           console.error("❌ Error fetching courses:", error);
           loadingSpinner.style.display = "none";
@@ -2520,11 +2536,6 @@
             icon: "fas fa-shield-alt",
             color: "bg-cybersecurity",
           },
-          // Add more mappings for your categories
-          "cyber security": {
-            icon: "fas fa-shield-alt",
-            color: "bg-cybersecurity",
-          },
         };
 
         return (
@@ -2568,46 +2579,48 @@
 
           // Build category header
           categoryCard.innerHTML = `
-            <div class="category-header">
-              <div class="category-icon ${categoryInfo.color}">
-                <i class="${categoryInfo.icon}"></i>
-              </div>
-              <div class="category-info">
-                <h3>${category}</h3>
-                <p>${totalCourses} courses available</p>
-              </div>
-            </div>
-            <div class="course-levels">
-              ${renderCourseLevel(
-                "Beginner Courses",
-                "beginner",
-                categoryCourses.beginner
-              )}
-              ${renderCourseLevel(
-                "Intermediate Courses",
-                "intermediate",
-                categoryCourses.intermediate
-              )}
-              ${renderCourseLevel(
-                "Advanced Courses",
-                "advanced",
-                categoryCourses.advanced
-              )}
-            </div>
-            <button class="view-category-btn" data-category="${category}">
-              <i class="fas fa-eye"></i> View All ${category} Courses
-            </button>
-          `;
+        <div class="category-header">
+          <div class="category-icon ${categoryInfo.color}">
+            <i class="${categoryInfo.icon}"></i>
+          </div>
+          <div class="category-info">
+            <h3>${category}</h3>
+            <p>${totalCourses} courses available</p>
+          </div>
+        </div>
+        <div class="course-levels">
+          ${renderCourseLevel(
+            "Beginner Courses",
+            "beginner",
+            categoryCourses.beginner
+          )}
+          ${renderCourseLevel(
+            "Intermediate Courses",
+            "intermediate",
+            categoryCourses.intermediate
+          )}
+          ${renderCourseLevel(
+            "Advanced Courses",
+            "advanced",
+            categoryCourses.advanced
+          )}
+        </div>
+        <button class="view-category-btn" data-category="${category}">
+          <i class="fas fa-eye"></i> View All ${category} Courses
+        </button>
+      `;
 
           courseCategories.appendChild(categoryCard);
         });
 
-        // ✅ FIXED: Add event listeners to view category buttons AFTER they are created
+        // Add event listeners to view category buttons AFTER they are created
         setTimeout(() => {
           document.querySelectorAll(".view-category-btn").forEach((button) => {
             button.addEventListener("click", async function () {
               const category = this.getAttribute("data-category");
-              console.log(`🎯 Viewing all ${category} courses - BUTTON CLICKED`);
+              console.log(
+                `🎯 Viewing all ${category} courses - BUTTON CLICKED`
+              );
 
               try {
                 // Show loading state
@@ -2616,30 +2629,38 @@
                   '<i class="fas fa-spinner fa-spin"></i> Loading...';
                 this.disabled = true;
 
-                // ✅ FIXED: Fetch courses specifically for this category using the fixed function
+                // Fetch courses specifically for this category
                 const categoryCourses = await fetchCoursesByCategory(category);
 
                 // Reset button
                 this.innerHTML = originalText;
                 this.disabled = false;
 
-                showToast(
-                  "info",
-                  `${category} Courses`,
-                  `Showing ${categoryCourses.length} ${category} courses`,
-                  3000
-                );
+                if (categoryCourses.length > 0) {
+                  showToast(
+                    "info",
+                    `${category} Courses`,
+                    `Showing ${categoryCourses.length} ${category} courses`,
+                    3000
+                  );
+                  console.log(`📊 ${category} courses:`, categoryCourses);
 
-                // You could implement a modal or redirect to show category-specific courses
-                console.log(`📊 ${category} courses:`, categoryCourses);
-
-                // ✅ DEBUG: Log the actual API call that was made
-                console.log(`🔍 DEBUG: API call made to: /courses/by-category/${normalizeCategoryForAPI(category)}`);
-
+                  // You could implement a modal or redirect to show category-specific courses
+                  // For now, just log to console
+                } else {
+                  showToast(
+                    "info",
+                    `${category} Courses`,
+                    `No courses found in ${category} category`,
+                    3000
+                  );
+                }
               } catch (error) {
                 // Reset button on error
                 const originalText =
-                  '<i class="fas fa-eye"></i> View All ' + category + " Courses";
+                  '<i class="fas fa-eye"></i> View All ' +
+                  category +
+                  " Courses";
                 this.innerHTML = originalText;
                 this.disabled = false;
 
@@ -2692,52 +2713,52 @@
       function renderCourseLevel(title, level, courses) {
         if (courses.length === 0) {
           return `
-            <div class="course-level level-${level}">
-              <div class="level-header">
-                <div class="level-title">${title}</div>
-                <div class="course-count">0 courses</div>
-              </div>
-              <div style="padding: 15px; text-align: center; color: var(--text-muted);">
-                <i class="fas fa-inbox"></i><br>
-                No courses available
-              </div>
-            </div>
-          `;
+        <div class="course-level level-${level}">
+          <div class="level-header">
+            <div class="level-title">${title}</div>
+            <div class="course-count">0 courses</div>
+          </div>
+          <div style="padding: 15px; text-align: center; color: var(--text-muted);">
+            <i class="fas fa-inbox"></i><br>
+            No courses available
+          </div>
+        </div>
+      `;
         }
 
         const courseItems = courses
           .map(
             (course) => `
-              <li class="course-item">
-                <span class="course-name">${course.title}</span>
-                <div class="course-actions">
-                  <button class="action-btn edit-btn" data-course-id="${
-                    course._id || course.id
-                  }" data-course-title="${course.title}">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="action-btn delete-btn" data-course-id="${
-                    course._id || course.id
-                  }" data-course-title="${course.title}">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </li>
-            `
+          <li class="course-item">
+            <span class="course-name">${course.title}</span>
+            <div class="course-actions">
+              <button class="action-btn edit-btn" data-course-id="${
+                course._id || course.id
+              }" data-course-title="${course.title}">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete-btn" data-course-id="${
+                course._id || course.id
+              }" data-course-title="${course.title}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </li>
+        `
           )
           .join("");
 
         return `
-          <div class="course-level level-${level}">
-            <div class="level-header">
-              <div class="level-title">${title}</div>
-              <div class="course-count">${courses.length} courses</div>
-            </div>
-            <ul class="course-list">
-              ${courseItems}
-            </ul>
-          </div>
-        `;
+      <div class="course-level level-${level}">
+        <div class="level-header">
+          <div class="level-title">${title}</div>
+          <div class="course-count">${courses.length} courses</div>
+        </div>
+        <ul class="course-list">
+          ${courseItems}
+        </ul>
+      </div>
+    `;
       }
 
       // Function to fetch a single course's details
@@ -2745,7 +2766,6 @@
         try {
           console.log("Fetching course details for ID:", courseId);
 
-          // ✅ FIXED: Using correct endpoint /courses/{courseId}
           const response = await apiFetch(`/courses/${courseId}`, {
             method: "GET",
           });
@@ -2769,7 +2789,6 @@
           console.log("Updating course with ID:", courseId);
           console.log("Course data:", courseData);
 
-          // ✅ FIXED: Using correct endpoint /courses/{courseId}
           const response = await apiFetch(`/courses/${courseId}`, {
             method: "PUT",
             body: JSON.stringify(courseData),
@@ -2807,7 +2826,6 @@
         try {
           console.log("Deleting course with ID:", courseId);
 
-          // ✅ FIXED: Using correct endpoint /courses/{courseId}
           const response = await apiFetch(`/courses/${courseId}`, {
             method: "DELETE",
           });
@@ -2996,7 +3014,7 @@
           const instructorId =
             document.getElementById("edit_instructor_id").value;
 
-          // Create course object WITHOUT prerequisites and objectives
+          // Create course object
           const courseData = {
             title: title,
             description: description,
@@ -3027,7 +3045,7 @@
           submitBtn.textContent = originalText;
           submitBtn.disabled = false;
         }
-      }
+      });
 
       // Delete confirmation handler
       confirmDeleteYes.addEventListener("click", function () {
@@ -3055,7 +3073,7 @@
             500
           );
 
-          // Clear authentication tokens using the updated function
+          // Clear authentication tokens
           clearAuthData();
 
           setTimeout(() => {
@@ -3142,7 +3160,7 @@
           const promoVideo = document.getElementById("promo_video").value;
           const instructorId = document.getElementById("instructor_id").value;
 
-          // Create course object WITHOUT prerequisites and objectives
+          // Create course object
           const courseData = {
             title: title,
             description: description,
@@ -3166,7 +3184,6 @@
 
           console.log("Sending course data:", courseData);
 
-          // ✅ FIXED: Using correct endpoint /courses
           const response = await apiFetch("/courses", {
             method: "POST",
             body: JSON.stringify(courseData),
@@ -3240,7 +3257,54 @@
         });
       });
 
-      // Initialize the page by fetching courses and loading user info
+      // ✅ FIXED: Debug function to test API endpoints
+      async function debugAPI() {
+        console.log("🔍 DEBUG: Testing API endpoints...");
+
+        // Test 1: Can we reach the base URL?
+        try {
+          const health = await fetch(`${API_BASE_URL}/health`);
+          console.log(`✅ Base URL reachable: ${health.status}`);
+        } catch (error) {
+          console.log(`❌ Cannot reach API: ${error.message}`);
+        }
+
+        // Test 2: Test with token
+        const token = localStorage.getItem("access_token");
+        console.log(`🔐 Token exists: ${!!token}`);
+
+        if (token) {
+          // Test 3: Try the courses endpoint
+          try {
+            const response = await apiFetch("/courses");
+            console.log(`📊 /courses status: ${response.status}`);
+            if (response.ok) {
+              const data = await response.json();
+              console.log(
+                `📊 Total courses from /courses: ${data.length || 0}`
+              );
+            }
+          } catch (error) {
+            console.log(`❌ /courses endpoint error: ${error.message}`);
+          }
+
+          // Test 4: Try a specific category
+          try {
+            const response = await apiFetch("/courses/by-category/Blockchain");
+            console.log(
+              `📊 /courses/by-category/Blockchain status: ${response.status}`
+            );
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`📊 Blockchain courses: ${data.length || 0}`);
+            }
+          } catch (error) {
+            console.log(`❌ Category endpoint error: ${error.message}`);
+          }
+        }
+      }
+
+      // Initialize the page
       document.addEventListener("DOMContentLoaded", function () {
         console.log("Courses page initializing...");
 
@@ -3256,7 +3320,7 @@
         // Setup logout confirmation
         setupLogoutConfirmation();
 
-        // Check if we have a token, but don't redirect immediately
+        // Check if we have a token
         const token = localStorage.getItem("access_token");
         if (!token) {
           console.log("⚠️ No token found, showing warning");
@@ -3270,6 +3334,11 @@
           console.log("✅ Token found, loading course data");
           // Load data immediately if we have a token
           fetchCourses();
+
+          // Run debug tests
+          setTimeout(() => {
+            debugAPI();
+          }, 2000);
         }
 
         // Set up periodic refresh (every 2 minutes) - only if we have a token
